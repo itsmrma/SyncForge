@@ -1,35 +1,7 @@
 ﻿# SyncForge 🎬⚒️
 
 SyncForge is a powerful, modular, and smart batch-processing tool to manipulate, merge, and synchronize audio and subtitle tracks across multiple MKV video files. It acts as an orchestrator for tools like `MKVToolNix`, `ffmpeg`, and `ffsubsync`, applying intelligent grouping and automatic audio waveform synchronization using `scipy`.
-## ⚠️ Disclaimer: Read Before Using!
-
-> **IMPORTANT: USE AT YOUR OWN RISK**
-> 
-> Hey! Just a quick heads-up: I built SyncForge as a **personal project** to speed up my own video workflow. I'm sharing it here in case someone else finds it useful, but please keep in mind that **you use it entirely at your own risk**.
-> 
-> I am **not responsible** for any data loss, corrupted MKV files, ruined libraries, or hardware damage. Since this tool performs batch operations on large files, *please* make sure you have backups of your media before running it. If something breaks, you're on your own!
-> 
-> **Also note:** I developed and use this exclusively on **Windows**. While I provide Linux and macOS builds, I haven't tested them at all. They might work perfectly, or they might crash and burn.
-
-
-## ✨ Features
-
-- **Smart Batching**: Groups files based on their internal track structures (audio/subtitles) so you don't have to manually configure each file.
-- **Waveform Audio Sync**: Analyzes audio waves using Fast Fourier Transform (`scipy`) to precisely calculate delays and automatically sync different audio sources.
-- **Automatic Subtitle Sync**: Leverages `ffsubsync` to align out-of-sync subtitles automatically.
-- **In-Place Modifications**: Set default/forced flags directly in the file metadata without slow remuxing (`mkvpropedit`).
-- **Interactive UI Matcher**: Simple PyQt6-based interface to easily pair files from different folders before processing.
-- **Opus Conversion**: On-the-fly conversion of extracted audio tracks to highly efficient Opus stereo format.
-
-## 📦 Prerequisites
-
-Ensure the following tools are installed and available in your system's `PATH`:
-
-- **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`)
-- **FFmpeg** (`ffmpeg`)
-- **ffsubsync** (Can be installed via pip: `pip install ffsubsync`)
-
-## 🚀 Installation
+## 🛠️ Installation
 
 1. Clone the repository:
    ```bash
@@ -37,27 +9,24 @@ Ensure the following tools are installed and available in your system's `PATH`:
    cd SyncForge
    ```
 
-2. (Optional but recommended) Create and activate a virtual environment:
+2. Install [uv](https://docs.astral.sh/uv/), a blazingly fast Python package manager.
+
+3. Sync the environment and install dependencies:
    ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On Linux/macOS:
-   source venv/bin/activate
+   uv sync
    ```
+   *(This will automatically create a virtual environment and install PyQt6, numpy, and scipy).*
 
-3. Install the Python dependencies for advanced waveform audio sync:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(If you don't install these, audio auto-sync will be disabled, but all subtitle syncing and standard merging features will still work).*
+## 🚀 Usage
 
-## 🎮 Usage
-
-Run the main script to open the interactive command-line menu:
-
+To launch the GUI, simply run:
 ```bash
-python main.py
+uv run python main.py
+```
+
+Or, if you prefer to compile it into a standalone executable (no Python required to run later):
+```bash
+uv run python build.py
 ```
 
 ### Available Modes:
@@ -77,5 +46,6 @@ python main.py
 
 ## 📄 License
 This project is open-source and free to use.
+
 
 
