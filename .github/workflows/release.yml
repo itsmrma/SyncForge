@@ -1,0 +1,50 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Si avvia in automatico quando pushi un nuovo tag (es. v1.2)
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            executable: SyncForge.exe
+            asset_name: SyncForge-Windows.exe
+          - os: ubuntu-latest
+            executable: SyncForge
+            asset_name: SyncForge-Linux
+          - os: macos-latest
+            executable: SyncForge
+            asset_name: SyncForge-macOS
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Build Executable with PyInstaller
+      run: uv run python build.py
+
+    - name: Rename executable for specific OS
+      shell: bash
+      run: mv dist/${{ matrix.executable }} dist/${{ matrix.asset_name }}
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/${{ matrix.asset_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
