@@ -1,13 +1,13 @@
 ﻿# SyncForge 🎬⚒️
 
 SyncForge is a powerful, modular, and smart batch-processing tool to manipulate, merge, and synchronize audio and subtitle tracks across multiple MKV video files. It acts as an orchestrator for tools like `MKVToolNix`, `ffmpeg`, and `ffsubsync`, applying intelligent grouping and automatic audio waveform synchronization using `scipy`.
-## ⚠️ Disclaimer
+## ⚠️ Disclaimer: Read Before Using!
 
 > **IMPORTANT: USE AT YOUR OWN RISK**
 > 
-> This is a **personal project** built for my own workflow. By downloading and using SyncForge, you agree that you are using it entirely **at your own risk**.
-> The author assumes **no responsibility or liability** for any file corruption, data loss, hardware damage, or any other unintended consequences resulting from the use of this software.
-> *Always back up your media files before running batch processing tools!*
+> Hey! Just a quick heads-up: I built SyncForge as a **personal project** to speed up my own video workflow. I'm sharing it here in case someone else finds it useful, but please keep in mind that **you use it entirely at your own risk**.
+> 
+> I am **not responsible** for any data loss, corrupted MKV files, ruined libraries, or hardware damage. Since this tool performs batch operations on large files, *please* make sure you have backups of your media before running it. If something breaks, you're on your own!
 
 
 ## ✨ Features
