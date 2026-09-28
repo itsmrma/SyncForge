@@ -1,109 +1,205 @@
 import os
-import tkinter as tk
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+                             QListWidget, QPushButton, QAbstractItemView)
+from PyQt6.QtCore import Qt
 
-class FileMatcherUI:
-    def __init__(self, targets, sources, title="File Alignment"):
+class FileMatcherUI(QDialog):
+    def __init__(self, targets, sources, parent=None, title="File Alignment"):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(950, 600)
+        
         self.targets = targets
         self.sources = sources
-        self.result = None
+        self.result = []
         
         self.target_map = {os.path.basename(t): t for t in targets}
         self.source_map = {os.path.basename(s): s for s in sources}
         
-        self.root = tk.Toplevel()
-        self.root.title(title)
-        self.root.geometry("950x600")
-        self.root.grab_set()
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
         
-        main_frame = tk.Frame(self.root, padx=10, pady=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(main_frame, text=f"TARGET Files (Base Video)", font=("Arial", 10, "bold")).grid(row=0, column=0)
-        tk.Label(main_frame, text=f"SOURCE Files (Audio/Subs to extract)", font=("Arial", 10, "bold")).grid(row=0, column=2)
-
-        self.list_target = tk.Listbox(main_frame, width=55, height=25, selectmode=tk.SINGLE, exportselection=False)
-        self.list_target.grid(row=1, column=0, rowspan=4, sticky="ns")
+        # Labels
+        lbl_layout = QHBoxLayout()
+        lbl_target = QLabel("TARGET Files (Base Video)")
+        lbl_source = QLabel("SOURCE Files (Audio/Subs to extract)")
+        lbl_layout.addWidget(lbl_target)
+        lbl_layout.addWidget(lbl_source)
+        layout.addLayout(lbl_layout)
         
-        sb_target = tk.Scrollbar(main_frame, command=self.list_target.yview)
-        sb_target.grid(row=1, column=1, rowspan=4, sticky="ns")
-        self.list_target.config(yscrollcommand=sb_target.set)
-
-        self.list_source = tk.Listbox(main_frame, width=55, height=25, selectmode=tk.SINGLE, exportselection=False)
-        self.list_source.grid(row=1, column=2, rowspan=4, sticky="ns")
+        # Lists
+        list_layout = QHBoxLayout()
         
-        sb_source = tk.Scrollbar(main_frame, command=self.list_source.yview)
-        sb_source.grid(row=1, column=3, rowspan=4, sticky="ns")
-        self.list_source.config(yscrollcommand=sb_source.set)
+        self.list_target = QListWidget()
+        self.list_target.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_target.addItems([os.path.basename(t) for t in self.targets])
         
-        self.list_target.bind("<<ListboxSelect>>", lambda e: self.list_source.selection_clear(0, tk.END))
-        self.list_source.bind("<<ListboxSelect>>", lambda e: self.list_target.selection_clear(0, tk.END))
+        self.list_source = QListWidget()
+        self.list_source.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_source.addItems([os.path.basename(s) for s in self.sources])
+        
+        self.list_target.itemSelectionChanged.connect(self.list_source.clearSelection)
+        self.list_source.itemSelectionChanged.connect(self.list_target.clearSelection)
+        
+        list_layout.addWidget(self.list_target)
+        
+        # Buttons
+        btn_layout = QVBoxLayout()
+        btn_up = QPushButton("▲")
+        btn_up.clicked.connect(self.move_up)
+        btn_down = QPushButton("▼")
+        btn_down.clicked.connect(self.move_down)
+        btn_del = QPushButton("✕")
+        btn_del.setObjectName("DeleteButton")
+        btn_del.clicked.connect(self.remove_item)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_up)
+        btn_layout.addWidget(btn_down)
+        btn_layout.addWidget(btn_del)
+        btn_layout.addStretch()
+        
+        list_layout.addLayout(btn_layout)
+        list_layout.addWidget(self.list_source)
+        
+        layout.addLayout(list_layout)
+        
+        # Confirm Button
+        btn_confirm = QPushButton("CONFIRM PAIRING")
+        btn_confirm.setObjectName("ConfirmButton")
+        btn_confirm.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_confirm.clicked.connect(self.confirm)
+        layout.addWidget(btn_confirm)
+        
+        self.apply_styles()
 
-        btn_frame = tk.Frame(main_frame)
-        btn_frame.grid(row=1, column=4, rowspan=4, padx=10)
-        tk.Button(btn_frame, text="▲", command=self.move_up, height=2, width=4).pack(pady=5)
-        tk.Button(btn_frame, text="▼", command=self.move_down, height=2, width=4).pack(pady=5)
-        tk.Button(btn_frame, text="X", command=self.remove_item, height=1, width=4, fg="red").pack(pady=20)
+    def apply_styles(self):
+        style = """
+        QDialog {
+            background-color: #0F172A;
+        }
+        QLabel {
+            color: #F8FAFC;
+            font-weight: 800;
+            font-size: 14px;
+        }
+        QListWidget {
+            background-color: #1E293B;
+            color: #E2E8F0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            outline: 0;
+        }
+        QListWidget::item {
+            padding: 5px;
+            border-radius: 4px;
+        }
+        QListWidget::item:selected {
+            background-color: #3B82F6;
+            color: white;
+        }
+        QPushButton {
+            background-color: #1E293B;
+            color: #E2E8F0;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: #334155;
+            border: 1px solid #475569;
+        }
+        QPushButton#DeleteButton {
+            color: #EF4444;
+        }
+        QPushButton#DeleteButton:hover {
+            background-color: #7F1D1D;
+            color: white;
+            border: 1px solid #EF4444;
+        }
+        QPushButton#ConfirmButton {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+        QPushButton#ConfirmButton:hover {
+            background-color: #2563EB;
+        }
+        """
+        self.setStyleSheet(style)
 
-        for t in targets: self.list_target.insert(tk.END, os.path.basename(t))
-        for s in sources: self.list_source.insert(tk.END, os.path.basename(s))
-
-        tk.Button(self.root, text="CONFIRM PAIRING", command=self.confirm, bg="#4CAF50", fg="white", font=("Arial", 12, "bold")).pack(pady=10, fill=tk.X)
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+    def get_selected_list(self):
+        if self.list_target.selectedItems():
+            return self.list_target
+        elif self.list_source.selectedItems():
+            return self.list_source
+        return None
 
     def move_up(self):
-        if self.list_target.curselection(): self._move_up_list(self.list_target)
-        elif self.list_source.curselection(): self._move_up_list(self.list_source)
+        lbox = self.get_selected_list()
+        if not lbox: return
+        row = lbox.currentRow()
+        if row > 0:
+            item = lbox.takeItem(row)
+            lbox.insertItem(row - 1, item)
+            lbox.setCurrentRow(row - 1)
 
     def move_down(self):
-        if self.list_target.curselection(): self._move_down_list(self.list_target)
-        elif self.list_source.curselection(): self._move_down_list(self.list_source)
+        lbox = self.get_selected_list()
+        if not lbox: return
+        row = lbox.currentRow()
+        if row < lbox.count() - 1:
+            item = lbox.takeItem(row)
+            lbox.insertItem(row + 1, item)
+            lbox.setCurrentRow(row + 1)
 
     def remove_item(self):
-        if self.list_target.curselection(): self.list_target.delete(self.list_target.curselection()[0])
-        elif self.list_source.curselection(): self.list_source.delete(self.list_source.curselection()[0])
-            
-    def _move_up_list(self, lbox):
-        idx = lbox.curselection()
-        if not idx or idx[0] == 0: return
-        i = idx[0]
-        text = lbox.get(i)
-        lbox.delete(i)
-        lbox.insert(i-1, text)
-        lbox.selection_set(i-1)
-        
-    def _move_down_list(self, lbox):
-        idx = lbox.curselection()
-        if not idx or idx[0] == lbox.size() - 1: return
-        i = idx[0]
-        text = lbox.get(i)
-        lbox.delete(i)
-        lbox.insert(i+1, text)
-        lbox.selection_set(i+1)
+        lbox = self.get_selected_list()
+        if not lbox: return
+        row = lbox.currentRow()
+        lbox.takeItem(row)
 
     def confirm(self):
-        ordered_targets = self.list_target.get(0, tk.END)
-        ordered_sources = self.list_source.get(0, tk.END)
-        
         final_targets = []
         final_sources = []
         
-        for name in ordered_targets:
-            if name in self.target_map: final_targets.append(self.target_map[name])
+        for i in range(self.list_target.count()):
+            name = self.list_target.item(i).text()
+            if name in self.target_map:
+                final_targets.append(self.target_map[name])
                 
-        for name in ordered_sources:
-            if name in self.source_map: final_sources.append(self.source_map[name])
+        for i in range(self.list_source.count()):
+            name = self.list_source.item(i).text()
+            if name in self.source_map:
+                final_sources.append(self.source_map[name])
         
         limit = min(len(final_targets), len(final_sources))
         self.result = list(zip(final_targets[:limit], final_sources[:limit]))
-        self.root.destroy()
-    
-    def on_close(self):
-        self.root.destroy()
+        self.accept()
 
 def match_files_ui(target_list, source_list):
     if not target_list or not source_list:
         print("Empty file lists.")
         return []
-    app = FileMatcherUI(target_list, source_list)
-    app.root.wait_window()
-    return app.result
+        
+    from PyQt6.QtWidgets import QApplication
+    import sys
+    
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+        
+    dialog = FileMatcherUI(target_list, source_list)
+    dialog.exec()
+    return dialog.result

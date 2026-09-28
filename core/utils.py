@@ -1,15 +1,10 @@
 import os
 import shutil
 import sys
+import importlib.util
 
-# Optional math libraries for audio sync
-try:
-    import numpy as np
-    from scipy import signal
-    from scipy.io import wavfile
-    HAS_SCIPY = True
-except ImportError:
-    HAS_SCIPY = False
+# Check for math libraries without loading them into memory
+HAS_SCIPY = importlib.util.find_spec('scipy') is not None and importlib.util.find_spec('numpy') is not None
 
 def check_deps():
     missing = []
@@ -27,8 +22,6 @@ def check_deps():
     if not HAS_SCIPY:
         print("WARNING: 'numpy' and 'scipy' are not installed.")
         print("Audio waveform synchronization will not work (Subtitle sync will still work).")
-        print("Install them using: pip install numpy scipy")
-        input("Press Enter to continue anyway (or Ctrl+C to exit)...")
 
 def get_files_recursive(folder, extensions):
     """Recursively finds files and normalizes paths for Windows."""

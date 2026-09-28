@@ -1,11 +1,6 @@
 import subprocess
 from core.utils import HAS_SCIPY
 
-if HAS_SCIPY:
-    import numpy as np
-    from scipy import signal
-    from scipy.io import wavfile
-
 MAX_AUDIO_DELAY_MS = 3000
 
 def extract_audio_segment(input_file, output_wav, start_time="00:05:00", duration="00:02:00"):
@@ -23,6 +18,11 @@ def extract_audio_segment(input_file, output_wav, start_time="00:05:00", duratio
 def find_audio_delay(ref_wav, src_wav):
     if not HAS_SCIPY: return 0
     try:
+        # Lazy Loading imports to drastically speed up app startup
+        import numpy as np
+        from scipy import signal
+        from scipy.io import wavfile
+
         fs_ref, data_ref = wavfile.read(ref_wav)
         fs_src, data_src = wavfile.read(src_wav)
 
