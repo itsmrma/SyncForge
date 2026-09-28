@@ -33,7 +33,7 @@ class SyncForgeApp(QMainWindow):
     def custom_input(self, prompt=""):
         QApplication.processEvents()
         text, ok = QInputDialog.getText(self, "Input Required", prompt)
-        print(prompt + (text if ok else " [Annullato]"))
+        print(prompt + (text if ok else " [Canceled]"))
         return text if ok else ""
 
     def init_ui(self):
@@ -75,7 +75,7 @@ class SyncForgeApp(QMainWindow):
         self.modules = [
             {
                 "title": "Stream Manager",
-                "desc": "Seleziona una cartella di file MKV ed elimina in blocco le tracce audio o sottotitoli che non ti servono. L'operazione è lossles e istantanea (non ricomprime il video).",
+                "desc": "Select a folder of MKV files and batch-remove unwanted audio or subtitle tracks. The operation is lossless and instantaneous (no video re-encoding).",
                 "func": run_stream_manager
             },
             {
@@ -89,7 +89,7 @@ class SyncForgeApp(QMainWindow):
                 "func": run_sync_subs
             },
             {
-                "title": "Sync Sub da un altro MKV",
+                "title": "Sync Subs from another MKV",
                 "desc": "Estrae in automatico i sottotitoli da un file MKV 'Sorgente' e li riallinea all'audio di un file MKV 'Destinazione'. Perfetto se hai cambiato release.",
                 "func": run_sync_subs_from_mkv
             },
@@ -100,7 +100,7 @@ class SyncForgeApp(QMainWindow):
             },
             {
                 "title": "Custom Track Merge",
-                "desc": "Combina tracce specifiche da due lotti di video differenti (Cartella A e Cartella B) per creare un file ibrido definitivo.",
+                "desc": "Combine specific tracks from two different batches of videos (Folder A and Folder B) to create the ultimate hybrid file.",
                 "func": run_custom_merge
             }
         ]
@@ -126,17 +126,17 @@ class SyncForgeApp(QMainWindow):
         details_layout.setContentsMargins(25, 25, 25, 25)
         details_layout.setSpacing(15)
 
-        self.lbl_mod_title = QLabel("Seleziona un modulo")
+        self.lbl_mod_title = QLabel("Select a module")
         self.lbl_mod_title.setObjectName("DetailTitle")
         details_layout.addWidget(self.lbl_mod_title)
 
-        self.lbl_mod_desc = QLabel("Clicca su uno degli strumenti nel menu di sinistra per scoprirne le funzionalità e avviarlo.")
+        self.lbl_mod_desc = QLabel("Click on one of the tools in the left menu to discover its features and launch it.")
         self.lbl_mod_desc.setObjectName("DetailDesc")
         self.lbl_mod_desc.setWordWrap(True)
         self.lbl_mod_desc.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         details_layout.addWidget(self.lbl_mod_desc, stretch=1)
 
-        self.btn_open = QPushButton("🚀 Apri Modulo")
+        self.btn_open = QPushButton("🚀 Launch Module")
         self.btn_open.setObjectName("LaunchButton")
         self.btn_open.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_open.hide() # Hidden until selection
@@ -174,7 +174,7 @@ class SyncForgeApp(QMainWindow):
 
     def run_selected_module(self):
         if not self.selected_func: return
-        print(f"\\n--- Avvio Modulo: {self.lbl_mod_title.text()} ---\\n")
+        print(f"\\n--- Launching Module: {self.lbl_mod_title.text()} ---\\n")
         
         self.btn_open.setEnabled(False)
         # Disable sidebar during run
@@ -184,9 +184,9 @@ class SyncForgeApp(QMainWindow):
         try:
             self.selected_func()
         except Exception as e:
-            print(f"\\n[ERRORE] {e}")
+            print(f"\\n[ERROR] {e}")
             
-        print(f"\\n--- Modulo terminato ---")
+        print(f"\\n--- Module finished ---")
         self.btn_open.setEnabled(True)
         for btn in self.sidebar_buttons:
             btn.setEnabled(True)
