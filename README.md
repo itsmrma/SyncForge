@@ -1,6 +1,14 @@
-# SyncForge 🎬⚒️
+﻿# SyncForge 🎬⚒️
 
 SyncForge is a powerful, modular, and smart batch-processing tool to manipulate, merge, and synchronize audio and subtitle tracks across multiple MKV video files. It acts as an orchestrator for tools like `MKVToolNix`, `ffmpeg`, and `ffsubsync`, applying intelligent grouping and automatic audio waveform synchronization using `scipy`.
+## ⚠️ Disclaimer
+
+> **IMPORTANT: USE AT YOUR OWN RISK**
+> 
+> This is a **personal project** built for my own workflow. By downloading and using SyncForge, you agree that you are using it entirely **at your own risk**.
+> The author assumes **no responsibility or liability** for any file corruption, data loss, hardware damage, or any other unintended consequences resulting from the use of this software.
+> *Always back up your media files before running batch processing tools!*
+
 
 ## ✨ Features
 
@@ -8,7 +16,7 @@ SyncForge is a powerful, modular, and smart batch-processing tool to manipulate,
 - **Waveform Audio Sync**: Analyzes audio waves using Fast Fourier Transform (`scipy`) to precisely calculate delays and automatically sync different audio sources.
 - **Automatic Subtitle Sync**: Leverages `ffsubsync` to align out-of-sync subtitles automatically.
 - **In-Place Modifications**: Set default/forced flags directly in the file metadata without slow remuxing (`mkvpropedit`).
-- **Interactive UI Matcher**: Simple Tkinter-based interface to easily pair files from different folders before processing.
+- **Interactive UI Matcher**: Simple PyQt6-based interface to easily pair files from different folders before processing.
 - **Opus Conversion**: On-the-fly conversion of extracted audio tracks to highly efficient Opus stereo format.
 
 ## 📦 Prerequisites
@@ -67,3 +75,5 @@ python main.py
 
 ## 📄 License
 This project is open-source and free to use.
+
+
