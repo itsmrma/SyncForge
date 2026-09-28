@@ -8,6 +8,8 @@ SyncForge is a powerful, modular, and smart batch-processing tool to manipulate,
 > Hey! Just a quick heads-up: I built SyncForge as a **personal project** to speed up my own video workflow. I'm sharing it here in case someone else finds it useful, but please keep in mind that **you use it entirely at your own risk**.
 > 
 > I am **not responsible** for any data loss, corrupted MKV files, ruined libraries, or hardware damage. Since this tool performs batch operations on large files, *please* make sure you have backups of your media before running it. If something breaks, you're on your own!
+> 
+> **Also note:** I developed and use this exclusively on **Windows**. While I provide Linux and macOS builds, I haven't tested them at all. They might work perfectly, or they might crash and burn.
 
 
 ## ✨ Features
