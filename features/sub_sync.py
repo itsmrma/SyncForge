@@ -1,6 +1,6 @@
 import os
 import subprocess
-from tkinter import filedialog
+from PyQt6.QtWidgets import QFileDialog, QApplication
 from core.utils import get_files_recursive, get_track_signature
 from core.mkv_tools import get_tracks_info, select_track_interactive
 from ui.matcher_ui import match_files_ui
@@ -10,11 +10,11 @@ SUB_EXT = ('.srt', '.ass', '.vtt', '.ssa')
 
 def run_sync_subs():
     print("\n--- MODE 2: SYNC EXTERNAL SUBTITLES ---")
-    vid_folder = filedialog.askdirectory(title="Select VIDEO Folder")
-    sub_folder = filedialog.askdirectory(title="Select SUBTITLE Folder")
+    vid_folder = QFileDialog.getExistingDirectory(None, "Select VIDEO Folder")
+    sub_folder = QFileDialog.getExistingDirectory(None, "Select SUBTITLE Folder")
     if not vid_folder or not sub_folder: return
 
-    out_folder = filedialog.askdirectory(title="Select OUTPUT Folder")
+    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
     if not out_folder: return
 
     pairs = match_files_ui(get_files_recursive(vid_folder, VIDEO_EXT), get_files_recursive(sub_folder, SUB_EXT))
@@ -43,11 +43,11 @@ def run_sync_subs():
 
 def run_sync_subs_from_mkv():
     print("\n--- MODE 2B: SYNC SUBS FROM OTHER MKV (SMART BATCH) ---")
-    tgt_folder = filedialog.askdirectory(title="Select TARGET VIDEO Folder (to subtitle)")
-    src_folder = filedialog.askdirectory(title="Select SOURCE VIDEO Folder (has subtitles)")
+    tgt_folder = QFileDialog.getExistingDirectory(None, "Select TARGET VIDEO Folder (to subtitle)")
+    src_folder = QFileDialog.getExistingDirectory(None, "Select SOURCE VIDEO Folder (has subtitles)")
     if not tgt_folder or not src_folder: return
 
-    out_folder = filedialog.askdirectory(title="Select OUTPUT Folder")
+    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
     if not out_folder: return
 
     pairs = match_files_ui(get_files_recursive(tgt_folder, VIDEO_EXT), get_files_recursive(src_folder, VIDEO_EXT))

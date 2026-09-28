@@ -1,6 +1,6 @@
 import os
 import subprocess
-from tkinter import filedialog
+from PyQt6.QtWidgets import QFileDialog, QApplication
 from core.utils import get_files_recursive, get_track_signature
 from core.mkv_tools import get_tracks_info, format_track_label
 from ui.matcher_ui import match_files_ui
@@ -9,11 +9,11 @@ VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
 
 def run_custom_merge():
     print("\n--- MODE 4: CUSTOM MERGE FROM TWO SOURCES (SMART BATCH) ---")
-    folder_a = filedialog.askdirectory(title="Select Folder A (Base Video + Audio/Subs)")
-    folder_b = filedialog.askdirectory(title="Select Folder B (Additional Audio/Subs)")
+    folder_a = QFileDialog.getExistingDirectory(None, "Select Folder A (Base Video + Audio/Subs)")
+    folder_b = QFileDialog.getExistingDirectory(None, "Select Folder B (Additional Audio/Subs)")
     if not folder_a or not folder_b: return
 
-    out_folder = filedialog.askdirectory(title="Select OUTPUT Folder")
+    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
     if not out_folder: return
 
     pairs = match_files_ui(get_files_recursive(folder_a, VIDEO_EXT), get_files_recursive(folder_b, VIDEO_EXT))

@@ -1,6 +1,6 @@
 import os
 import subprocess
-from tkinter import filedialog
+from PyQt6.QtWidgets import QFileDialog, QApplication
 from core.utils import get_files_recursive, get_track_signature
 from core.mkv_tools import get_tracks_info, format_track_label
 
@@ -8,10 +8,10 @@ VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
 
 def run_stream_manager():
     print("\n--- MODE 1: STREAM MANAGER (SMART BATCH) ---")
-    folder = filedialog.askdirectory(title="Select Video Folder to process")
+    folder = QFileDialog.getExistingDirectory(None, "Select Video Folder to process")
     if not folder: return
     
-    out_folder = filedialog.askdirectory(title="Select OUTPUT Folder")
+    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
     if not out_folder: return
 
     videos = get_files_recursive(folder, VIDEO_EXT)
@@ -179,7 +179,7 @@ def run_stream_manager():
 
 def run_set_default_tracks():
     print("\n--- MODE 1B: SET DEFAULT/FORCED TRACKS (IN-PLACE) ---")
-    folder = filedialog.askdirectory(title="Select Video Folder to process")
+    folder = QFileDialog.getExistingDirectory(None, "Select Video Folder to process")
     if not folder: return
 
     videos = get_files_recursive(folder, VIDEO_EXT)
