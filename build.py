@@ -9,5 +9,5 @@ PyInstaller.__main__.run([
     '--onefile',
     '--windowed',
     '--noconfirm',
-    f'--add-data=assets/fonts{sep}assets/fonts',
+    f'--add-data=web/dist{sep}web/dist',
 ])
