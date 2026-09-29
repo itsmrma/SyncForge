@@ -5,6 +5,62 @@ from tkinter import filedialog
 import eel
 import os
 import time
+from unittest.mock import MagicMock
+
+# --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
+root = tk.Tk()
+root.withdraw()
+root.attributes('-topmost', True)
+
+last_run_module = None
+last_directory_choices = []
+is_repeating = False
+current_directory_index = 0
+
+class FileDialogMock:
+    @staticmethod
+    def getExistingDirectory(parent=None, caption=""):
+        global is_repeating, current_directory_index, last_directory_choices
+        if is_repeating:
+            if current_directory_index < len(last_directory_choices):
+                res = last_directory_choices[current_directory_index]
+                current_directory_index += 1
+                try:
+                    eel.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
+                except: pass
+                return res
+            else:
+                is_repeating = False # Fallback
+
+        res = filedialog.askdirectory(title=caption, master=root)
+        if res:
+            res = os.path.normpath(res)
+            last_directory_choices.append(res)
+        try:
+            eel.append_terminal(f"[{caption}] Selected: {res}\n")()
+        except:
+            pass
+        return res
+
+sys.modules['PyQt6'] = MagicMock()
+sys.modules['PyQt6.QtWidgets'] = MagicMock()
+sys.modules['PyQt6.QtWidgets'].QFileDialog = FileDialogMock
+sys.modules['PyQt6.QtCore'] = MagicMock()
+sys.modules['PyQt6.QtGui'] = MagicMock()
+sys.modules['PyQt6.QtWidgets'].QApplication = MagicMock()
+
+def match_files_ui_mock(target_list, source_list):
+    try:
+        res = eel.ask_matcher(target_list, source_list)()
+        if not res:
+            return []
+        return res
+    except Exception:
+        return []
+
+sys.modules['ui.matcher_ui'] = MagicMock()
+sys.modules['ui.matcher_ui'].match_files_ui = match_files_ui_mock
+# ---------------------------------------------
 
 from features.stream_manager import run_stream_manager, run_set_default_tracks
 from features.sub_sync import run_sync_subs, run_sync_subs_from_mkv
@@ -12,10 +68,6 @@ from features.injection import run_injection
 from features.custom_merge import run_custom_merge
 import core.config
 from core.utils import get_files_recursive
-
-root = tk.Tk()
-root.withdraw()
-root.attributes('-topmost', True)
 
 class StreamInterceptor:
     def __init__(self):
@@ -50,60 +102,9 @@ def patched_input(prompt=""):
     except Exception:
         return ""
 
-last_run_module = None
-last_directory_choices = []
-is_repeating = False
-current_directory_index = 0
-
-class FileDialogMock:
-    @staticmethod
-    def getExistingDirectory(parent=None, caption=""):
-        global is_repeating, current_directory_index, last_directory_choices
-        if is_repeating:
-            if current_directory_index < len(last_directory_choices):
-                res = last_directory_choices[current_directory_index]
-                current_directory_index += 1
-                try:
-                    eel.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
-                except: pass
-                return res
-            else:
-                is_repeating = False # Fallback
-
-        res = filedialog.askdirectory(title=caption, master=root)
-        if res:
-            res = os.path.normpath(res)
-            last_directory_choices.append(res)
-        try:
-            eel.append_terminal(f"[{caption}] Selected: {res}\n")()
-        except:
-            pass
-        return res
-
 # Apply patches
 sys.stdout = StreamInterceptor()
 builtins.input = patched_input
-
-import sys
-from unittest.mock import MagicMock
-sys.modules['PyQt6'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'].QFileDialog = FileDialogMock
-sys.modules['PyQt6.QtCore'] = MagicMock()
-sys.modules['PyQt6.QtGui'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'].QApplication = MagicMock()
-
-def match_files_ui_mock(target_list, source_list):
-    try:
-        res = eel.ask_matcher(target_list, source_list)()
-        if not res:
-            return []
-        return res
-    except Exception:
-        return []
-
-sys.modules['ui.matcher_ui'] = MagicMock()
-sys.modules['ui.matcher_ui'].match_files_ui = match_files_ui_mock
 
 @eel.expose
 def run_module(module_name, settings, repeat=False):

@@ -51,9 +51,9 @@ export default function App() {
 
   useEffect(() => {
     if (window.eel) {
-        window.eel.expose(append_terminal, 'append_terminal');
-        window.eel.expose(ask_input, 'ask_input');
-        window.eel.expose(ask_matcher, 'ask_matcher');
+        window.eel.append_terminal = append_terminal;
+        window.eel.ask_input = ask_input;
+        window.eel.ask_matcher = ask_matcher;
     }
   }, []);
 

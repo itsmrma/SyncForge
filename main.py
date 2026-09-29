@@ -1,8 +1,8 @@
 import os
 import eel
+import ui.backend
 
 def main():
-    import ui.backend
     
     # Path to web folder
     web_dir = os.path.join(os.path.dirname(__file__), 'web', 'dist')
