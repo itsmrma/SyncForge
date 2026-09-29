@@ -24,12 +24,12 @@ const darkTheme = createTheme({
 });
 
 const modules = [
-  { id: 'stream_manager', title: 'Stream Manager', desc: 'Batch-remove unwanted audio or subtitle tracks. The operation is lossless and instantaneous.', icon: <FormatListBulleted /> },
-  { id: 'set_default', title: 'Set Default & Forced', desc: 'Modify the Default and Forced track flags across an entire batch of MKV files.', icon: <Flag /> },
-  { id: 'sync_subs', title: 'Sync External Subtitles', desc: 'Automatically align your .srt files to the video\'s audio track. Leverages FFsubsync.', icon: <Subtitles /> },
-  { id: 'sync_subs_mkv', title: 'Sync Subs from MKV', desc: 'Automatically extracts subtitles from a Source MKV and realigns them to the audio of a Target MKV.', icon: <Sync /> },
-  { id: 'injection', title: 'WaveSync Injection', desc: 'Automatically calculates the exact delay between the audio of two different video files. Syncs and injects.', icon: <Waves /> },
-  { id: 'custom_merge', title: 'Custom Track Merge', desc: 'Combine specific tracks from two different batches of videos to create the ultimate hybrid file.', icon: <MergeType /> }
+  { id: 'stream_manager', title: 'Stream Manager', desc: 'Batch-remove unwanted audio or subtitle tracks. The operation is lossless and instantaneous.', icon: <FormatListBulleted />, needs: ['video', 'output'], labels: ['Video Folder', '', 'Output Folder'] },
+  { id: 'set_default', title: 'Set Default & Forced', desc: 'Modify the Default and Forced track flags across an entire batch of MKV files.', icon: <Flag />, needs: ['video'], labels: ['Video Folder', '', ''] },
+  { id: 'sync_subs', title: 'Sync External Subtitles', desc: 'Automatically align your .srt files to the video\'s audio track. Leverages FFsubsync.', icon: <Subtitles />, needs: ['video', 'sub', 'output'], labels: ['Video Folder', 'Subtitle Folder', 'Output Folder'] },
+  { id: 'sync_subs_mkv', title: 'Sync Subs from MKV', desc: 'Automatically extracts subtitles from a Source MKV and realigns them to the audio of a Target MKV.', icon: <Sync />, needs: ['video', 'sub', 'output'], labels: ['Target Video Folder', 'Source Video Folder', 'Output Folder'] },
+  { id: 'injection', title: 'WaveSync Injection', desc: 'Automatically calculates the exact delay between the audio of two different video files. Syncs and injects.', icon: <Waves />, needs: ['video', 'sub', 'output'], labels: ['Target Folder (High Quality)', 'Source Folder (Extract audio/subs)', 'Output Folder'] },
+  { id: 'custom_merge', title: 'Custom Track Merge', desc: 'Combine specific tracks from two different batches of videos to create the ultimate hybrid file.', icon: <MergeType />, needs: ['video', 'sub', 'output'], labels: ['Folder A (Base Video)', 'Folder B (Additional Audio/Subs)', 'Output Folder'] }
 ];
 
 export default function App() {
@@ -37,6 +37,12 @@ export default function App() {
   const [terminal, setTerminal] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  
+  const [paths, setPaths] = useState({
+    video: '',
+    sub: '',
+    output: ''
+  });
   
   const [settings, setSettings] = useState({
     max_offset: 1,
@@ -102,11 +108,20 @@ export default function App() {
     setIsRunning(true);
     setShowTerminal(true);
     if (window.pywebview && window.pywebview.api) {
-        await window.pywebview.api.run_module(selectedMod.id, settings, repeat);
+        await window.pywebview.api.run_module(selectedMod.id, settings, paths, repeat);
     } else {
         append_terminal("Webview API is not connected. Running in dev mode?\\n");
     }
     setIsRunning(false);
+  };
+
+  const handlePickFolder = async (key) => {
+    if (window.pywebview && window.pywebview.api) {
+        const folder = await window.pywebview.api.pick_folder();
+        if (folder) {
+            setPaths(prev => ({ ...prev, [key]: folder }));
+        }
+    }
   };
 
   const formatPath = (p) => {
@@ -188,6 +203,46 @@ export default function App() {
               <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 600, lineHeight: 1.6 }}>
                 {selectedMod.desc}
               </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4, maxWidth: 600 }}>
+                {selectedMod.needs.includes('video') && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField 
+                      label={selectedMod.labels[0]} 
+                      value={paths.video} 
+                      onChange={(e) => setPaths(p => ({...p, video: e.target.value}))}
+                      fullWidth 
+                      size="small" 
+                    />
+                    <Button variant="outlined" onClick={() => handlePickFolder('video')}>Browse</Button>
+                  </Box>
+                )}
+                {selectedMod.needs.includes('sub') && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField 
+                      label={selectedMod.labels[1]} 
+                      value={paths.sub} 
+                      onChange={(e) => setPaths(p => ({...p, sub: e.target.value}))}
+                      fullWidth 
+                      size="small" 
+                    />
+                    <Button variant="outlined" onClick={() => handlePickFolder('sub')}>Browse</Button>
+                  </Box>
+                )}
+                {selectedMod.needs.includes('output') && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField 
+                      label={selectedMod.labels[2]} 
+                      value={paths.output} 
+                      onChange={(e) => setPaths(p => ({...p, output: e.target.value}))}
+                      fullWidth 
+                      size="small" 
+                      placeholder="Leave empty to use Video Folder"
+                    />
+                    <Button variant="outlined" onClick={() => handlePickFolder('output')}>Browse</Button>
+                  </Box>
+                )}
+              </Box>
               
               <Box sx={{ display: 'flex', gap: 2 }}>
                   <Button 

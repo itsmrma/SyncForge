@@ -150,7 +150,17 @@ sys.stdout = StreamInterceptor()
 builtins.input = patched_input
 
 class Api:
-    def run_module(self, module_name, settings, repeat=False):
+    def pick_folder(self):
+        if window_ref:
+            try:
+                paths = window_ref.create_file_dialog(webview.FOLDER_DIALOG)
+                if paths and len(paths) > 0:
+                    return paths[0]
+            except Exception:
+                pass
+        return ""
+
+    def run_module(self, module_name, settings, paths=None, repeat=False):
         global last_run_module, last_directory_choices, is_repeating, current_directory_index
         
         core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
@@ -173,9 +183,26 @@ class Api:
             current_directory_index = 0
         else:
             last_run_module = module_name
-            last_directory_choices = []
-            is_repeating = False
+            is_repeating = True
+            current_directory_index = 0
             
+            # Populate last_directory_choices with the provided paths
+            last_directory_choices = []
+            if paths:
+                p_vid = paths.get("video", "")
+                p_sub = paths.get("sub", "")
+                p_out = paths.get("output", "")
+                if not p_out:
+                    p_out = p_vid
+                
+                # Depending on the module, we queue the paths in the order they are asked
+                if module_name == "set_default":
+                    last_directory_choices = [p_vid]
+                elif module_name == "stream_manager":
+                    last_directory_choices = [p_vid, p_out]
+                else:
+                    last_directory_choices = [p_vid, p_sub, p_out]
+                    
         if module_name in modules:
             try:
                 eel.append_terminal(f"\n--- Launching {module_name} ---\n")()
@@ -187,4 +214,4 @@ class Api:
                 return {"status": "error", "message": str(e)}
 
     def get_version(self):
-        return "1.5.0"
+        return "1.6.0"
