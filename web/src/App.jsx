@@ -145,6 +145,16 @@ export default function App() {
     setIsRunning(false);
   };
 
+  const downloadTerminalLogs = () => {
+    const blob = new Blob([terminal], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `syncforge_logs_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handlePickFolder = async (key) => {
     if (window.pywebview && window.pywebview.api) {
         const folder = await window.pywebview.api.pick_folder();
@@ -316,9 +326,16 @@ export default function App() {
                 <div ref={terminalEndRef} />
              </Paper>
           </Box>
-          <Button onClick={() => setShowTerminal(!showTerminal)} sx={{ alignSelf: 'flex-start', mt: 1, color: '#CAC4D0' }}>
-            {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1, alignSelf: 'flex-start' }}>
+            <Button onClick={() => setShowTerminal(!showTerminal)} sx={{ color: '#CAC4D0' }}>
+              {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
+            </Button>
+            {terminal && (
+              <Button onClick={downloadTerminalLogs} sx={{ color: '#CAC4D0' }}>
+                Download Logs
+              </Button>
+            )}
+          </Box>
         </Box>
       </Box>
 
