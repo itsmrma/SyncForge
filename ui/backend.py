@@ -50,12 +50,30 @@ def patched_input(prompt=""):
     except Exception:
         return ""
 
+last_run_module = None
+last_directory_choices = []
+is_repeating = False
+current_directory_index = 0
+
 class FileDialogMock:
     @staticmethod
     def getExistingDirectory(parent=None, caption=""):
+        global is_repeating, current_directory_index, last_directory_choices
+        if is_repeating:
+            if current_directory_index < len(last_directory_choices):
+                res = last_directory_choices[current_directory_index]
+                current_directory_index += 1
+                try:
+                    eel.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
+                except: pass
+                return res
+            else:
+                is_repeating = False # Fallback
+
         res = filedialog.askdirectory(title=caption, master=root)
         if res:
             res = os.path.normpath(res)
+            last_directory_choices.append(res)
         try:
             eel.append_terminal(f"[{caption}] Selected: {res}\n")()
         except:
@@ -88,7 +106,9 @@ sys.modules['ui.matcher_ui'] = MagicMock()
 sys.modules['ui.matcher_ui'].match_files_ui = match_files_ui_mock
 
 @eel.expose
-def run_module(module_name, settings):
+def run_module(module_name, settings, repeat=False):
+    global last_run_module, last_directory_choices, is_repeating, current_directory_index
+    
     core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
     core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
     core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
@@ -102,6 +122,15 @@ def run_module(module_name, settings):
         "custom_merge": run_custom_merge
     }
     
+    if repeat and last_run_module:
+        module_name = last_run_module
+        is_repeating = True
+        current_directory_index = 0
+    else:
+        last_run_module = module_name
+        last_directory_choices = []
+        is_repeating = False
+        
     if module_name in modules:
         try:
             eel.append_terminal(f"\n--- Launching {module_name} ---\n")()

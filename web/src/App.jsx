@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FormatListBulleted, Flag, Subtitles, Sync, Waves, MergeType, PlayArrow } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import FormatListBulleted from '@mui/icons-material/FormatListBulleted';
+import Flag from '@mui/icons-material/Flag';
+import Subtitles from '@mui/icons-material/Subtitles';
+import Sync from '@mui/icons-material/Sync';
+import Waves from '@mui/icons-material/Waves';
+import MergeType from '@mui/icons-material/MergeType';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import Replay from '@mui/icons-material/Replay';
+import DragHandle from '@mui/icons-material/DragHandle';
 
 const darkTheme = createTheme({
   palette: {
@@ -36,10 +44,12 @@ export default function App() {
     auto_subs: true
   });
 
+  const [matcherState, setMatcherState] = useState({ open: false, targets: [], sources: [], resolve: null });
+  const [reorderSources, setReorderSources] = useState([]);
+
   const terminalEndRef = useRef(null);
 
   useEffect(() => {
-    // Expose functions to Python
     if (window.eel) {
         window.eel.expose(append_terminal, 'append_terminal');
         window.eel.expose(ask_input, 'ask_input');
@@ -50,7 +60,6 @@ export default function App() {
   const append_terminal = (text) => {
     setTerminal(prev => {
         const next = prev + text;
-        // Keep terminal from getting too huge
         if (next.length > 50000) return next.slice(next.length - 50000);
         return next;
     });
@@ -66,29 +75,42 @@ export default function App() {
 
   const ask_matcher = (targets, sources) => {
     return new Promise((resolve) => {
-        const limit = Math.min(targets.length, sources.length);
-        const pairs = [];
-        for (let i = 0; i < limit; i++) {
-            pairs.push([targets[i], sources[i]]);
-        }
-        let msg = `Auto-paired ${limit} files. Proceed?\n\nFirst pair:\nTarget: ${targets[0] || 'N/A'}\nSource: ${sources[0] || 'N/A'}`;
-        if (window.confirm(msg)) {
-            resolve(pairs);
-        } else {
-            resolve([]);
-        }
+        // Need to make sources unique for Reorder key prop
+        const uniqueSources = sources.map((s, i) => ({ id: i.toString(), path: s }));
+        setReorderSources(uniqueSources);
+        setMatcherState({ open: true, targets, sources: uniqueSources, resolve });
     });
   };
 
-  const handleRun = async () => {
+  const handleMatcherConfirm = () => {
+    const limit = Math.min(matcherState.targets.length, reorderSources.length);
+    const pairs = [];
+    for (let i = 0; i < limit; i++) {
+        pairs.push([matcherState.targets[i], reorderSources[i].path]);
+    }
+    matcherState.resolve(pairs);
+    setMatcherState({ open: false, targets: [], sources: [], resolve: null });
+  };
+
+  const handleMatcherCancel = () => {
+    matcherState.resolve([]);
+    setMatcherState({ open: false, targets: [], sources: [], resolve: null });
+  };
+
+  const handleRun = async (repeat = false) => {
     setIsRunning(true);
     setShowTerminal(true);
     if (window.eel) {
-        await window.eel.run_module(selectedMod.id, settings)();
+        await window.eel.run_module(selectedMod.id, settings, repeat)();
     } else {
-        append_terminal("Eel is not connected. Running in dev mode?\n");
+        append_terminal("Eel is not connected. Running in dev mode?\\n");
     }
     setIsRunning(false);
+  };
+
+  const formatPath = (p) => {
+      const parts = p.split(/[\\/]/);
+      return parts[parts.length - 1];
   };
 
   return (
@@ -149,16 +171,28 @@ export default function App() {
                 {selectedMod.desc}
               </Typography>
               
-              <Button 
-                variant="contained" 
-                size="large" 
-                startIcon={<PlayArrow />}
-                onClick={handleRun}
-                disabled={isRunning}
-                sx={{ borderRadius: 8, px: 4, py: 1.5, fontWeight: 'bold' }}
-              >
-                {isRunning ? 'Running...' : 'Launch Module'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button 
+                    variant="contained" 
+                    size="large" 
+                    startIcon={<PlayArrow />}
+                    onClick={() => handleRun(false)}
+                    disabled={isRunning}
+                    sx={{ borderRadius: 8, px: 4, py: 1.5, fontWeight: 'bold' }}
+                  >
+                    {isRunning ? 'Running...' : 'Launch Module'}
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    size="large" 
+                    startIcon={<Replay />}
+                    onClick={() => handleRun(true)}
+                    disabled={isRunning}
+                    sx={{ borderRadius: 8, px: 4, py: 1.5, fontWeight: 'bold' }}
+                  >
+                    Repeat Last Operation
+                  </Button>
+              </Box>
             </motion.div>
           </AnimatePresence>
 
@@ -173,6 +207,45 @@ export default function App() {
           </Button>
         </Box>
       </Box>
+
+      {/* Matcher Dialog */}
+      <Dialog open={matcherState.open} maxWidth="md" fullWidth>
+        <DialogTitle>Pairing Screen (Drag & Drop)</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Drag the source files on the right to match the correct target files on the left.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Targets</Typography>
+                <List dense>
+                    {matcherState.targets.map((t, idx) => (
+                        <ListItem key={idx} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1, borderRadius: 1, height: 40 }}>
+                            <ListItemText primary={formatPath(t)} primaryTypographyProps={{ noWrap: true }} />
+                        </ListItem>
+                    ))}
+                </List>
+            </Box>
+            <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Sources (Drag to reorder)</Typography>
+                <Reorder.Group axis="y" values={reorderSources} onReorder={setReorderSources} style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                    {reorderSources.map((s, idx) => (
+                        <Reorder.Item key={s.id} value={s} style={{ marginBottom: 8, height: 40, cursor: 'grab' }}>
+                            <Paper sx={{ display: 'flex', alignItems: 'center', p: 1, bgcolor: 'primary.dark', color: 'primary.contrastText', height: '100%' }}>
+                                <DragHandle sx={{ mr: 1, opacity: 0.7 }} />
+                                <Typography variant="body2" noWrap>{formatPath(s.path)}</Typography>
+                            </Paper>
+                        </Reorder.Item>
+                    ))}
+                </Reorder.Group>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleMatcherCancel} color="error">Cancel</Button>
+          <Button onClick={handleMatcherConfirm} variant="contained">Confirm Pairing</Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }
