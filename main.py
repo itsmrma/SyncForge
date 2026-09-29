@@ -1,3 +1,4 @@
+import sys
 import os
 import eel
 import ui.backend
@@ -5,10 +6,15 @@ import ui.backend
 def main():
     
     # Path to web folder
-    web_dir = os.path.join(os.path.dirname(__file__), 'web', 'dist')
+    if hasattr(sys, '_MEIPASS'):
+        base_dir = sys._MEIPASS
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+    web_dir = os.path.join(base_dir, 'web', 'dist')
     if not os.path.exists(web_dir):
         # Fallback to dev mode
-        web_dir = os.path.join(os.path.dirname(__file__), 'web')
+        web_dir = os.path.join(base_dir, 'web')
         
     eel.init(web_dir)
     try:
