@@ -54,8 +54,33 @@ export default function App() {
 
   const [matcherState, setMatcherState] = useState({ open: false, targets: [], sources: [], resolve: null });
   const [reorderSources, setReorderSources] = useState([]);
+  
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const isDragging = useRef(false);
 
   const terminalEndRef = useRef(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      setSidebarWidth(Math.min(Math.max(e.clientX, 250), 600));
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   useEffect(() => {
     // Expose functions for Python to call
@@ -138,7 +163,7 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Box sx={{ width: 300, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+        <Box sx={{ width: sidebarWidth, flexShrink: 0, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
           <Box sx={{ p: 2, pb: 0 }}>
             <Typography variant="h5" fontWeight="bold">SyncForge</Typography>
           </Box>
@@ -202,7 +227,20 @@ export default function App() {
           </Box>
         </Box>
 
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 4, bgcolor: 'background.default' }}>
+        <Box 
+          onMouseDown={() => { isDragging.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }}
+          sx={{
+            width: '4px',
+            bgcolor: 'transparent',
+            cursor: 'col-resize',
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: 'primary.main' },
+            '&:active': { bgcolor: 'primary.light' },
+            zIndex: 10
+          }}
+        />
+
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', p: 4, bgcolor: 'background.default' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedMod.id}

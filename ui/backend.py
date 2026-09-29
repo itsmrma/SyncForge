@@ -233,4 +233,4 @@ class Api:
                 return {"status": "error", "message": str(e)}
 
     def get_version(self):
-        return "1.6.2"
+        return "1.6.3"
