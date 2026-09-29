@@ -17,13 +17,16 @@ jobs:
         include:
           - os: windows-latest
             executable: SyncForge.exe
-            asset_name: SyncForge-Windows.exe
+            os_label: Windows
+            ext: .exe
           - os: ubuntu-latest
             executable: SyncForge
-            asset_name: SyncForge-Linux
+            os_label: Linux
+            ext: ""
           - os: macos-latest
             executable: SyncForge
-            asset_name: SyncForge-macOS
+            os_label: macOS
+            ext: ""
 
     steps:
     - name: Checkout code
@@ -54,12 +57,16 @@ jobs:
 
     - name: Rename executable for specific OS
       shell: bash
-      run: mv dist/${{ matrix.executable }} dist/${{ matrix.asset_name }}
+      run: |
+        VERSION=${GITHUB_REF_NAME#v}
+        ASSET_NAME="SyncForge-${{ matrix.os_label }}-${VERSION}${{ matrix.ext }}"
+        mv dist/${{ matrix.executable }} dist/$ASSET_NAME
+        echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/${{ matrix.asset_name }}
+        files: dist/${{ env.ASSET_NAME }}
         draft: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
