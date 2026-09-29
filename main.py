@@ -19,8 +19,12 @@ def main():
     eel.init(web_dir)
     try:
         eel.start('index.html', size=(1000, 750), port=0)
+    except EnvironmentError:
+        # Fallback to default system browser if Chrome/Edge are not found or broken
+        eel.start('index.html', size=(1000, 750), port=0, mode='default')
     except Exception as e:
         print(f"Error starting Eel: {e}")
 
 if __name__ == "__main__":
     main()
+    sys.exit(0)
