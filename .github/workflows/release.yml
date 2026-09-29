@@ -38,6 +38,17 @@ jobs:
     - name: Install dependencies
       run: uv sync
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Build Web GUI
+      run: |
+        cd web
+        npm install
+        npm run build
+
     - name: Build Executable with PyInstaller
       run: uv run python build.py
 
