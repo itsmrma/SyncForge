@@ -151,6 +151,7 @@ class Api:
         global last_run_module, last_directory_choices, is_repeating, current_directory_index
         
         core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
+        core.config.ENABLE_MAX_OFFSET = settings.get("enable_max_offset", True)
         core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
         core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
         

@@ -31,7 +31,7 @@ def run_sync_subs():
         
         if core.config.AUTO_SYNC_SUBS:
             cmd_ffsubsync = ["ffsubsync", v_clean, "-i", s_clean, "-o", synced]
-            if core.config.MAX_OFFSET_SECONDS > 0:
+            if core.config.ENABLE_MAX_OFFSET and core.config.MAX_OFFSET_SECONDS > 0:
                 cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
                 
             run_subprocess(cmd_ffsubsync)
@@ -134,7 +134,7 @@ def run_sync_subs_from_mkv():
                 if can_sync and core.config.AUTO_SYNC_SUBS:
                     print(f"      [Sync] Running ffsubsync...")
                     cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
-                    if core.config.MAX_OFFSET_SECONDS > 0:
+                    if core.config.ENABLE_MAX_OFFSET and core.config.MAX_OFFSET_SECONDS > 0:
                         cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
                     run_subprocess(cmd_ffsubsync, cwd=out_dir)
                     

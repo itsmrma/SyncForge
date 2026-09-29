@@ -40,6 +40,7 @@ export default function App() {
   
   const [settings, setSettings] = useState({
     max_offset: 1,
+    enable_max_offset: true,
     auto_audio: true,
     auto_subs: true
   });
@@ -146,14 +147,21 @@ export default function App() {
           
           <Box sx={{ mt: 'auto', p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>Settings</Typography>
+            
+            <FormControlLabel 
+              control={<Checkbox checked={settings.enable_max_offset} onChange={e => setSettings({...settings, enable_max_offset: e.target.checked})} />} 
+              label={<Typography fontSize="0.85rem">Enable Max Offset limit</Typography>} 
+            />
+            
             <TextField 
               label="FFsubsync Max Offset (s)" 
               type="number" 
               size="small" 
               fullWidth
+              disabled={!settings.enable_max_offset}
               value={settings.max_offset}
               onChange={e => setSettings({...settings, max_offset: e.target.value})}
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, mt: 1 }}
             />
             <FormControlLabel 
               control={<Checkbox checked={settings.auto_audio} onChange={e => setSettings({...settings, auto_audio: e.target.checked})} />} 
