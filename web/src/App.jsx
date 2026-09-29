@@ -47,7 +47,7 @@ export default function App() {
   
   const [settings, setSettings] = useState({
     max_offset: 1,
-    enable_max_offset: true,
+    enable_max_offset: false,
     auto_audio: true,
     auto_subs: true
   });
