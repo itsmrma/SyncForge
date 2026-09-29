@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Tooltip } from '@mui/material';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import FormatListBulleted from '@mui/icons-material/FormatListBulleted';
 import Flag from '@mui/icons-material/Flag';
@@ -10,6 +10,7 @@ import MergeType from '@mui/icons-material/MergeType';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import Replay from '@mui/icons-material/Replay';
 import DragHandle from '@mui/icons-material/DragHandle';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const darkTheme = createTheme({
   palette: {
@@ -133,9 +134,12 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Box sx={{ width: 300, bgcolor: 'background.paper', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="h5" fontWeight="bold">SyncForge</Typography>
-          <List>
+        <Box sx={{ width: 300, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ p: 2, pb: 0 }}>
+            <Typography variant="h5" fontWeight="bold">SyncForge</Typography>
+          </Box>
+          
+          <List sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2 }}>
             {modules.map((m) => (
               <ListItem disablePadding key={m.id}>
                 <ListItemButton 
@@ -150,42 +154,47 @@ export default function App() {
             ))}
           </List>
 
-          <Button 
-            variant="outlined" 
-            startIcon={<Replay />}
-            onClick={() => handleRun(true)}
-            disabled={isRunning}
-            sx={{ mx: 2, mb: 2, borderRadius: 2, fontWeight: 'bold' }}
-          >
-            Repeat Last
-          </Button>
-          
-          <Box sx={{ mt: 'auto', p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Settings</Typography>
-            
-            <FormControlLabel 
-              control={<Checkbox checked={settings.enable_max_offset} onChange={e => setSettings({...settings, enable_max_offset: e.target.checked})} />} 
-              label={<Typography fontSize="0.85rem">Enable Max Offset limit</Typography>} 
-            />
-            
-            <TextField 
-              label="FFsubsync Max Offset (s)" 
-              type="number" 
-              size="small" 
+          <Box sx={{ px: 2, pb: 2 }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<Replay />}
+              onClick={() => handleRun(true)}
+              disabled={isRunning}
               fullWidth
-              disabled={!settings.enable_max_offset}
-              value={settings.max_offset}
-              onChange={e => setSettings({...settings, max_offset: e.target.value})}
-              sx={{ mb: 2, mt: 1 }}
-            />
-            <FormControlLabel 
-              control={<Checkbox checked={settings.auto_audio} onChange={e => setSettings({...settings, auto_audio: e.target.checked})} />} 
-              label={<Typography fontSize="0.85rem">Auto-sync Audio</Typography>} 
-            />
-            <FormControlLabel 
-              control={<Checkbox checked={settings.auto_subs} onChange={e => setSettings({...settings, auto_subs: e.target.checked})} />} 
-              label={<Typography fontSize="0.85rem">Auto-sync Subs</Typography>} 
-            />
+              sx={{ mb: 2, borderRadius: 2, fontWeight: 'bold' }}
+            >
+              Repeat Last
+            </Button>
+            
+            <Accordion disableGutters elevation={0} sx={{ bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle2">Settings</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, display: 'flex', flexDirection: 'column' }}>
+                <FormControlLabel 
+                  control={<Checkbox checked={settings.enable_max_offset} onChange={e => setSettings({...settings, enable_max_offset: e.target.checked})} />} 
+                  label={<Typography fontSize="0.85rem">Enable Max Offset limit</Typography>} 
+                />
+                <TextField 
+                  label="FFsubsync Max Offset (s)" 
+                  type="number" 
+                  size="small" 
+                  fullWidth
+                  disabled={!settings.enable_max_offset}
+                  value={settings.max_offset}
+                  onChange={e => setSettings({...settings, max_offset: e.target.value})}
+                  sx={{ mb: 2, mt: 1 }}
+                />
+                <FormControlLabel 
+                  control={<Checkbox checked={settings.auto_audio} onChange={e => setSettings({...settings, auto_audio: e.target.checked})} />} 
+                  label={<Typography fontSize="0.85rem">Auto-sync Audio</Typography>} 
+                />
+                <FormControlLabel 
+                  control={<Checkbox checked={settings.auto_subs} onChange={e => setSettings({...settings, auto_subs: e.target.checked})} />} 
+                  label={<Typography fontSize="0.85rem">Auto-sync Subs</Typography>} 
+                />
+              </AccordionDetails>
+            </Accordion>
           </Box>
         </Box>
 
@@ -272,31 +281,35 @@ export default function App() {
       </Box>
 
       {/* Matcher Dialog */}
-      <Dialog open={matcherState.open} maxWidth="md" fullWidth>
+      <Dialog open={matcherState.open} maxWidth="xl" fullWidth>
         <DialogTitle>Pairing Screen (Drag & Drop)</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
             Drag the source files on the right to match the correct target files on the left.
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Targets</Typography>
-                <List dense>
+                <List dense sx={{ p: 0 }}>
                     {matcherState.targets.map((t, idx) => (
-                        <ListItem key={idx} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1, borderRadius: 1, height: 40 }}>
-                            <ListItemText primary={formatPath(t)} primaryTypographyProps={{ noWrap: true }} />
+                        <ListItem key={idx} sx={{ bgcolor: 'rgba(255,255,255,0.05)', mb: 1, borderRadius: 1, height: 48, p: 1, overflow: 'hidden' }}>
+                            <Tooltip title={formatPath(t)} placement="left" arrow>
+                              <Typography variant="body2" noWrap>{formatPath(t)}</Typography>
+                            </Tooltip>
                         </ListItem>
                     ))}
                 </List>
             </Box>
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Sources (Drag to reorder)</Typography>
                 <Reorder.Group axis="y" values={reorderSources} onReorder={setReorderSources} style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
                     {reorderSources.map((s, idx) => (
-                        <Reorder.Item key={s.id} value={s} style={{ marginBottom: 8, height: 40, cursor: 'grab' }}>
-                            <Paper sx={{ display: 'flex', alignItems: 'center', p: 1, bgcolor: 'primary.dark', color: 'primary.contrastText', height: '100%' }}>
-                                <DragHandle sx={{ mr: 1, opacity: 0.7 }} />
-                                <Typography variant="body2" noWrap>{formatPath(s.path)}</Typography>
+                        <Reorder.Item key={s.id} value={s} style={{ marginBottom: 8, height: 48, cursor: 'grab' }}>
+                            <Paper sx={{ display: 'flex', alignItems: 'center', p: 1, bgcolor: 'primary.dark', color: 'primary.contrastText', height: '100%', overflow: 'hidden' }}>
+                                <DragHandle sx={{ mr: 1, opacity: 0.7, flexShrink: 0 }} />
+                                <Tooltip title={formatPath(s.path)} placement="right" arrow>
+                                  <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>{formatPath(s.path)}</Typography>
+                                </Tooltip>
                             </Paper>
                         </Reorder.Item>
                     ))}
