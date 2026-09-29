@@ -8,12 +8,12 @@ from unittest.mock import MagicMock
 
 window_ref = None
 
-class EelShim:
+class FrontendShim:
     def append_terminal(self, text):
         def caller():
             if window_ref:
                 try:
-                    window_ref.evaluate_js(f"if(window.eel && window.eel.append_terminal) window.eel.append_terminal({json.dumps(text)})")
+                    window_ref.evaluate_js(f"if(window.frontend_api && window.frontend_api.append_terminal) window.frontend_api.append_terminal({json.dumps(text)})")
                 except Exception:
                     pass
         return caller
@@ -22,7 +22,7 @@ class EelShim:
         def caller():
             if window_ref:
                 try:
-                    res = window_ref.evaluate_js(f"window.eel && window.eel.ask_input ? window.eel.ask_input({json.dumps(prompt)}) : ''")
+                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_input ? window.frontend_api.ask_input({json.dumps(prompt)}) : ''")
                     return res if res is not None else ""
                 except Exception:
                     return ""
@@ -33,14 +33,14 @@ class EelShim:
         def caller():
             if window_ref:
                 try:
-                    res = window_ref.evaluate_js(f"window.eel && window.eel.ask_matcher ? window.eel.ask_matcher({json.dumps(target)}, {json.dumps(source)}) : []")
+                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_matcher ? window.frontend_api.ask_matcher({json.dumps(target)}, {json.dumps(source)}) : []")
                     return res if res else []
                 except Exception:
                     return []
             return []
         return caller
 
-eel = EelShim()
+frontend = FrontendShim()
 
 def setup_shim(win):
     global window_ref
@@ -52,57 +52,70 @@ last_directory_choices = []
 is_repeating = False
 current_directory_index = 0
 
-class FileDialogMock:
-    @staticmethod
-    def getExistingDirectory(parent=None, caption=""):
-        global is_repeating, current_directory_index, last_directory_choices
-        if is_repeating:
-            if current_directory_index < len(last_directory_choices):
-                res = last_directory_choices[current_directory_index]
-                current_directory_index += 1
-                try:
-                    eel.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
-                except: pass
-                return res
-            else:
-                is_repeating = False # Fallback
-
-        res = ""
-        if window_ref:
+def mock_ask_directory(caption=""):
+    global is_repeating, current_directory_index, last_directory_choices
+    if is_repeating:
+        if current_directory_index < len(last_directory_choices):
+            res = last_directory_choices[current_directory_index]
+            current_directory_index += 1
             try:
-                paths = window_ref.create_file_dialog(webview.FOLDER_DIALOG)
-                if paths and len(paths) > 0:
-                    res = paths[0]
-            except Exception:
-                pass
+                frontend.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
+            except: pass
+            return res
+        else:
+            is_repeating = False # Fallback
 
-        if res:
-            res = os.path.normpath(res)
-            last_directory_choices.append(res)
+    res = ""
+    if window_ref:
         try:
-            eel.append_terminal(f"[{caption}] Selected: {res}\n")()
-        except:
+            paths = window_ref.create_file_dialog(webview.FOLDER_DIALOG)
+            if paths and len(paths) > 0:
+                res = paths[0]
+        except Exception:
             pass
-        return res
 
-sys.modules['PyQt6'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'].QFileDialog = FileDialogMock
-sys.modules['PyQt6.QtCore'] = MagicMock()
-sys.modules['PyQt6.QtGui'] = MagicMock()
-sys.modules['PyQt6.QtWidgets'].QApplication = MagicMock()
-
-def match_files_ui_mock(target_list, source_list):
+    if res:
+        res = os.path.normpath(res)
+        last_directory_choices.append(res)
     try:
-        res = eel.ask_matcher(target_list, source_list)()
-        if not res:
-            return []
-        return res
-    except Exception:
-        return []
+        frontend.append_terminal(f"[{caption}] Selected: {res}\n")()
+    except:
+        pass
+    return res
 
-sys.modules['ui.matcher_ui'] = MagicMock()
-sys.modules['ui.matcher_ui'].match_files_ui = match_files_ui_mock
+import core.utils
+core.utils.set_ask_directory_callback(mock_ask_directory)
+
+import threading
+import uuid
+
+matcher_events = {}
+matcher_results = {}
+
+def mock_ask_matcher(target_list, source_list):
+    callback_id = str(uuid.uuid4())
+    evt = threading.Event()
+    matcher_events[callback_id] = evt
+    
+    try:
+        if window_ref:
+            window_ref.evaluate_js(f"if(window.frontend_api && window.frontend_api.ask_matcher) window.frontend_api.ask_matcher({json.dumps(target_list)}, {json.dumps(source_list)}, '{callback_id}')")
+        
+        # Wait for the user to interact with the dialog
+        evt.wait()
+        
+        res = matcher_results.get(callback_id, [])
+    except Exception as e:
+        if window_ref:
+            frontend.append_terminal(f"\n[ERROR] in ask_matcher: {e}\n")()
+        res = []
+    finally:
+        matcher_events.pop(callback_id, None)
+        matcher_results.pop(callback_id, None)
+        
+    return res
+
+core.utils.set_ask_matcher_callback(mock_ask_matcher)
 # ---------------------------------------------
 
 from features.stream_manager import run_stream_manager, run_set_default_tracks
@@ -122,7 +135,7 @@ class StreamInterceptor:
         now = time.time()
         if now - self.last_update > 0.05 or '\n' in text:
             try:
-                eel.append_terminal(self.buffer)()
+                frontend.append_terminal(self.buffer)()
             except Exception:
                 pass
             self.buffer = ""
@@ -131,16 +144,16 @@ class StreamInterceptor:
     def flush(self):
         if self.buffer:
             try:
-                eel.append_terminal(self.buffer)()
+                frontend.append_terminal(self.buffer)()
             except Exception:
                 pass
             self.buffer = ""
 
 def patched_input(prompt=""):
     try:
-        eel.append_terminal(prompt)()
-        res = eel.ask_input(prompt)()
-        eel.append_terminal(res + "\n")()
+        frontend.append_terminal(prompt)()
+        res = frontend.ask_input(prompt)()
+        frontend.append_terminal(res + "\n")()
         return res
     except Exception:
         return ""
@@ -150,6 +163,12 @@ sys.stdout = StreamInterceptor()
 builtins.input = patched_input
 
 class Api:
+    def resolve_matcher(self, callback_id, res):
+        global matcher_results, matcher_events
+        matcher_results[callback_id] = res
+        if callback_id in matcher_events:
+            matcher_events[callback_id].set()
+
     def pick_folder(self):
         if window_ref:
             try:
@@ -205,13 +224,13 @@ class Api:
                     
         if module_name in modules:
             try:
-                eel.append_terminal(f"\n--- Launching {module_name} ---\n")()
+                frontend.append_terminal(f"\n--- Launching {module_name} ---\n")()
                 modules[module_name]()
-                eel.append_terminal(f"\n--- Finished ---\n")()
+                frontend.append_terminal(f"\n--- Finished ---\n")()
                 return {"status": "ok"}
             except Exception as e:
-                eel.append_terminal(f"\n[ERROR] {e}\n")()
+                frontend.append_terminal(f"\n[ERROR] {e}\n")()
                 return {"status": "error", "message": str(e)}
 
     def get_version(self):
-        return "1.6.1"
+        return "1.6.2"

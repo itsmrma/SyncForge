@@ -19,7 +19,7 @@ def main():
     index_path = os.path.join(web_dir, 'index.html')
     
     api = ui.backend.Api()
-    window = webview.create_window('SyncForge', url=index_path, js_api=api, width=1000, height=750)
+    window = webview.create_window('SyncForge', url=index_path, js_api=api, width=1000, height=750, text_select=True)
     ui.backend.setup_shim(window)
     
     webview.start(debug=False)

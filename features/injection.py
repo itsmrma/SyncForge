@@ -1,24 +1,23 @@
 import os
 import subprocess
-from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess
+from core.utils import ask_directory, get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess
 from core.mkv_tools import get_tracks_info, select_track_interactive, has_attachments
 from core.audio_sync import extract_audio_segment, find_audio_delay, MAX_AUDIO_DELAY_MS
-from ui.matcher_ui import match_files_ui
+from core.utils import match_files
 
 VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
 
 def run_injection():
     print("\n--- SOURCE -> TARGET INJECTION ---")
-    tgt_folder = QFileDialog.getExistingDirectory(None, "Select TARGET Folder (High Quality Video)")
-    src_folder = QFileDialog.getExistingDirectory(None, "Select SOURCE Folder (Audio/Subtitles to extract)")
+    tgt_folder = ask_directory( "Select TARGET Folder (High Quality Video)")
+    src_folder = ask_directory( "Select SOURCE Folder (Audio/Subtitles to extract)")
     
     if not tgt_folder or not src_folder: return
     
-    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
+    out_folder = ask_directory( "Select OUTPUT Folder")
     if not out_folder: return
 
-    pairs = match_files_ui(get_files_recursive(tgt_folder, VIDEO_EXT), get_files_recursive(src_folder, VIDEO_EXT))
+    pairs = match_files(get_files_recursive(tgt_folder, VIDEO_EXT), get_files_recursive(src_folder, VIDEO_EXT))
     if not pairs: return
 
     print("\n[TARGET] What do you want to KEEP from the High Quality file (RAW)?")

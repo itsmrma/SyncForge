@@ -6,6 +6,26 @@ import importlib.util
 # Check for math libraries without loading them into memory
 HAS_SCIPY = importlib.util.find_spec('scipy') is not None and importlib.util.find_spec('numpy') is not None
 
+_ask_directory_callback = None
+def set_ask_directory_callback(callback):
+    global _ask_directory_callback
+    _ask_directory_callback = callback
+
+def ask_directory(caption=""):
+    if _ask_directory_callback:
+        return _ask_directory_callback(caption)
+    return input(f"{caption}: ").strip()
+
+_ask_matcher_callback = None
+def set_ask_matcher_callback(callback):
+    global _ask_matcher_callback
+    _ask_matcher_callback = callback
+
+def match_files(targets, sources):
+    if _ask_matcher_callback:
+        return _ask_matcher_callback(targets, sources)
+    return []
+
 def check_deps():
     missing = []
     if not shutil.which("mkvmerge"): missing.append("mkvmerge (MKVToolNix)")
@@ -64,22 +84,12 @@ def run_subprocess(cmd, cwd=None):
         creationflags=creationflags
     )
     
-    try:
-        from PyQt6.QtWidgets import QApplication
-        has_qt = True
-    except ImportError:
-        has_qt = False
-
     while True:
-        # non-blocking readline would be tricky without threads or select.
-        # But wait, readline blocks. Let's just do a normal loop and call processEvents if we have qt.
         line = process.stdout.readline()
         if not line and process.poll() is not None:
             break
         if line:
             print(line, end='')
-        elif has_qt:
-            QApplication.processEvents()
             
     process.stdout.close()
     return process.wait()

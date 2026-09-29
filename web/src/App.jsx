@@ -59,10 +59,10 @@ export default function App() {
 
   useEffect(() => {
     // Expose functions for Python to call
-    window.eel = window.eel || {};
-    window.eel.append_terminal = append_terminal;
-    window.eel.ask_input = ask_input;
-    window.eel.ask_matcher = ask_matcher;
+    window.frontend_api = window.frontend_api || {};
+    window.frontend_api.append_terminal = append_terminal;
+    window.frontend_api.ask_input = ask_input;
+    window.frontend_api.ask_matcher = ask_matcher;
   }, []);
 
   const append_terminal = (text) => {
@@ -81,13 +81,17 @@ export default function App() {
     return res || "";
   };
 
-  const ask_matcher = (targets, sources) => {
-    return new Promise((resolve) => {
-        // Need to make sources unique for Reorder key prop
-        const uniqueSources = sources.map((s, i) => ({ id: i.toString(), path: s }));
-        setReorderSources(uniqueSources);
-        setMatcherState({ open: true, targets, sources: uniqueSources, resolve });
-    });
+  const ask_matcher = (targets, sources, callback_id) => {
+    const uniqueSources = sources.map((s, i) => ({ id: i.toString(), path: s }));
+    setReorderSources(uniqueSources);
+    
+    const resolveAndNotify = async (res) => {
+        if (window.pywebview && window.pywebview.api) {
+            await window.pywebview.api.resolve_matcher(callback_id, res);
+        }
+    };
+    
+    setMatcherState({ open: true, targets, sources: uniqueSources, resolve: resolveAndNotify });
   };
 
   const handleMatcherConfirm = () => {
@@ -134,7 +138,7 @@ export default function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Box sx={{ width: 300, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: 300, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
           <Box sx={{ p: 2, pb: 0 }}>
             <Typography variant="h5" fontWeight="bold">SyncForge</Typography>
           </Box>
@@ -269,8 +273,8 @@ export default function App() {
           </AnimatePresence>
 
           <Box sx={{ height: showTerminal ? 250 : 0, transition: 'height 0.3s ease', overflow: 'hidden', mt: 2, display: 'flex', flexDirection: 'column' }}>
-             <Paper sx={{ flex: 1, bgcolor: '#1D1B20', color: '#D0BCFF', p: 2, fontFamily: 'monospace', overflowY: 'auto', fontSize: '0.85rem', border: '1px solid #36343B', borderRadius: 2 }}>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{terminal}</pre>
+             <Paper sx={{ flex: 1, bgcolor: '#1D1B20', color: '#D0BCFF', p: 2, fontFamily: 'monospace', overflowY: 'auto', fontSize: '0.85rem', border: '1px solid #36343B', borderRadius: 2, userSelect: 'text' }}>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', userSelect: 'text' }}>{terminal}</pre>
                 <div ref={terminalEndRef} />
              </Paper>
           </Box>

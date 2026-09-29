@@ -1,22 +1,21 @@
 import os
 import subprocess
-from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature, run_subprocess
+from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess
 from core.mkv_tools import get_tracks_info, format_track_label
-from ui.matcher_ui import match_files_ui
+from core.utils import match_files
 
 VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
 
 def run_custom_merge():
     print("\n--- MODE 4: CUSTOM MERGE FROM TWO SOURCES (SMART BATCH) ---")
-    folder_a = QFileDialog.getExistingDirectory(None, "Select Folder A (Base Video + Audio/Subs)")
-    folder_b = QFileDialog.getExistingDirectory(None, "Select Folder B (Additional Audio/Subs)")
+    folder_a = ask_directory( "Select Folder A (Base Video + Audio/Subs)")
+    folder_b = ask_directory( "Select Folder B (Additional Audio/Subs)")
     if not folder_a or not folder_b: return
 
-    out_folder = QFileDialog.getExistingDirectory(None, "Select OUTPUT Folder")
+    out_folder = ask_directory( "Select OUTPUT Folder")
     if not out_folder: return
 
-    pairs = match_files_ui(get_files_recursive(folder_a, VIDEO_EXT), get_files_recursive(folder_b, VIDEO_EXT))
+    pairs = match_files(get_files_recursive(folder_a, VIDEO_EXT), get_files_recursive(folder_b, VIDEO_EXT))
     if not pairs: return
 
     print("\n🔍 Analyzing structure of pairs...")
