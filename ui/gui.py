@@ -1,10 +1,126 @@
 import sys
 import builtins
+import subprocess
+import time
+import os
 import qtawesome as qta
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QPushButton, QLabel, QTextEdit, QInputDialog)
+                             QPushButton, QLabel, QTextEdit, QInputDialog, QFileDialog,
+                             QProgressBar, QMessageBox)
 from PyQt6.QtGui import QFont, QFontDatabase, QIcon
 from PyQt6.QtCore import Qt, QSize
+
+# --- CACHES FOR RETRY MECHANISM ---
+
+class FileDialogCache:
+    def __init__(self):
+        self.cache = []
+        self.index = 0
+        self.replaying = False
+        self.orig_getExistingDirectory = QFileDialog.getExistingDirectory
+
+    def getExistingDirectory(self, parent=None, caption="", directory="", options=None):
+        if self.replaying and self.index < len(self.cache):
+            res = self.cache[self.index]
+            self.index += 1
+            print(f"[Cached Input] {caption}: {res}")
+            return res
+            
+        if options is not None:
+            res = self.orig_getExistingDirectory(parent, caption, directory, options)
+        else:
+            res = self.orig_getExistingDirectory(parent, caption, directory)
+            
+        if not self.replaying:
+            self.cache.append(res)
+        return res
+
+fd_cache = FileDialogCache()
+QFileDialog.getExistingDirectory = fd_cache.getExistingDirectory
+
+
+class InputCache:
+    def __init__(self):
+        self.cache = []
+        self.index = 0
+        self.replaying = False
+        self.main_win = None
+
+    def custom_input(self, prompt=""):
+        if self.replaying and self.index < len(self.cache):
+            res = self.cache[self.index]
+            self.index += 1
+            print(prompt + res + " [Cached]")
+            return res
+            
+        QApplication.processEvents()
+        text, ok = QInputDialog.getText(self.main_win, "Input Required", prompt)
+        res = text if ok else ""
+        print(prompt + (res if ok else " [Canceled]"))
+        
+        if not self.replaying:
+            self.cache.append(res)
+        return res
+
+input_cache = InputCache()
+builtins.input = input_cache.custom_input
+
+
+# Patch FileMatcherUI.exec so we can cache that too
+try:
+    from ui.matcher_ui import FileMatcherUI
+    orig_matcher_exec = FileMatcherUI.exec
+
+    class MatcherCache:
+        def __init__(self):
+            self.cache = []
+            self.index = 0
+            self.replaying = False
+
+        def exec_override(self, dialog_instance):
+            if self.replaying and self.index < len(self.cache):
+                res = self.cache[self.index]
+                self.index += 1
+                dialog_instance.result = res
+                dialog_instance.accept()
+                return 1 # Accepted
+                
+            ret = orig_matcher_exec(dialog_instance)
+            
+            if not self.replaying:
+                self.cache.append(dialog_instance.result)
+            return ret
+
+    matcher_cache = MatcherCache()
+    FileMatcherUI.exec = matcher_cache.exec_override
+except ImportError:
+    pass
+
+# --- NON-BLOCKING SUBPROCESS PATCH ---
+
+orig_run = subprocess.run
+
+def run_with_events(*args, **kwargs):
+    try:
+        capture = kwargs.pop('capture_output', False)
+        if capture:
+            kwargs['stdout'] = subprocess.PIPE
+            kwargs['stderr'] = subprocess.PIPE
+            
+        p = subprocess.Popen(*args, **kwargs)
+        while p.poll() is None:
+            QApplication.processEvents()
+            time.sleep(0.01)
+            
+        stdout, stderr = p.communicate()
+        return subprocess.CompletedProcess(p.args, p.returncode, stdout, stderr)
+    except FileNotFoundError as e:
+        raise e
+
+subprocess.run = run_with_events
+
+
+# --- GUI ---
 
 class StreamInterceptor:
     def __init__(self, text_widget):
@@ -24,18 +140,11 @@ class SyncForgeApp(QMainWindow):
         self.setWindowTitle("SyncForge")
         self.resize(1000, 750)
         
-        # Override built-in input to use a Qt Dialog
-        builtins.input = self.custom_input
+        input_cache.main_win = self
         self.selected_func = None
         
         self.init_ui()
         sys.stdout = StreamInterceptor(self.console)
-
-    def custom_input(self, prompt=""):
-        QApplication.processEvents()
-        text, ok = QInputDialog.getText(self, "Input Required", prompt)
-        print(prompt + (text if ok else " [Canceled]"))
-        return text if ok else ""
 
     def init_ui(self):
         central_widget = QWidget()
@@ -120,8 +229,7 @@ class SyncForgeApp(QMainWindow):
             btn.setObjectName("SidebarButton")
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             
-            # Material Design colors for icons
-            icon_color = '#CAC4D0' # On-Surface-Variant
+            icon_color = '#CAC4D0' 
             btn.setIcon(qta.icon(mod["icon"], color=icon_color))
             btn.setIconSize(QSize(22, 22))
             
@@ -156,7 +264,7 @@ class SyncForgeApp(QMainWindow):
         self.btn_open.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#381E72'))
         self.btn_open.setIconSize(QSize(20, 20))
-        self.btn_open.hide() # Hidden until selection
+        self.btn_open.hide() 
         self.btn_open.clicked.connect(self.run_selected_module)
         
         button_layout = QHBoxLayout()
@@ -165,14 +273,40 @@ class SyncForgeApp(QMainWindow):
         details_layout.addLayout(button_layout)
 
         content_layout.addWidget(details_widget)
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(content_layout, stretch=1)
 
-        # Console
+        # Bottom Area
+        bottom_layout = QVBoxLayout()
+        bottom_layout.setSpacing(12)
+        
+        progress_layout = QHBoxLayout()
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName("ProgressBar")
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(8)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        
+        self.btn_toggle_console = QPushButton("  Show Terminal")
+        self.btn_toggle_console.setObjectName("ToggleConsoleButton")
+        self.btn_toggle_console.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_toggle_console.setIcon(qta.icon('mdi.chevron-down', color='#CAC4D0'))
+        self.btn_toggle_console.setCheckable(True)
+        self.btn_toggle_console.clicked.connect(self.toggle_console)
+        
+        progress_layout.addWidget(self.progress_bar, stretch=1)
+        progress_layout.addWidget(self.btn_toggle_console)
+        
+        bottom_layout.addLayout(progress_layout)
+        
         self.console = QTextEdit()
         self.console.setObjectName("Console")
         self.console.setReadOnly(True)
         self.console.setFixedHeight(200)
-        main_layout.addWidget(self.console)
+        self.console.hide()
+        
+        bottom_layout.addWidget(self.console)
+        main_layout.addLayout(bottom_layout)
 
         self.apply_styles()
 
@@ -183,34 +317,92 @@ class SyncForgeApp(QMainWindow):
         self.selected_func = mod["func"]
         self.btn_open.show()
         
-        # Highlight selected button (Material 3 Secondary Container behavior)
         for i, btn in enumerate(self.sidebar_buttons):
             if i == idx:
                 btn.setProperty("selected", "true")
-                btn.setIcon(qta.icon(self.modules[i]["icon"], color='#E8DEF8')) # On Secondary Container
+                btn.setIcon(qta.icon(self.modules[i]["icon"], color='#E8DEF8')) 
             else:
                 btn.setProperty("selected", "false")
-                btn.setIcon(qta.icon(self.modules[i]["icon"], color='#CAC4D0')) # On Surface Variant
-            # Refresh stylesheet state
+                btn.setIcon(qta.icon(self.modules[i]["icon"], color='#CAC4D0')) 
             btn.style().unpolish(btn)
             btn.style().polish(btn)
 
+    def toggle_console(self, checked):
+        if checked:
+            self.console.show()
+            self.btn_toggle_console.setText("  Hide Terminal")
+            self.btn_toggle_console.setIcon(qta.icon('mdi.chevron-up', color='#CAC4D0'))
+        else:
+            self.console.hide()
+            self.btn_toggle_console.setText("  Show Terminal")
+            self.btn_toggle_console.setIcon(qta.icon('mdi.chevron-down', color='#CAC4D0'))
+
     def run_selected_module(self):
         if not self.selected_func: return
-        print(f"\\n--- Launching Module: {self.lbl_mod_title.text()} ---\\n")
+        print(f"\n--- Launching Module: {self.lbl_mod_title.text()} ---\n")
         
         self.btn_open.setEnabled(False)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#938F99'))
-        # Disable sidebar during run
         for btn in self.sidebar_buttons:
             btn.setEnabled(False)
-
-        try:
-            self.selected_func()
-        except Exception as e:
-            print(f"\\n[ERROR] {e}")
             
-        print(f"\\n--- Module finished ---")
+        self.progress_bar.setRange(0, 0)
+
+        while True:
+            try:
+                self.selected_func()
+                break
+            except FileNotFoundError as e:
+                missing_exe = e.filename if e.filename else str(e)
+                self.progress_bar.setRange(0, 100)
+                self.progress_bar.setValue(0)
+                
+                msg = QMessageBox(self)
+                msg.setIcon(QMessageBox.Icon.Critical)
+                msg.setWindowTitle("Missing Dependency")
+                msg.setText(f"A required dependency is missing: {missing_exe}")
+                msg.setInformativeText("Please install it and make sure it's accessible in your system PATH.\n\nDo you want to retry with the same selections?")
+                msg.setStyleSheet(self.styleSheet())
+                
+                retry_btn = msg.addButton("Retry", QMessageBox.ButtonRole.AcceptRole)
+                cancel_btn = msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+                msg.exec()
+                
+                if msg.clickedButton() == retry_btn:
+                    fd_cache.replaying = True
+                    fd_cache.index = 0
+                    input_cache.replaying = True
+                    input_cache.index = 0
+                    try:
+                        matcher_cache.replaying = True
+                        matcher_cache.index = 0
+                    except NameError:
+                        pass
+                        
+                    self.progress_bar.setRange(0, 0)
+                    print(f"\n[INFO] Retrying module with cached selections...")
+                    continue
+                else:
+                    break
+            except Exception as e:
+                print(f"\n[ERROR] {e}")
+                break
+                
+        # Reset caches
+        fd_cache.cache = []
+        fd_cache.replaying = False
+        input_cache.cache = []
+        input_cache.replaying = False
+        try:
+            matcher_cache.cache = []
+            matcher_cache.replaying = False
+        except NameError:
+            pass
+
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        
+        print(f"\n--- Module finished ---")
         self.btn_open.setEnabled(True)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#381E72'))
         for btn in self.sidebar_buttons:
@@ -220,7 +412,6 @@ class SyncForgeApp(QMainWindow):
         font = QFont("Inter", 10)
         QApplication.setFont(font)
         
-        # Material Design 3 (M3) Dark Theme Colors
         style = """
         QWidget#CentralWidget {
             background-color: #141218;
@@ -294,11 +485,11 @@ class SyncForgeApp(QMainWindow):
             font-family: Consolas, "Courier New", monospace;
             font-size: 13px;
         }
-        QInputDialog {
+        QInputDialog, QMessageBox {
             background-color: #211F26;
             color: #E6E0E9;
         }
-        QInputDialog QLabel {
+        QInputDialog QLabel, QMessageBox QLabel {
             color: #E6E0E9;
             font-weight: 600;
         }
@@ -312,15 +503,35 @@ class SyncForgeApp(QMainWindow):
         QInputDialog QLineEdit:focus {
             border: 2px solid #D0BCFF;
         }
-        QInputDialog QPushButton {
+        QInputDialog QPushButton, QMessageBox QPushButton {
             background-color: #D0BCFF;
             color: #381E72;
             border-radius: 16px;
             padding: 8px 24px;
             font-weight: 700;
         }
-        QInputDialog QPushButton:hover {
+        QInputDialog QPushButton:hover, QMessageBox QPushButton:hover {
             background-color: #B69DF8;
+        }
+        QProgressBar#ProgressBar {
+            background-color: #36343B;
+            border-radius: 4px;
+            border: none;
+        }
+        QProgressBar#ProgressBar::chunk {
+            background-color: #D0BCFF;
+            border-radius: 4px;
+        }
+        QPushButton#ToggleConsoleButton {
+            background-color: transparent;
+            color: #CAC4D0;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px;
+        }
+        QPushButton#ToggleConsoleButton:hover {
+            color: #E6E0E9;
         }
         """
         self.setStyleSheet(style)
@@ -329,7 +540,6 @@ def run_app():
     app = QApplication(sys.argv)
     
     # Force Inter font
-    import os
     font_path_reg = os.path.join(os.path.dirname(__file__), '..', 'assets', 'fonts', 'Inter-Regular.ttf')
     font_path_bold = os.path.join(os.path.dirname(__file__), '..', 'assets', 'fonts', 'Inter-Bold.ttf')
     
