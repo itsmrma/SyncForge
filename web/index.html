@@ -7,20 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-      // Load eel.js dynamically so Vite ignores it during build
-      const s = document.createElement("script");
-      s.src = "/eel.js";
-      document.head.appendChild(s);
-    </script>
   </head>
   <body>
-    <!-- 
-      Dummy exposes for Eel parser:
-      eel.expose(append_terminal, 'append_terminal')
-      eel.expose(ask_input, 'ask_input')
-      eel.expose(ask_matcher, 'ask_matcher')
-    -->
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

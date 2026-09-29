@@ -1,6 +1,6 @@
 import sys
 import os
-import eel
+import webview
 import ui.backend
 
 def main():
@@ -16,14 +16,13 @@ def main():
         # Fallback to dev mode
         web_dir = os.path.join(base_dir, 'web')
         
-    eel.init(web_dir)
-    try:
-        eel.start('index.html', size=(1000, 750), port=0)
-    except EnvironmentError:
-        # Fallback to default system browser if Chrome/Edge are not found or broken
-        eel.start('index.html', size=(1000, 750), port=0, mode='default')
-    except Exception as e:
-        print(f"Error starting Eel: {e}")
+    index_path = os.path.join(web_dir, 'index.html')
+    
+    api = ui.backend.Api()
+    window = webview.create_window('SyncForge', url=index_path, js_api=api, width=1000, height=750)
+    ui.backend.setup_shim(window)
+    
+    webview.start(debug=False)
 
 if __name__ == "__main__":
     main()

@@ -2,10 +2,50 @@ import sys
 import builtins
 import tkinter as tk
 from tkinter import filedialog
-import eel
 import os
 import time
+import json
 from unittest.mock import MagicMock
+
+window_ref = None
+
+class EelShim:
+    def append_terminal(self, text):
+        def caller():
+            if window_ref:
+                try:
+                    window_ref.evaluate_js(f"if(window.eel && window.eel.append_terminal) window.eel.append_terminal({json.dumps(text)})")
+                except Exception:
+                    pass
+        return caller
+        
+    def ask_input(self, prompt):
+        def caller():
+            if window_ref:
+                try:
+                    res = window_ref.evaluate_js(f"window.eel && window.eel.ask_input ? window.eel.ask_input({json.dumps(prompt)}) : ''")
+                    return res if res is not None else ""
+                except Exception:
+                    return ""
+            return ""
+        return caller
+        
+    def ask_matcher(self, target, source):
+        def caller():
+            if window_ref:
+                try:
+                    res = window_ref.evaluate_js(f"window.eel && window.eel.ask_matcher ? window.eel.ask_matcher({json.dumps(target)}, {json.dumps(source)}) : []")
+                    return res if res else []
+                except Exception:
+                    return []
+            return []
+        return caller
+
+eel = EelShim()
+
+def setup_shim(win):
+    global window_ref
+    window_ref = win
 
 # --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
 root = tk.Tk()
@@ -106,42 +146,41 @@ def patched_input(prompt=""):
 sys.stdout = StreamInterceptor()
 builtins.input = patched_input
 
-@eel.expose
-def run_module(module_name, settings, repeat=False):
-    global last_run_module, last_directory_choices, is_repeating, current_directory_index
-    
-    core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
-    core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
-    core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
-    
-    modules = {
-        "stream_manager": run_stream_manager,
-        "set_default": run_set_default_tracks,
-        "sync_subs": run_sync_subs,
-        "sync_subs_mkv": run_sync_subs_from_mkv,
-        "injection": run_injection,
-        "custom_merge": run_custom_merge
-    }
-    
-    if repeat and last_run_module:
-        module_name = last_run_module
-        is_repeating = True
-        current_directory_index = 0
-    else:
-        last_run_module = module_name
-        last_directory_choices = []
-        is_repeating = False
+class Api:
+    def run_module(self, module_name, settings, repeat=False):
+        global last_run_module, last_directory_choices, is_repeating, current_directory_index
         
-    if module_name in modules:
-        try:
-            eel.append_terminal(f"\n--- Launching {module_name} ---\n")()
-            modules[module_name]()
-            eel.append_terminal(f"\n--- Finished ---\n")()
-            return {"status": "ok"}
-        except Exception as e:
-            eel.append_terminal(f"\n[ERROR] {e}\n")()
-            return {"status": "error", "message": str(e)}
+        core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
+        core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
+        core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
+        
+        modules = {
+            "stream_manager": run_stream_manager,
+            "set_default": run_set_default_tracks,
+            "sync_subs": run_sync_subs,
+            "sync_subs_mkv": run_sync_subs_from_mkv,
+            "injection": run_injection,
+            "custom_merge": run_custom_merge
+        }
+        
+        if repeat and last_run_module:
+            module_name = last_run_module
+            is_repeating = True
+            current_directory_index = 0
+        else:
+            last_run_module = module_name
+            last_directory_choices = []
+            is_repeating = False
+            
+        if module_name in modules:
+            try:
+                eel.append_terminal(f"\n--- Launching {module_name} ---\n")()
+                modules[module_name]()
+                eel.append_terminal(f"\n--- Finished ---\n")()
+                return {"status": "ok"}
+            except Exception as e:
+                eel.append_terminal(f"\n[ERROR] {e}\n")()
+                return {"status": "error", "message": str(e)}
 
-@eel.expose
-def get_version():
-    return "1.4.0"
+    def get_version(self):
+        return "1.5.0"

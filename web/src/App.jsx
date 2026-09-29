@@ -50,11 +50,11 @@ export default function App() {
   const terminalEndRef = useRef(null);
 
   useEffect(() => {
-    if (window.eel) {
-        window.eel.append_terminal = append_terminal;
-        window.eel.ask_input = ask_input;
-        window.eel.ask_matcher = ask_matcher;
-    }
+    // Expose functions for Python to call
+    window.eel = window.eel || {};
+    window.eel.append_terminal = append_terminal;
+    window.eel.ask_input = ask_input;
+    window.eel.ask_matcher = ask_matcher;
   }, []);
 
   const append_terminal = (text) => {
@@ -100,10 +100,10 @@ export default function App() {
   const handleRun = async (repeat = false) => {
     setIsRunning(true);
     setShowTerminal(true);
-    if (window.eel) {
-        await window.eel.run_module(selectedMod.id, settings, repeat)();
+    if (window.pywebview && window.pywebview.api) {
+        await window.pywebview.api.run_module(selectedMod.id, settings, repeat);
     } else {
-        append_terminal("Eel is not connected. Running in dev mode?\\n");
+        append_terminal("Webview API is not connected. Running in dev mode?\\n");
     }
     setIsRunning(false);
   };
@@ -133,6 +133,16 @@ export default function App() {
               </ListItem>
             ))}
           </List>
+
+          <Button 
+            variant="outlined" 
+            startIcon={<Replay />}
+            onClick={() => handleRun(true)}
+            disabled={isRunning}
+            sx={{ mx: 2, mb: 2, borderRadius: 2, fontWeight: 'bold' }}
+          >
+            Repeat Last
+          </Button>
           
           <Box sx={{ mt: 'auto', p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>Settings</Typography>
@@ -181,16 +191,6 @@ export default function App() {
                     sx={{ borderRadius: 8, px: 4, py: 1.5, fontWeight: 'bold' }}
                   >
                     {isRunning ? 'Running...' : 'Launch Module'}
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    size="large" 
-                    startIcon={<Replay />}
-                    onClick={() => handleRun(true)}
-                    disabled={isRunning}
-                    sx={{ borderRadius: 8, px: 4, py: 1.5, fontWeight: 'bold' }}
-                  >
-                    Repeat Last Operation
                   </Button>
               </Box>
             </motion.div>
