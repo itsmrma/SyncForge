@@ -77,7 +77,7 @@ try:
             self.index = 0
             self.replaying = False
 
-        def exec_override(self, dialog_instance):
+        def _exec_impl(self, dialog_instance):
             if self.replaying and self.index < len(self.cache):
                 res = self.cache[self.index]
                 self.index += 1
@@ -92,7 +92,9 @@ try:
             return ret
 
     matcher_cache = MatcherCache()
-    FileMatcherUI.exec = matcher_cache.exec_override
+    def exec_override(dialog_instance):
+        return matcher_cache._exec_impl(dialog_instance)
+    FileMatcherUI.exec = exec_override
 except ImportError:
     pass
 
