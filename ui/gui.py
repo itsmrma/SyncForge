@@ -522,7 +522,8 @@ class SyncForgeApp(QMainWindow):
         }
         QProgressBar#ProgressBar::chunk {
             background-color: #D0BCFF;
-            border-radius: 4px;
+            border-radius: 3px;
+            margin: 1px;
         }
         QPushButton#ToggleConsoleButton {
             background-color: transparent;
