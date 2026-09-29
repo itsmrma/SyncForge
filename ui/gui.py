@@ -239,6 +239,22 @@ class SyncForgeApp(QMainWindow):
             sidebar_layout.addWidget(btn)
             self.sidebar_buttons.append(btn)
 
+        sidebar_layout.addSpacing(20)
+        
+        self.btn_repeat = QPushButton("  Repeat Last Operation")
+        self.btn_repeat.setObjectName("RepeatButton")
+        self.btn_repeat.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_repeat.setIcon(qta.icon('mdi.replay', color='#CAC4D0'))
+        self.btn_repeat.setIconSize(QSize(22, 22))
+        self.btn_repeat.clicked.connect(self.run_repeat)
+        self.btn_repeat.setEnabled(False)
+        sidebar_layout.addWidget(self.btn_repeat)
+        
+        lbl_repeat_desc = QLabel("Re-executes the last operation (same module, same folders & inputs).")
+        lbl_repeat_desc.setObjectName("RepeatDesc")
+        lbl_repeat_desc.setWordWrap(True)
+        sidebar_layout.addWidget(lbl_repeat_desc)
+
         sidebar_container = QWidget()
         sidebar_container.setFixedWidth(260)
         
@@ -366,11 +382,20 @@ class SyncForgeApp(QMainWindow):
         core.config.MAX_OFFSET_SECONDS = self.spin_offset.value()
         
         self.btn_open.setEnabled(False)
+        self.btn_repeat.setEnabled(False)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#938F99'))
         for btn in self.sidebar_buttons:
             btn.setEnabled(False)
             
         self.progress_bar.setRange(0, 0)
+        
+        # Clear caches for new normal run
+        fd_cache.cache = []
+        input_cache.cache = []
+        try:
+            matcher_cache.cache = []
+        except NameError:
+            pass
 
         while True:
             try:
@@ -412,13 +437,10 @@ class SyncForgeApp(QMainWindow):
                 print(f"\n[ERROR] {e}")
                 break
                 
-        # Reset caches
-        fd_cache.cache = []
+        # DO NOT Reset caches so we can repeat later
         fd_cache.replaying = False
-        input_cache.cache = []
         input_cache.replaying = False
         try:
-            matcher_cache.cache = []
             matcher_cache.replaying = False
         except NameError:
             pass
@@ -428,7 +450,50 @@ class SyncForgeApp(QMainWindow):
         
         print(f"\n--- Module finished ---")
         self.btn_open.setEnabled(True)
+        self.btn_repeat.setEnabled(True)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#381E72'))
+        for btn in self.sidebar_buttons:
+            btn.setEnabled(True)
+            
+    def run_repeat(self):
+        if not self.selected_func: return
+        print(f"\n--- Repeating Last Operation ({self.lbl_mod_title.text()}) ---\n")
+        
+        self.btn_open.setEnabled(False)
+        self.btn_repeat.setEnabled(False)
+        for btn in self.sidebar_buttons:
+            btn.setEnabled(False)
+            
+        self.progress_bar.setRange(0, 0)
+
+        fd_cache.replaying = True
+        fd_cache.index = 0
+        input_cache.replaying = True
+        input_cache.index = 0
+        try:
+            matcher_cache.replaying = True
+            matcher_cache.index = 0
+        except NameError:
+            pass
+
+        try:
+            self.selected_func()
+        except Exception as e:
+            print(f"\n[ERROR] {e}")
+
+        fd_cache.replaying = False
+        input_cache.replaying = False
+        try:
+            matcher_cache.replaying = False
+        except NameError:
+            pass
+
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        
+        print(f"\n--- Repeat finished ---")
+        self.btn_open.setEnabled(True)
+        self.btn_repeat.setEnabled(True)
         for btn in self.sidebar_buttons:
             btn.setEnabled(True)
 

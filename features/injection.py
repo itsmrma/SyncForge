@@ -1,7 +1,7 @@
 import os
 import subprocess
 from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature, HAS_SCIPY
+from core.utils import get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess
 from core.mkv_tools import get_tracks_info, select_track_interactive, has_attachments
 from core.audio_sync import extract_audio_segment, find_audio_delay, MAX_AUDIO_DELAY_MS
 from ui.matcher_ui import match_files_ui
@@ -93,8 +93,7 @@ def run_injection():
                 if os.name == 'nt' and not src_clean.startswith('\\\\') and not (len(src_clean) > 1 and src_clean[1] == ':' and src_clean.upper().startswith(('Z:', 'X:', 'Y:', 'W:', 'V:'))):
                     src_read_path = '\\\\?\\' + src_clean
 
-                subprocess.run(["mkvextract", src_read_path, "tracks", f"{selected_audio_track['id']}:{full_audio_ext}"], 
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+                run_subprocess(["mkvextract", src_read_path, "tracks", f"{selected_audio_track['id']}:{full_audio_ext}"], cwd=out_dir)
                 full_audio_path = os.path.join(out_dir, full_audio_ext)
                 temp_files.append(full_audio_path)
                 
@@ -131,8 +130,7 @@ def run_injection():
                 raw_sub = f"temp_raw{sub_ext}"
                 synced_sub = f"temp_synced{sub_ext}"
                 
-                subprocess.run(["mkvextract", src_read_path, "tracks", f"{selected_sub_track['id']}:{raw_sub}"],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+                run_subprocess(["mkvextract", src_read_path, "tracks", f"{selected_sub_track['id']}:{raw_sub}"], cwd=out_dir)
                 
                 raw_sub_path = os.path.join(out_dir, raw_sub)
                 synced_sub_path = os.path.join(out_dir, synced_sub)
@@ -147,7 +145,7 @@ def run_injection():
                         cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
                         if core.config.MAX_OFFSET_SECONDS > 0:
                             cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
-                        subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+                        run_subprocess(cmd_ffsubsync, cwd=out_dir)
                         
                         if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:
                             final_sub_to_merge = synced_sub_path
@@ -161,13 +159,12 @@ def run_injection():
                 cmd.extend(["--no-video", "--no-audio", "--no-subtitles", "--no-chapters", "--no-track-tags", "--no-global-tags", src_clean])
 
             print("   💾 Writing MKV file...")
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=out_dir)
+            returncode = run_subprocess(cmd, cwd=out_dir)
             
             for t in temp_files:
                 if os.path.exists(t): os.remove(t)
                 
-            if res.returncode != 0:
-                print(f"   ❌ ERROR during muxing:")
-                print(f"      {res.stderr.strip() or res.stdout.strip()}")
+            if returncode != 0:
+                print(f"   ❌ ERROR during muxing.")
             else:
                 print("   ✅ Done.")

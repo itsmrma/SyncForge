@@ -1,7 +1,7 @@
 import os
 import subprocess
 from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature
+from core.utils import get_files_recursive, get_track_signature, run_subprocess
 from core.mkv_tools import get_tracks_info, format_track_label
 
 VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
@@ -141,7 +141,7 @@ def run_stream_manager():
                         "-c:a", "libopus", "-b:a", "128k", "-vbr", "on", "-compression_level", "10", "-ac", "2",
                         temp_opus
                     ]
-                    subprocess.run(ff_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+                    run_subprocess(ff_cmd, cwd=out_dir)
 
                     lang = a_track.get('properties', {}).get('language', 'und')
                     name = a_track.get('properties', {}).get('track_name', '')
@@ -164,14 +164,13 @@ def run_stream_manager():
                     
                 cmd.append(clean_vid)
             
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=out_dir)
+            returncode = run_subprocess(cmd, cwd=out_dir)
             
             for t_f in temp_files:
                 if os.path.exists(t_f): os.remove(t_f)
 
-            if res.returncode != 0:
-                print(f"   ❌ Error writing {filename}:")
-                print(f"      {res.stderr.strip() or res.stdout.strip()}")
+            if returncode != 0:
+                print(f"   ❌ Error writing {filename}")
             else:
                 print(f"   -> Saved: {os.path.basename(out)}")
         
@@ -272,10 +271,9 @@ def run_set_default_tracks():
                         modifiche_aggiunte = True
 
             if modifiche_aggiunte:
-                res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=vid_dir)
-                if res.returncode != 0:
-                    print(f"   ❌ mkvpropedit error on {os.path.basename(vid)}:")
-                    print(f"      {res.stderr.strip() or res.stdout.strip()}")
+                returncode = run_subprocess(cmd, cwd=vid_dir)
+                if returncode != 0:
+                    print(f"   ❌ mkvpropedit error on {os.path.basename(vid)}")
                 else:
                     print(f"   -> Modified: {os.path.basename(vid)}")
             else:

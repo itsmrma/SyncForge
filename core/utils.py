@@ -45,3 +45,42 @@ def get_track_signature(tracks):
             codec = t.get('codec', 'Unknown')
             sig_parts.append(f"{t['id']}_{t['type']}_{lang}_{codec}")
     return "|".join(sig_parts)
+
+def run_subprocess(cmd, cwd=None):
+    """Runs a subprocess, captures output real-time, and prevents cmd window on Windows."""
+    import subprocess
+    creationflags = 0
+    if os.name == 'nt':
+        creationflags = subprocess.CREATE_NO_WINDOW
+        
+    process = subprocess.Popen(
+        cmd, 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, 
+        text=True, 
+        encoding='utf-8', 
+        errors='replace',
+        cwd=cwd, 
+        creationflags=creationflags
+    )
+    
+    try:
+        from PyQt6.QtWidgets import QApplication
+        has_qt = True
+    except ImportError:
+        has_qt = False
+
+    while True:
+        # non-blocking readline would be tricky without threads or select.
+        # But wait, readline blocks. Let's just do a normal loop and call processEvents if we have qt.
+        line = process.stdout.readline()
+        if not line and process.poll() is not None:
+            break
+        if line:
+            print(line, end='')
+        elif has_qt:
+            QApplication.processEvents()
+            
+    process.stdout.close()
+    return process.wait()
+

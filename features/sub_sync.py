@@ -1,7 +1,7 @@
 import os
 import subprocess
 from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature
+from core.utils import get_files_recursive, get_track_signature, run_subprocess
 from core.mkv_tools import get_tracks_info, select_track_interactive
 from ui.matcher_ui import match_files_ui
 
@@ -32,7 +32,7 @@ def run_sync_subs():
         if core.config.MAX_OFFSET_SECONDS > 0:
             cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
             
-        subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL)
+        run_subprocess(cmd_ffsubsync)
         
         if os.path.exists(synced):
             filename = os.path.basename(v_clean)
@@ -41,7 +41,7 @@ def run_sync_subs():
             out_dir = os.path.dirname(out)
             
             cmd = ["mkvmerge", "-o", out, v_clean, "--language", "0:ita", synced]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+            run_subprocess(cmd, cwd=out_dir)
             os.remove(synced)
             
     print(f"\nDone! Synced files saved to: {out_folder}")
@@ -115,8 +115,7 @@ def run_sync_subs_from_mkv():
             if os.name == 'nt' and not src_clean.startswith('\\\\') and not (len(src_clean) > 1 and src_clean[1] == ':' and src_clean.upper().startswith(('Z:', 'X:', 'Y:', 'W:', 'V:'))):
                 src_read_path = '\\\\?\\' + src_clean
 
-            subprocess.run(["mkvextract", src_read_path, "tracks", f"{selected_sub_track['id']}:{raw_sub}"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+            run_subprocess(["mkvextract", src_read_path, "tracks", f"{selected_sub_track['id']}:{raw_sub}"], cwd=out_dir)
             
             raw_sub_path = os.path.join(out_dir, raw_sub)
             synced_sub_path = os.path.join(out_dir, synced_sub)
@@ -131,7 +130,7 @@ def run_sync_subs_from_mkv():
                     cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
                     if core.config.MAX_OFFSET_SECONDS > 0:
                         cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
-                    subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
+                    run_subprocess(cmd_ffsubsync, cwd=out_dir)
                     
                     if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:
                         final_sub_to_merge = synced_sub_path
@@ -141,11 +140,10 @@ def run_sync_subs_from_mkv():
                         print("      ⚠️ Sync failed or impossible. Using original.")
                 
                 cmd = ["mkvmerge", "-o", out_file, tgt_clean, "--language", "0:ita", final_sub_to_merge]
-                res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=out_dir)
+                returncode = run_subprocess(cmd, cwd=out_dir)
                 
-                if res.returncode != 0:
-                    print(f"   ❌ ERROR during muxing:")
-                    print(f"      {res.stderr.strip() or res.stdout.strip()}")
+                if returncode != 0:
+                    print(f"   ❌ ERROR during muxing.")
                 else:
                     print("   ✅ Done.")
 

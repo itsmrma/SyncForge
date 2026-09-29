@@ -1,7 +1,7 @@
 import os
 import subprocess
 from PyQt6.QtWidgets import QFileDialog, QApplication
-from core.utils import get_files_recursive, get_track_signature
+from core.utils import get_files_recursive, get_track_signature, run_subprocess
 from core.mkv_tools import get_tracks_info, format_track_label
 from ui.matcher_ui import match_files_ui
 
@@ -114,10 +114,9 @@ def run_custom_merge():
                 
             cmd.append(clean_b)
 
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=out_dir)
-            if res.returncode != 0:
-                print(f"   ❌ Error writing {base_name}:")
-                print(f"      {res.stderr.strip() or res.stdout.strip()}")
+            returncode = run_subprocess(cmd, cwd=out_dir)
+            if returncode != 0:
+                print(f"   ❌ Error writing {base_name}")
             else:
                 print(f"   -> Saved: {os.path.basename(out_file)}")
 
