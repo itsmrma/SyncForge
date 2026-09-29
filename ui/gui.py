@@ -132,11 +132,16 @@ subprocess.run = run_with_events
 class StreamInterceptor:
     def __init__(self, text_widget):
         self.text_widget = text_widget
+        self.last_update = 0
 
     def write(self, text):
         self.text_widget.insertPlainText(text)
-        self.text_widget.verticalScrollBar().setValue(self.text_widget.verticalScrollBar().maximum())
-        QApplication.processEvents()
+        
+        now = time.time()
+        if now - self.last_update > 0.05:
+            self.text_widget.verticalScrollBar().setValue(self.text_widget.verticalScrollBar().maximum())
+            QApplication.processEvents()
+            self.last_update = now
 
     def flush(self):
         pass
@@ -274,6 +279,20 @@ class SyncForgeApp(QMainWindow):
         
         settings_layout.addWidget(settings_label)
         settings_layout.addWidget(self.spin_offset)
+        
+        from PyQt6.QtWidgets import QCheckBox
+        self.chk_sync_audio = QCheckBox("Auto-sync Audio (WaveSync)")
+        self.chk_sync_audio.setChecked(True)
+        self.chk_sync_audio.setStyleSheet("color: #CAC4D0; font-size: 13px;")
+        
+        self.chk_sync_subs = QCheckBox("Auto-sync Subs (FFsubsync)")
+        self.chk_sync_subs.setChecked(True)
+        self.chk_sync_subs.setStyleSheet("color: #CAC4D0; font-size: 13px;")
+        
+        settings_layout.addSpacing(10)
+        settings_layout.addWidget(self.chk_sync_audio)
+        settings_layout.addWidget(self.chk_sync_subs)
+        
         sidebar_layout.addLayout(settings_layout)
 
         sidebar_container.setLayout(sidebar_layout)
@@ -377,9 +396,10 @@ class SyncForgeApp(QMainWindow):
     def run_selected_module(self):
         if not self.selected_func: return
         print(f"\n--- Launching Module: {self.lbl_mod_title.text()} ---\n")
-        
         import core.config
         core.config.MAX_OFFSET_SECONDS = self.spin_offset.value()
+        core.config.AUTO_SYNC_AUDIO = self.chk_sync_audio.isChecked()
+        core.config.AUTO_SYNC_SUBS = self.chk_sync_subs.isChecked()
         
         self.btn_open.setEnabled(False)
         self.btn_repeat.setEnabled(False)

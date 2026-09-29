@@ -28,11 +28,17 @@ def run_sync_subs():
         s_clean = os.path.abspath(os.path.normpath(s_path))
         
         import core.config
-        cmd_ffsubsync = ["ffsubsync", v_clean, "-i", s_clean, "-o", synced]
-        if core.config.MAX_OFFSET_SECONDS > 0:
-            cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
-            
-        run_subprocess(cmd_ffsubsync)
+        
+        if core.config.AUTO_SYNC_SUBS:
+            cmd_ffsubsync = ["ffsubsync", v_clean, "-i", s_clean, "-o", synced]
+            if core.config.MAX_OFFSET_SECONDS > 0:
+                cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
+                
+            run_subprocess(cmd_ffsubsync)
+        else:
+            # Just copy it so the rest of the flow works
+            import shutil
+            shutil.copy2(s_clean, synced)
         
         if os.path.exists(synced):
             filename = os.path.basename(v_clean)
@@ -124,9 +130,9 @@ def run_sync_subs_from_mkv():
             final_sub_to_merge = raw_sub_path
 
             if os.path.exists(raw_sub_path):
-                if can_sync:
+                import core.config
+                if can_sync and core.config.AUTO_SYNC_SUBS:
                     print(f"      [Sync] Running ffsubsync...")
-                    import core.config
                     cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
                     if core.config.MAX_OFFSET_SECONDS > 0:
                         cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
@@ -138,6 +144,8 @@ def run_sync_subs_from_mkv():
                         print("      ✅ Sync successful.")
                     else:
                         print("      ⚠️ Sync failed or impossible. Using original.")
+                elif can_sync and not core.config.AUTO_SYNC_SUBS:
+                    print("      [Sync] Skipped (disabled in settings). Using original.")
                 
                 cmd = ["mkvmerge", "-o", out_file, tgt_clean, "--language", "0:ita", final_sub_to_merge]
                 returncode = run_subprocess(cmd, cwd=out_dir)

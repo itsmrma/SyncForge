@@ -28,9 +28,13 @@ def run_injection():
     print("\n[SOURCE] What do you want to IMPORT from the Source file?")
     do_audio = input("   Import AUDIO? (y/n): ").lower() == 'y'
     do_audio_sync = False
+    
+    import core.config
+    
     if do_audio:
         if HAS_SCIPY:
-            do_audio_sync = input("      Apply auto-sync to audio (WaveSync)? (y/n): ").lower() == 'y'
+            do_audio_sync = core.config.AUTO_SYNC_AUDIO
+            print(f"      Apply auto-sync to audio (WaveSync)? {'y' if do_audio_sync else 'n'} [from global settings]")
         else:
             print("      (Audio auto-sync disabled: numpy/scipy missing)")
 
@@ -38,7 +42,8 @@ def run_injection():
     do_sub_sync = False
     do_attachments = False
     if do_subs:
-        do_sub_sync = input("      Apply auto-sync to subtitles (ffsubsync)? (y/n): ").lower() == 'y'
+        do_sub_sync = core.config.AUTO_SYNC_SUBS
+        print(f"      Apply auto-sync to subtitles (ffsubsync)? {'y' if do_sub_sync else 'n'} [from global settings]")
         print("      (For ASS subtitles, importing original Fonts is vital to keep styling)")
         do_attachments = input("      Import ATTACHMENTS (Fonts) from source? (Y/n): ").lower() != 'n'
 

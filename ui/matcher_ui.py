@@ -36,10 +36,12 @@ class FileMatcherUI(QDialog):
         
         self.list_target = QListWidget()
         self.list_target.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_target.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.list_target.addItems([os.path.basename(t) for t in self.targets])
         
         self.list_source = QListWidget()
         self.list_source.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_source.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.list_source.addItems([os.path.basename(s) for s in self.sources])
         
         self.list_target.itemSelectionChanged.connect(self.list_source.clearSelection)
