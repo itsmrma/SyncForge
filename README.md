@@ -18,7 +18,7 @@ SyncForge is a powerful, modular, and smart batch-processing tool to manipulate,
 - **Waveform Audio Sync**: Analyzes audio waves using Fast Fourier Transform (`scipy`) to precisely calculate delays and automatically sync different audio sources.
 - **Automatic Subtitle Sync**: Leverages `ffsubsync` to align out-of-sync subtitles automatically.
 - **In-Place Modifications**: Set default/forced flags directly in the file metadata without slow remuxing (`mkvpropedit`).
-- **Modern Interface**: A gorgeous PyQt6-based Material Design UI to easily select tools and pair files from different folders.
+- **Modern Interface**: A gorgeous web-based Material Design 3 UI powered by React and Eel to easily select tools, pair files using drag-and-drop, and view real-time logs.
 - **Opus Conversion**: On-the-fly conversion of extracted audio tracks to highly efficient Opus stereo format.
 
 ## 📦 Pre-compiled Releases (No Python Required)
@@ -44,13 +44,21 @@ Ensure the following external tools are installed and available in your system's
    cd SyncForge
    ```
 
-2. Install [uv](https://docs.astral.sh/uv/), a blazingly fast Python package manager.
+2. Install [uv](https://docs.astral.sh/uv/), a blazingly fast Python package manager, and [Node.js](https://nodejs.org/).
 
-3. Sync the environment and install dependencies:
+3. Build the React frontend:
+   ```bash
+   cd web
+   npm install
+   npm run build
+   cd ..
+   ```
+
+4. Sync the Python environment and install dependencies:
    ```bash
    uv sync
    ```
-   *(This will automatically create a virtual environment and install PyQt6, numpy, and scipy).*
+   *(This will automatically create a virtual environment and install Eel, numpy, and scipy).*
 
 To launch the GUI, simply run:
 ```bash
