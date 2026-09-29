@@ -1,10 +1,9 @@
 import sys
 import builtins
-import tkinter as tk
-from tkinter import filedialog
 import os
 import time
 import json
+import webview
 from unittest.mock import MagicMock
 
 window_ref = None
@@ -48,10 +47,6 @@ def setup_shim(win):
     window_ref = win
 
 # --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
-root = tk.Tk()
-root.withdraw()
-root.attributes('-topmost', True)
-
 last_run_module = None
 last_directory_choices = []
 is_repeating = False
@@ -72,7 +67,15 @@ class FileDialogMock:
             else:
                 is_repeating = False # Fallback
 
-        res = filedialog.askdirectory(title=caption, master=root)
+        res = ""
+        if window_ref:
+            try:
+                paths = window_ref.create_file_dialog(webview.FOLDER_DIALOG)
+                if paths and len(paths) > 0:
+                    res = paths[0]
+            except Exception:
+                pass
+
         if res:
             res = os.path.normpath(res)
             last_directory_choices.append(res)
