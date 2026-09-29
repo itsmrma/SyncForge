@@ -10,6 +10,11 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
 from PyQt6.QtGui import QFont, QFontDatabase, QIcon
 from PyQt6.QtCore import Qt, QSize
 
+from features.stream_manager import run_stream_manager, run_set_default_tracks
+from features.sub_sync import run_sync_subs, run_sync_subs_from_mkv
+from features.injection import run_injection
+from features.custom_merge import run_custom_merge
+
 # --- CACHES FOR RETRY MECHANISM ---
 
 class FileDialogCache:
@@ -181,11 +186,6 @@ class SyncForgeApp(QMainWindow):
         sidebar_layout.setSpacing(8)
         sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        from features.stream_manager import run_stream_manager, run_set_default_tracks
-        from features.sub_sync import run_sync_subs, run_sync_subs_from_mkv
-        from features.injection import run_injection
-        from features.custom_merge import run_custom_merge
-
         self.modules = [
             {
                 "title": "Stream Manager",
@@ -241,6 +241,25 @@ class SyncForgeApp(QMainWindow):
 
         sidebar_container = QWidget()
         sidebar_container.setFixedWidth(260)
+        
+        # Settings Area in Sidebar
+        sidebar_layout.addStretch()
+        
+        settings_layout = QVBoxLayout()
+        settings_layout.setSpacing(6)
+        settings_label = QLabel("FFsubsync Max Offset (s):")
+        settings_label.setStyleSheet("color: #CAC4D0; font-size: 13px; font-weight: 600;")
+        
+        from PyQt6.QtWidgets import QSpinBox
+        self.spin_offset = QSpinBox()
+        self.spin_offset.setRange(0, 60)
+        self.spin_offset.setValue(1)
+        self.spin_offset.setSpecialValueText("0 (No Limit)")
+        
+        settings_layout.addWidget(settings_label)
+        settings_layout.addWidget(self.spin_offset)
+        sidebar_layout.addLayout(settings_layout)
+
         sidebar_container.setLayout(sidebar_layout)
         content_layout.addWidget(sidebar_container)
 
@@ -342,6 +361,9 @@ class SyncForgeApp(QMainWindow):
     def run_selected_module(self):
         if not self.selected_func: return
         print(f"\n--- Launching Module: {self.lbl_mod_title.text()} ---\n")
+        
+        import core.config
+        core.config.MAX_OFFSET_SECONDS = self.spin_offset.value()
         
         self.btn_open.setEnabled(False)
         self.btn_open.setIcon(qta.icon('mdi.rocket-launch', color='#938F99'))
@@ -515,6 +537,17 @@ class SyncForgeApp(QMainWindow):
         QInputDialog QPushButton:hover, QMessageBox QPushButton:hover {
             background-color: #B69DF8;
         }
+        QSpinBox {
+            background-color: #1D1B20;
+            color: #E6E0E9;
+            border: 1px solid #4A4458;
+            border-radius: 6px;
+            padding: 6px;
+        }
+        QSpinBox::up-button, QSpinBox::down-button {
+            background-color: transparent;
+            width: 16px;
+        }
         QProgressBar#ProgressBar {
             background-color: #36343B;
             border-radius: 4px;
@@ -522,8 +555,8 @@ class SyncForgeApp(QMainWindow):
         }
         QProgressBar#ProgressBar::chunk {
             background-color: #D0BCFF;
-            border-radius: 3px;
-            margin: 1px;
+            border-radius: 4px;
+            width: 20px;
         }
         QPushButton#ToggleConsoleButton {
             background-color: transparent;

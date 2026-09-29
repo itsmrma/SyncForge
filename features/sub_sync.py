@@ -27,7 +27,12 @@ def run_sync_subs():
         v_clean = os.path.abspath(os.path.normpath(v_path))
         s_clean = os.path.abspath(os.path.normpath(s_path))
         
-        subprocess.run(["ffsubsync", v_clean, "-i", s_clean, "-o", synced], stdout=subprocess.DEVNULL)
+        import core.config
+        cmd_ffsubsync = ["ffsubsync", v_clean, "-i", s_clean, "-o", synced]
+        if core.config.MAX_OFFSET_SECONDS > 0:
+            cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
+            
+        subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL)
         
         if os.path.exists(synced):
             filename = os.path.basename(v_clean)
@@ -52,9 +57,6 @@ def run_sync_subs_from_mkv():
 
     pairs = match_files_ui(get_files_recursive(tgt_folder, VIDEO_EXT), get_files_recursive(src_folder, VIDEO_EXT))
     if not pairs: return
-
-    max_offset = input("\nEnter max offset in seconds for ffsubsync (e.g. 1, or 0 for no limit): ").strip()
-    if not max_offset.isdigit(): max_offset = "1"
 
     print("\n🔍 Analyzing SOURCE file structures...")
     groups = {}
@@ -125,7 +127,10 @@ def run_sync_subs_from_mkv():
             if os.path.exists(raw_sub_path):
                 if can_sync:
                     print(f"      [Sync] Running ffsubsync...")
-                    cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path, "--max-offset-seconds", str(max_offset)]
+                    import core.config
+                    cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
+                    if core.config.MAX_OFFSET_SECONDS > 0:
+                        cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
                     subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
                     
                     if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:

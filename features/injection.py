@@ -39,10 +39,6 @@ def run_injection():
     do_attachments = False
     if do_subs:
         do_sub_sync = input("      Apply auto-sync to subtitles (ffsubsync)? (y/n): ").lower() == 'y'
-        max_offset = 0
-        if do_sub_sync:
-            max_offset = input("      Enter max offset in seconds for ffsubsync (e.g. 1, 0 for no limit): ").strip()
-            if not max_offset.isdigit(): max_offset = 1 
         print("      (For ASS subtitles, importing original Fonts is vital to keep styling)")
         do_attachments = input("      Import ATTACHMENTS (Fonts) from source? (Y/n): ").lower() != 'n'
 
@@ -147,7 +143,10 @@ def run_injection():
                 if os.path.exists(raw_sub_path):
                     if can_sync and do_sub_sync:
                         print(f"      [Sync] Starting ffsubsync...")
-                        cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path, "--max-offset-seconds", str(max_offset)]
+                        import core.config
+                        cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
+                        if core.config.MAX_OFFSET_SECONDS > 0:
+                            cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
                         subprocess.run(cmd_ffsubsync, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=out_dir)
                         
                         if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:
