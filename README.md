@@ -23,7 +23,12 @@ SyncForge is a powerful, modular, and smart batch-processing tool to manipulate,
 - **Task Notifications**: Desktop notifications on Windows, Linux, and macOS when a task finishes or fails, plus an in-app result. Toggle them in Settings.
 - **Readable Live Logs**: Scroll up to pause automatic scrolling; scroll back to the bottom to resume it.
 
-Version **1.7** changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Version **1.7.1** changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+Track selection and confirmations use in-app popups with clearly marked IDs,
+language, codec, names, and flags. Use **Stop task** on the main screen or inside
+a selection dialog to cancel. Completed files are kept; incomplete mux output
+is removed. An in-place metadata edit finishes its current write before stopping.
 
 On Linux, desktop notifications require an active desktop notification service
 (D-Bus or `notify-send`). On macOS they use the system `osascript` notification

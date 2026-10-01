@@ -2,6 +2,8 @@ import sys
 import os
 
 def main():
+    from core.processes import hide_child_consoles
+    hide_child_consoles()
     import webview
     import ui.backend
     if sys.platform == 'darwin':
@@ -22,7 +24,7 @@ def main():
     
     api = ui.backend.Api()
     window = webview.create_window('SyncForge', url=index_path, js_api=api, width=1000, height=750, text_select=True)
-    ui.backend.setup_shim(window)
+    ui.backend.setup_shim(window, api)
     
     webview.start(debug=False, gui='qt' if sys.platform == 'linux' else None)
 
@@ -30,6 +32,8 @@ if __name__ == "__main__":
     from multiprocessing import freeze_support
     freeze_support()
     if '--ffsubsync' in sys.argv[1:2]:
+        from core.processes import hide_child_consoles
+        hide_child_consoles()
         sys.argv = [sys.argv[0], *sys.argv[2:]]
         if sys.stdout is None:
             sys.stdout = open(os.devnull, 'w')

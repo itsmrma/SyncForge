@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -111,9 +112,44 @@ class TaskTests(unittest.TestCase):
             backend.matcher_events.pop('pending')
 
     def test_cancelled_input_raises_instead_of_looping(self):
-        with patch.object(backend.frontend, 'ask_input', return_value=lambda: None):
+        with patch.object(backend, 'window_ref', None):
             with self.assertRaises(TaskCancelled):
                 backend.patched_input('Select a track')
+
+    def test_custom_prompt_waits_for_bridge_response_and_cleans_up(self):
+        def respond(script):
+            self.assertIn('Choose tracks', script)
+            self.assertIn('"id": 8', script)
+            self.api.resolve_input(next(iter(backend.input_events)), '1,8')
+            return True
+        window = MagicMock()
+        window.evaluate_js.side_effect = respond
+        with patch.object(backend, 'window_ref', window):
+            self.assertEqual(backend.request_input('Choose tracks', tracks=[{'id': 8}], kind='multiple'), '1,8')
+        self.assertEqual(backend.input_events, {})
+        self.assertEqual(backend.input_results, {})
+
+    def test_stop_releases_an_open_input_dialog(self):
+        window = MagicMock()
+        shown = threading.Event()
+        window.evaluate_js.side_effect = lambda script: shown.set() or True
+        outcomes = []
+        with patch.object(backend, 'window_ref', window), patch.object(backend, 'run_stream_manager', side_effect=lambda: backend.request_input('Choose tracks')):
+            worker = threading.Thread(target=lambda: outcomes.append(self.api.run_module('stream_manager', {})))
+            worker.start()
+            self.assertTrue(shown.wait(2))
+            # Wait for the prompt to register (the launch log also evaluates JS).
+            deadline = time.monotonic() + 2
+            while not backend.input_events and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertEqual(self.api.stop_task()['status'], 'stopping')
+            worker.join(timeout=3)
+            self.assertFalse(worker.is_alive())
+        self.assertEqual(outcomes[0]['status'], 'cancelled')
+        self.assertEqual(backend.input_events, {})
+
+    def test_stop_without_running_task_is_harmless(self):
+        self.assertEqual(self.api.stop_task(), {'status': 'idle'})
 
 
 class SubprocessTests(unittest.TestCase):
@@ -129,7 +165,7 @@ class SubprocessTests(unittest.TestCase):
             progress = TaskProgress()
             token = current_task.set(progress)
             try:
-                with self.command(tool, 1):
+                with self.command(tool, 1), patch('os.replace'):
                     self.assertEqual(utils.run_subprocess([tool, '-o', 'output.mkv']), 0)
                 self.assertEqual(progress.warnings, 1)
             finally:
@@ -155,7 +191,7 @@ class MetadataTests(unittest.TestCase):
             video = Path(folder) / 'video.mkv'
             video.write_bytes(b'first')
             response = subprocess.CompletedProcess([], 0, b'{"tracks":[{"id":1}],"attachments":[{}]}', b'')
-            with patch('subprocess.run', return_value=response) as run:
+            with patch.object(mkv_tools, 'capture_command', return_value=response) as run:
                 self.assertEqual(mkv_tools.get_tracks_info(str(video)), [{'id': 1}])
                 self.assertTrue(mkv_tools.has_attachments(str(video)))
                 self.assertEqual(run.call_count, 1)
@@ -164,7 +200,7 @@ class MetadataTests(unittest.TestCase):
                 self.assertEqual(run.call_count, 2)
 
     def test_identification_failures_do_not_become_empty_tracks(self):
-        with tempfile.NamedTemporaryFile() as video, patch('subprocess.run', return_value=subprocess.CompletedProcess([], 2, b'', b'broken')):
+        with tempfile.NamedTemporaryFile() as video, patch.object(mkv_tools, 'capture_command', return_value=subprocess.CompletedProcess([], 2, '', 'broken')):
             with self.assertRaisesRegex(RuntimeError, 'Cannot read tracks'):
                 mkv_tools.get_tracks_info(video.name)
 

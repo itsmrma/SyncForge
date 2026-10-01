@@ -50,9 +50,10 @@ jobs:
 
     - name: Install media tools (Linux)
       if: runner.os == 'Linux'
+      timeout-minutes: 8
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg mkvtoolnix
+        sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update
+        sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y ffmpeg mkvtoolnix
 
     - name: Install media tools (macOS)
       if: runner.os == 'macOS'

@@ -883,7 +883,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/66/b7/4a1bc231e0681ebf3
 
 [[package]]
 name = "syncforge"
-version = "1.7"
+version = "1.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "ffsubsync" },

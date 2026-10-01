@@ -1,6 +1,5 @@
 import os
-import subprocess
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection
+from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection, ask_user
 from core.mkv_tools import get_tracks_info, format_track_label
 from core.utils import match_files
 
@@ -50,8 +49,8 @@ def run_custom_merge():
             print(" SUBTITLES:")
             for t in subs_a: print(f"   {format_track_label(t)}")
             
-        sel_a_audio = input(" -> Audio IDs to KEEP from A (empty=all, n=none, comma-separated): ").strip().lower()
-        sel_a_subs = input(" -> Sub IDs to KEEP from A (empty=all, n=none, comma-separated): ").strip().lower()
+        sel_a_audio = ask_user("Choose audio tracks from Folder A", tracks=audio_a, kind="multiple", context=f"Batch {i}/{len(groups)} / {len(pairs_in_group)} pairs").strip().lower()
+        sel_a_subs = ask_user("Choose subtitle tracks from Folder A", tracks=subs_a, kind="multiple", context=f"Batch {i}/{len(groups)} / {len(pairs_in_group)} pairs").strip().lower()
 
         print("\n--- FOLDER B (ADDITIONAL SOURCE) ---")
         audio_b = [t for t in tracks_b if t['type'] == 'audio']
@@ -63,8 +62,8 @@ def run_custom_merge():
             print(" SUBTITLES:")
             for t in subs_b: print(f"   {format_track_label(t)}")
             
-        sel_b_audio = input(" -> Audio IDs to GRAB from B (empty=all, n=none, comma-separated): ").strip().lower()
-        sel_b_subs = input(" -> Sub IDs to GRAB from B (empty=all, n=none, comma-separated): ").strip().lower()
+        sel_b_audio = ask_user("Choose audio tracks from Folder B", tracks=audio_b, kind="multiple", context=f"Batch {i}/{len(groups)} / {len(pairs_in_group)} pairs").strip().lower()
+        sel_b_subs = ask_user("Choose subtitle tracks from Folder B", tracks=subs_b, kind="multiple", context=f"Batch {i}/{len(groups)} / {len(pairs_in_group)} pairs").strip().lower()
 
         actions_to_execute.append({
             'pairs': pairs_in_group,

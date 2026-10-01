@@ -1,6 +1,6 @@
 import os
 import tempfile
-from core.utils import ask_directory, get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess
+from core.utils import ask_directory, get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess, ask_user
 from core.mkv_tools import get_tracks_info, select_track_interactive, has_attachments
 from core.audio_sync import extract_audio_segment, find_audio_delay, MAX_AUDIO_DELAY_MS
 from core.utils import match_files
@@ -21,11 +21,11 @@ def run_injection():
     if not pairs: return
 
     print("\n[TARGET] What do you want to KEEP from the High Quality file (RAW)?")
-    keep_tgt_audio = input("   Keep original AUDIO? (y/n): ").lower() == 'y'
-    keep_tgt_subs  = input("   Keep original SUBTITLES? (y/n): ").lower() == 'y'
+    keep_tgt_audio = ask_user("Keep original audio from the target?", kind="confirm").lower() == 'y'
+    keep_tgt_subs  = ask_user("Keep original subtitles from the target?", kind="confirm").lower() == 'y'
 
     print("\n[SOURCE] What do you want to IMPORT from the Source file?")
-    do_audio = input("   Import AUDIO? (y/n): ").lower() == 'y'
+    do_audio = ask_user("Import audio from the source?", kind="confirm").lower() == 'y'
     do_audio_sync = False
 
     import core.config
@@ -37,14 +37,14 @@ def run_injection():
         else:
             print("      (Audio auto-sync disabled: numpy/scipy missing)")
 
-    do_subs  = input("   Import SUBTITLES? (y/n): ").lower() == 'y'
+    do_subs  = ask_user("Import subtitles from the source?", kind="confirm").lower() == 'y'
     do_sub_sync = False
     do_attachments = False
     if do_subs:
         do_sub_sync = core.config.AUTO_SYNC_SUBS
         print(f"      Apply auto-sync to subtitles (ffsubsync)? {'y' if do_sub_sync else 'n'} [from global settings]")
         print("      (For ASS subtitles, importing original Fonts is vital to keep styling)")
-        do_attachments = input("      Import ATTACHMENTS (Fonts) from source? (Y/n): ").lower() != 'n'
+        do_attachments = ask_user("Import attachments (fonts) from the source?", kind="confirm").lower() != 'n'
 
     print("\n🔍 Analyzing SOURCE file structures...")
     groups = {}

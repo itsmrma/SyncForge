@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Tooltip, Snackbar, Alert } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Tooltip, Alert } from '@mui/material';
 import Terminal from './Terminal';
+import InputDialog from './InputDialog';
+import Stop from '@mui/icons-material/Stop';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import FormatListBulleted from '@mui/icons-material/FormatListBulleted';
 import Flag from '@mui/icons-material/Flag';
@@ -38,6 +40,8 @@ export default function App() {
   const [selectedMod, setSelectedMod] = useState(modules[0]);
   const [terminal, setTerminal] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [inputRequest, setInputRequest] = useState(null);
   const [showTerminal, setShowTerminal] = useState(false);
   const [notice, setNotice] = useState(null);
   const [hasRun, setHasRun] = useState(false);
@@ -96,9 +100,13 @@ export default function App() {
     });
   };
 
-  const ask_input = (prompt_text) => {
-    const res = window.prompt(prompt_text);
-    return res;
+  const ask_input = (request, callback_id) => {
+    setInputRequest({ ...request, callback_id });
+  };
+
+  const cancel_requests = () => {
+    setInputRequest(null);
+    setMatcherState({ open: false, targets: [], sources: [], resolve: null });
   };
 
   const ask_matcher = (targets, sources, callback_id) => {
@@ -120,10 +128,12 @@ export default function App() {
     window.frontend_api.append_terminal = append_terminal;
     window.frontend_api.ask_input = ask_input;
     window.frontend_api.ask_matcher = ask_matcher;
+    window.frontend_api.cancel_requests = cancel_requests;
     return () => {
       delete window.frontend_api.append_terminal;
       delete window.frontend_api.ask_input;
       delete window.frontend_api.ask_matcher;
+      delete window.frontend_api.cancel_requests;
     };
   }, []);
 
@@ -146,6 +156,7 @@ export default function App() {
     if (runInFlight.current) return;
     runInFlight.current = true;
     setIsRunning(true);
+    setIsStopping(false);
     setShowTerminal(true);
     setNotice(null);
     try {
@@ -166,7 +177,26 @@ export default function App() {
     } finally {
       runInFlight.current = false;
       setIsRunning(false);
+      setIsStopping(false);
+      cancel_requests();
     }
+  };
+
+  const handleStop = async () => {
+    if (isStopping) return;
+    setIsStopping(true);
+    try {
+      const result = await window.pywebview.api.stop_task();
+      if (result?.status === 'idle') setIsStopping(false);
+    } catch (error) {
+      setIsStopping(false);
+      setNotice({ severity: 'error', message: error.message || String(error) });
+    }
+  };
+
+  const resolveInput = async value => {
+    await window.pywebview.api.resolve_input(inputRequest.callback_id, value);
+    setInputRequest(current => current?.callback_id === inputRequest.callback_id ? null : current);
   };
 
   const downloadTerminalLogs = () => {
@@ -206,7 +236,8 @@ export default function App() {
             {modules.map((m) => (
               <ListItem disablePadding key={m.id}>
                 <ListItemButton 
-                  selected={selectedMod.id === m.id} 
+                  selected={selectedMod.id === m.id}
+                  disabled={isRunning}
                   onClick={() => setSelectedMod(m)}
                   sx={{ borderRadius: 2, mb: 1 }}
                 >
@@ -344,6 +375,10 @@ export default function App() {
                   >
                     {isRunning ? 'Running...' : 'Launch Module'}
                   </Button>
+                  {isRunning && <Button variant="outlined" color="error" size="large" startIcon={<Stop />}
+                    onClick={handleStop} disabled={isStopping} sx={{ borderRadius: 8, px: 3 }}>
+                    {isStopping ? 'Stopping...' : 'Stop task'}
+                  </Button>}
               </Box>
             </motion.div>
           </AnimatePresence>
@@ -365,6 +400,8 @@ export default function App() {
       </Box>
 
       {/* Matcher Dialog */}
+      {inputRequest && <InputDialog key={inputRequest.callback_id} request={inputRequest}
+        onResolve={resolveInput} onStop={handleStop} stopping={isStopping} />}
       <Dialog open={matcherState.open} onClose={handleMatcherCancel} maxWidth="xl" fullWidth>
         <DialogTitle>Pairing Screen (Drag & Drop)</DialogTitle>
         <DialogContent dividers>
@@ -402,15 +439,17 @@ export default function App() {
           </Box>
         </DialogContent>
         <DialogActions>
+          <Button onClick={handleStop} color="error" disabled={isStopping}>{isStopping ? 'Stopping...' : 'Stop task'}</Button>
           <Button onClick={handleMatcherCancel} color="error">Cancel</Button>
           <Button onClick={handleMatcherConfirm} variant="contained">Confirm Pairing</Button>
         </DialogActions>
       </Dialog>
-      <Snackbar open={Boolean(notice)} autoHideDuration={8000} onClose={() => setNotice(null)}>
-        <Alert severity={notice?.severity || 'info'} onClose={() => setNotice(null)} sx={{ width: '100%' }}>
-          {notice?.message}
-        </Alert>
-      </Snackbar>
+      <Dialog open={Boolean(notice)}
+        onClose={() => setNotice(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>{notice?.severity === 'success' ? 'Task completed' : notice?.severity === 'warning' ? 'Task completed with warnings' : notice?.severity === 'info' ? 'Task stopped' : 'Task failed'}</DialogTitle>
+        <DialogContent><Alert severity={notice?.severity || 'info'}>{notice?.message}</Alert></DialogContent>
+        <DialogActions><Button variant="contained" onClick={() => setNotice(null)}>OK</Button></DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }

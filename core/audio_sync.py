@@ -1,4 +1,5 @@
 from core.utils import HAS_SCIPY, run_subprocess
+from core.tasks import check_cancelled, TaskCancelled
 
 MAX_AUDIO_DELAY_MS = 3000
 
@@ -15,6 +16,7 @@ def extract_audio_segment(input_file, output_wav, start_time="00:05:00", duratio
     run_subprocess(cmd)
 
 def find_audio_delay(ref_wav, src_wav):
+    check_cancelled()
     if not HAS_SCIPY: return 0
     try:
         # Lazy Loading imports to drastically speed up app startup
@@ -34,6 +36,7 @@ def find_audio_delay(ref_wav, src_wav):
         data_src = data_src.astype(np.float32) / (np.std(data_src) + 1e-6)
 
         correlation = signal.correlate(data_ref, data_src, mode='full', method='fft')
+        check_cancelled()
         lags = signal.correlation_lags(data_ref.size, data_src.size, mode='full')
         
         max_lag_samples = int((MAX_AUDIO_DELAY_MS / 1000.0) * fs_ref)
@@ -49,5 +52,7 @@ def find_audio_delay(ref_wav, src_wav):
         
         delay_ms = int((best_lag / fs_ref) * 1000)
         return delay_ms
+    except TaskCancelled:
+        raise
     except Exception as e:
         raise RuntimeError(f"Audio analysis failed: {e}") from e

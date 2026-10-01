@@ -3,12 +3,22 @@
 *.pyo
 *.pyd
 .Python
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 env/
 venv/
 .venv/
 env.bak/
 venv.bak/
 temp_*/
+syncforge_*/
+.syncforge-part-*
+scratch/
+*.log
 *.mkv
 *.wav
 *.mka
@@ -25,3 +35,4 @@ dist/
 node_modules/
 web/test-results/
 web/playwright-report/
+web/.vite/

@@ -4,10 +4,11 @@ import os
 import time
 import json
 import webview
-from core.tasks import TaskCancelled, TaskProgress, current_task
+from core.tasks import TaskCancelled, TaskProgress, current_task, check_cancelled
 from core.notifications import notify_task_finished
 
 window_ref = None
+active_api = None
 
 class FrontendShim:
     def append_terminal(self, text):
@@ -17,17 +18,6 @@ class FrontendShim:
                     window_ref.evaluate_js(f"if(window.frontend_api && window.frontend_api.append_terminal) window.frontend_api.append_terminal({json.dumps(text)})")
                 except Exception:
                     pass
-        return caller
-        
-    def ask_input(self, prompt):
-        def caller():
-            if window_ref:
-                try:
-                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_input ? window.frontend_api.ask_input({json.dumps(prompt)}) : null")
-                    return res
-                except Exception:
-                    return None
-            return None
         return caller
         
     def ask_matcher(self, target, source):
@@ -43,16 +33,22 @@ class FrontendShim:
 
 frontend = FrontendShim()
 
-def setup_shim(win):
-    global window_ref
+def setup_shim(win, api=None):
+    global window_ref, active_api
     window_ref = win
+    active_api = api
     sys.stdout = StreamInterceptor()
     builtins.input = patched_input
+    core.utils.set_ask_input_callback(request_input)
     win.events.closed += cancel_pending_matchers
 
 
 def cancel_pending_matchers():
+    if active_api:
+        active_api.stop_task()
     for evt in list(matcher_events.values()):
+        evt.set()
+    for evt in list(input_events.values()):
         evt.set()
 
 # --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
@@ -107,6 +103,32 @@ import uuid
 
 matcher_events = {}
 matcher_results = {}
+input_events = {}
+input_results = {}
+
+
+def request_input(prompt, **options):
+    check_cancelled()
+    if not window_ref:
+        raise TaskCancelled()
+    callback_id = str(uuid.uuid4())
+    event = threading.Event()
+    input_events[callback_id] = event
+    payload = dict(options, prompt=prompt)
+    try:
+        shown = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_input ? (window.frontend_api.ask_input({json.dumps(payload)}, '{callback_id}'), true) : false")
+        if not shown:
+            raise TaskCancelled()
+        while not event.wait(0.1):
+            check_cancelled()
+        check_cancelled()
+        result = input_results.get(callback_id)
+        if result is None:
+            raise TaskCancelled()
+        return str(result)
+    finally:
+        input_events.pop(callback_id, None)
+        input_results.pop(callback_id, None)
 
 def mock_ask_matcher(target_list, source_list):
     callback_id = str(uuid.uuid4())
@@ -122,9 +144,13 @@ def mock_ask_matcher(target_list, source_list):
                 return []
         
         # Wait for the user to interact with the dialog
-        evt.wait()
+        while not evt.wait(0.1):
+            check_cancelled()
+        check_cancelled()
         
         res = matcher_results.get(callback_id, [])
+    except TaskCancelled:
+        raise
     except Exception as e:
         if window_ref:
             frontend.append_terminal(f"\n[ERROR] in ask_matcher: {e}\n")()
@@ -184,15 +210,36 @@ class StreamInterceptor:
 
 def patched_input(prompt=""):
     frontend.append_terminal(prompt)()
-    res = frontend.ask_input(prompt)()
-    if res is None:
-        raise TaskCancelled()
+    res = request_input(prompt)
     frontend.append_terminal(res + "\n")()
     return res
 
 class Api:
     def __init__(self):
         self._run_lock = threading.Lock()
+        self._state_lock = threading.Lock()
+        self._active_task = None
+
+    def resolve_input(self, callback_id, result):
+        event = input_events.get(callback_id)
+        if event is not None:
+            input_results[callback_id] = result
+            event.set()
+
+    def stop_task(self):
+        with self._state_lock:
+            task = self._active_task
+            if task is None:
+                return {"status": "idle"}
+            task.cancel_event.set()
+        for event in list(input_events.values()) + list(matcher_events.values()):
+            event.set()
+        if window_ref:
+            try:
+                window_ref.evaluate_js("window.frontend_api && window.frontend_api.cancel_requests && window.frontend_api.cancel_requests()")
+            except Exception:
+                pass
+        return {"status": "stopping"}
 
     def resolve_matcher(self, callback_id, res):
         global matcher_results, matcher_events
@@ -213,9 +260,13 @@ class Api:
     def run_module(self, module_name, settings, paths=None, repeat=False):
         if not self._run_lock.acquire(blocking=False):
             return {"status": "busy", "message": "A task is already running."}
+        with self._state_lock:
+            self._active_task = TaskProgress()
         try:
             return self._run_module(module_name, settings, paths, repeat)
         finally:
+            with self._state_lock:
+                self._active_task = None
             self._run_lock.release()
 
     def _run_module(self, module_name, settings, paths, repeat):
@@ -278,11 +329,12 @@ class Api:
                 else:
                     last_directory_choices = [p_vid, p_sub, p_out]
                     
-        progress = TaskProgress()
+        progress = self._active_task
         token = current_task.set(progress)
         try:
             frontend.append_terminal(f"\n--- Launching {module_name} ---\n")()
             modules[module_name]()
+            check_cancelled()
             if not progress.outputs:
                 result = {"status": "cancelled", "message": "No files were processed."}
             elif progress.warnings:
@@ -290,17 +342,22 @@ class Api:
             else:
                 result = {"status": "ok", "message": f"Task completed. {progress.outputs} file(s) processed."}
         except TaskCancelled:
-            result = {"status": "cancelled", "message": "Task cancelled."}
+            result = {"status": "cancelled", "message": f"Task stopped. {progress.outputs} completed file(s) kept; partial output removed."}
         except (Exception, SystemExit) as exc:
             result = {"status": "error", "message": str(exc)}
         finally:
             sys.stdout.flush()
             current_task.reset(token)
             is_repeating = False
+            if window_ref:
+                try:
+                    window_ref.evaluate_js("window.frontend_api && window.frontend_api.cancel_requests && window.frontend_api.cancel_requests()")
+                except Exception:
+                    pass
         frontend.append_terminal(f"\n--- {result['message']} ---\n")()
         if settings.get("notify_on_finish", True):
             notify_task_finished(labels[module_name], result["status"])
         return result
 
     def get_version(self):
-        return "1.7"
+        return "1.7.1"

@@ -1,6 +1,6 @@
 import os
 import tempfile
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection
+from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection, ask_user
 from core.mkv_tools import get_tracks_info, format_track_label
 
 VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
@@ -61,7 +61,7 @@ def run_stream_manager():
         print("Enter IDs to KEEP for this group (e.g. 1, 3).")
         print(" - Leave EMPTY to keep everything.")
         print(" - Type 's' to SKIP this group.")
-        sel = input(f"Group {i} Selection: ").strip().lower()
+        sel = ask_user("Choose the audio and subtitle tracks to keep", tracks=audio_tracks + sub_tracks, kind="multiple", allow_skip=True, context=f"Group {i}/{len(groups)} / {len(files)} files").strip().lower()
 
         if sel == 's':
             print(f"⏭️ Group {i} skipped.")
@@ -71,7 +71,7 @@ def run_stream_manager():
 
         do_opus_conversion = False
         if audio_tracks:
-            conv_ans = input("Do you want to convert kept audio tracks to Opus stereo 128kbps? (y/n): ").strip().lower()
+            conv_ans = ask_user("Convert kept audio tracks to Opus stereo 128kbps?", kind="confirm").strip().lower()
             do_opus_conversion = (conv_ans == 'y')
 
         actions_to_execute.append({
@@ -219,13 +219,13 @@ def run_set_default_tracks():
         print("Enter Track ID. Leave EMPTY to not modify that parameter.")
         print("Type 's' to skip this group.")
 
-        sel_audio = input("DEFAULT AUDIO Track ID: ").strip().lower()
+        sel_audio = ask_user("Choose the default audio track", tracks=audio_tracks, kind="single", allow_empty=True, allow_skip=True, context=f"Group {i}/{len(groups)}").strip().lower()
         if sel_audio == 's':
             print(f"⏭️ Group {i} skipped.")
             continue
 
-        sel_sub_def = input("DEFAULT SUBTITLE Track ID: ").strip().lower()
-        sel_sub_forced = input("FORCED SUBTITLE Track ID: ").strip().lower()
+        sel_sub_def = ask_user("Choose the default subtitle track", tracks=sub_tracks, kind="single", allow_empty=True, context=f"Group {i}/{len(groups)}").strip().lower()
+        sel_sub_forced = ask_user("Choose the forced subtitle track", tracks=sub_tracks, kind="single", allow_empty=True, context=f"Group {i}/{len(groups)}").strip().lower()
 
         target_audio_id = int(sel_audio) if sel_audio.isdigit() else None
         target_sub_def_id = int(sel_sub_def) if sel_sub_def.isdigit() else None

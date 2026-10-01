@@ -1,8 +1,9 @@
 import os
 import json
-import subprocess
 from functools import lru_cache
-from core.process_env import external_tool_environment
+from core.processes import capture_command
+from core.tasks import check_cancelled
+from core.utils import ask_user
 
 @lru_cache(maxsize=256)
 def _read_metadata(filepath, size, modified_ns):
@@ -10,19 +11,15 @@ def _read_metadata(filepath, size, modified_ns):
     read_path = filepath
     if os.name == 'nt' and not filepath.startswith('\\\\') and not filepath.upper().startswith(('Z:', 'X:', 'Y:', 'W:', 'V:')):
         read_path = '\\\\?\\' + filepath
-    result = subprocess.run(
-        ["mkvmerge", "-J", read_path], capture_output=True,
-        cwd=os.path.dirname(filepath),
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,
-        env=external_tool_environment(),
-    )
+    result = capture_command(["mkvmerge", "-J", read_path], cwd=os.path.dirname(filepath))
     if result.returncode not in (0, 1):
-        detail = result.stderr.decode('utf-8', errors='replace').strip()
+        detail = result.stderr.strip()
         raise RuntimeError(f"Cannot read tracks from {filepath}: {detail}")
-    return json.loads(result.stdout.decode('utf-8'))
+    return json.loads(result.stdout)
 
 
 def _metadata(filepath):
+    check_cancelled()
     filepath = os.path.abspath(os.path.normpath(filepath))
     info = os.stat(filepath)
     return _read_metadata(filepath, info.st_size, info.st_mtime_ns)
@@ -69,7 +66,7 @@ def select_track_interactive(tracks, track_type, group_desc):
     
     while True:
         try:
-            sel = int(input(f"   Enter Track ID to use in this batch: "))
+            sel = int(ask_user("Choose the track to use in this batch", tracks=candidates, kind='single', context=group_desc))
             found = next((t for t in candidates if t['id'] == sel), None)
             if found: return found
         except ValueError: pass

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.7.1
+
+- Replace browser prompts with styled in-app popups for track selection and
+  confirmation. Track cards show the exact ID, language, codec, name, and flags.
+- Select tracks with checkboxes or radio buttons; provide explicit actions for
+  keeping all/none, skipping a group, and leaving default/forced flags unchanged.
+- Show completion, warning, failure, and stop results in an in-app popup while
+  retaining optional desktop notifications.
+- Add Stop task to the main screen and interactive dialogs. Interrupt analysis
+  and active tool processes, including FFmpeg children launched by ffsubsync.
+- Write muxed outputs to temporary files and publish them only after completion.
+  Stopping removes partial output and preserves existing completed files.
+  In-place metadata edits finish their current short write before stopping.
+- Centralize hidden process launch settings and apply them to library-spawned
+  FFmpeg processes on Windows, avoiding flashing console windows.
+- Add regression coverage for popup selection, stop during prompts and silent
+  commands, cancelled mux cleanup, and Windows process flags.
+- Ignore generated build specifications, caches, logs, test reports, scratch
+  files, and temporary processing outputs.
+
 ## 1.7
 
 - Desktop notifications when a task completes, completes with warnings, or fails.
