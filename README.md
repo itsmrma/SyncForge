@@ -3,7 +3,7 @@
 SyncForge batch-processes video files with MKVToolNix, FFmpeg, and ffsubsync,
 using a React desktop interface through pywebview.
 
-**[v2 — Structure Overhaul](https://github.com/itsmrma/SyncForge/releases/tag/v2)**
+**[2.0 — Structure Overhaul](https://github.com/itsmrma/SyncForge/releases/tag/v2)**
 reorganizes the application and build system. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features

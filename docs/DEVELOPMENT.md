@@ -50,7 +50,7 @@ Build the frontend first, then:
 uv run --group build python scripts/build.py
 uv run --group build python tests/smoke_bundle.py dist/SyncForge.exe
 uv build --wheel --out-dir build/packages
-uv run python tests/smoke_package.py build/packages/syncforge-2-py3-none-any.whl
+uv run python tests/smoke_package.py build/packages/syncforge-2.0-py3-none-any.whl
 ```
 
 Use `dist/SyncForge` on Linux/macOS. PyInstaller belongs to the `build` dependency
@@ -61,5 +61,15 @@ Tag pushes build and browser-test the frontend once on Linux, then share it with
 the three release builds. Python/media tests and frozen synchronizer checks run
 on every platform. The Linux build also verifies the installed wheel, including
 its frontend assets. Releases publish only after all builds pass.
+
+Release versions and executable filenames must include at least a major and minor
+number, for example `SyncForge-Linux-2.0`, `SyncForge-macOS-2.0`, and
+`SyncForge-Windows-2.0.exe`. Patch versions keep their third component. The workflow
+adds `.0` to a major-only tag such as `v2`; prefer decimal versions in future tags.
+
+`CHANGELOG.md` contains only the current release's changes. Replace its contents
+for the next release instead of appending the previous release history. Use a
+heading such as `## 2.0 - Structure Overhaul`; the workflow prefixes it with `Ver`
+for the release title. Previous notes remain available in Git history and releases.
 
 Inter fonts are local and their license is included in `web/public/Inter-LICENSE.txt`.

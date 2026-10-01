@@ -1,6 +1,6 @@
 [project]
 name = "syncforge"
-version = "2"
+version = "2.0"
 description = "Batch merge and synchronize audio and subtitle tracks in a desktop GUI"
 readme = "README.md"
 authors = [

@@ -112,6 +112,9 @@ jobs:
       shell: bash
       run: |
         VERSION=${GITHUB_REF_NAME#v}
+        if [[ "$VERSION" != *.* ]]; then
+          VERSION="${VERSION}.0"
+        fi
         ASSET_NAME="SyncForge-${{ matrix.os_label }}-${VERSION}${{ matrix.ext }}"
         mv dist/${{ matrix.executable }} dist/$ASSET_NAME
         echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
@@ -137,7 +140,7 @@ jobs:
         path: release-assets
         merge-multiple: true
     - name: Read release title
-      run: echo "RELEASE_TITLE=$(sed -n 's/^## //p' CHANGELOG.md | head -n 1)" >> "$GITHUB_ENV"
+      run: echo "RELEASE_TITLE=Ver $(sed -n 's/^## //p' CHANGELOG.md | head -n 1)" >> "$GITHUB_ENV"
     - name: Publish all platform executables
       uses: softprops/action-gh-release@v2
       with:
