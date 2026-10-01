@@ -4,7 +4,8 @@ import os
 import time
 import json
 import webview
-from unittest.mock import MagicMock
+from core.tasks import TaskCancelled, TaskProgress, current_task
+from core.notifications import notify_task_finished
 
 window_ref = None
 
@@ -22,11 +23,11 @@ class FrontendShim:
         def caller():
             if window_ref:
                 try:
-                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_input ? window.frontend_api.ask_input({json.dumps(prompt)}) : ''")
-                    return res if res is not None else ""
+                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_input ? window.frontend_api.ask_input({json.dumps(prompt)}) : null")
+                    return res
                 except Exception:
-                    return ""
-            return ""
+                    return None
+            return None
         return caller
         
     def ask_matcher(self, target, source):
@@ -45,6 +46,14 @@ frontend = FrontendShim()
 def setup_shim(win):
     global window_ref
     window_ref = win
+    sys.stdout = StreamInterceptor()
+    builtins.input = patched_input
+    win.events.closed += cancel_pending_matchers
+
+
+def cancel_pending_matchers():
+    for evt in list(matcher_events.values()):
+        evt.set()
 
 # --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
 last_run_module = None
@@ -61,6 +70,13 @@ def mock_ask_directory(caption=""):
             try:
                 frontend.append_terminal(f"[{caption}] Auto-selected: {res}\n")()
             except: pass
+            if not res:
+                raise TaskCancelled()
+            res = os.path.abspath(os.path.normpath(res))
+            if "OUTPUT" in caption.upper():
+                os.makedirs(res, exist_ok=True)
+            elif not os.path.isdir(res):
+                raise ValueError(f"Folder does not exist: {res}")
             return res
         else:
             is_repeating = False # Fallback
@@ -94,12 +110,16 @@ matcher_results = {}
 
 def mock_ask_matcher(target_list, source_list):
     callback_id = str(uuid.uuid4())
+    if not window_ref:
+        return []
     evt = threading.Event()
     matcher_events[callback_id] = evt
     
     try:
         if window_ref:
-            window_ref.evaluate_js(f"if(window.frontend_api && window.frontend_api.ask_matcher) window.frontend_api.ask_matcher({json.dumps(target_list)}, {json.dumps(source_list)}, '{callback_id}')")
+            shown = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_matcher ? (window.frontend_api.ask_matcher({json.dumps(target_list)}, {json.dumps(source_list)}, '{callback_id}'), true) : false")
+            if not shown:
+                return []
         
         # Wait for the user to interact with the dialog
         evt.wait()
@@ -126,47 +146,58 @@ import core.config
 from core.utils import get_files_recursive
 
 class StreamInterceptor:
+    encoding = 'utf-8'
+
     def __init__(self):
         self.last_update = 0
         self.buffer = ""
+        self._lock = threading.Lock()
+
+    def isatty(self):
+        return False
         
     def write(self, text):
-        self.buffer += text
-        now = time.time()
-        if now - self.last_update > 0.05 or '\n' in text:
+        chunk = ''
+        with self._lock:
+            self.buffer += text
+            now = time.monotonic()
+            if now - self.last_update > 0.05 or '\n' in text:
+                chunk = self.buffer
+                self.buffer = ''
+                self.last_update = now
+        if chunk:
             try:
-                frontend.append_terminal(self.buffer)()
+                frontend.append_terminal(chunk)()
             except Exception:
                 pass
-            self.buffer = ""
-            self.last_update = now
+        return len(text)
             
     def flush(self):
-        if self.buffer:
+        with self._lock:
+            chunk = self.buffer
+            self.buffer = ''
+        if chunk:
             try:
-                frontend.append_terminal(self.buffer)()
+                frontend.append_terminal(chunk)()
             except Exception:
                 pass
-            self.buffer = ""
 
 def patched_input(prompt=""):
-    try:
-        frontend.append_terminal(prompt)()
-        res = frontend.ask_input(prompt)()
-        frontend.append_terminal(res + "\n")()
-        return res
-    except Exception:
-        return ""
-
-# Apply patches
-sys.stdout = StreamInterceptor()
-builtins.input = patched_input
+    frontend.append_terminal(prompt)()
+    res = frontend.ask_input(prompt)()
+    if res is None:
+        raise TaskCancelled()
+    frontend.append_terminal(res + "\n")()
+    return res
 
 class Api:
+    def __init__(self):
+        self._run_lock = threading.Lock()
+
     def resolve_matcher(self, callback_id, res):
         global matcher_results, matcher_events
-        matcher_results[callback_id] = res
         if callback_id in matcher_events:
+            matcher_results[callback_id] = res
             matcher_events[callback_id].set()
 
     def pick_folder(self):
@@ -180,12 +211,15 @@ class Api:
         return ""
 
     def run_module(self, module_name, settings, paths=None, repeat=False):
+        if not self._run_lock.acquire(blocking=False):
+            return {"status": "busy", "message": "A task is already running."}
+        try:
+            return self._run_module(module_name, settings, paths, repeat)
+        finally:
+            self._run_lock.release()
+
+    def _run_module(self, module_name, settings, paths, repeat):
         global last_run_module, last_directory_choices, is_repeating, current_directory_index
-        
-        core.config.MAX_OFFSET_SECONDS = int(settings.get("max_offset", 1))
-        core.config.ENABLE_MAX_OFFSET = settings.get("enable_max_offset", True)
-        core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
-        core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
         
         modules = {
             "stream_manager": run_stream_manager,
@@ -195,6 +229,28 @@ class Api:
             "injection": run_injection,
             "custom_merge": run_custom_merge
         }
+        labels = {
+            "stream_manager": "Stream Manager", "set_default": "Set Default & Forced",
+            "sync_subs": "Sync External Subtitles", "sync_subs_mkv": "Sync Subs from MKV",
+            "injection": "WaveSync Injection", "custom_merge": "Custom Track Merge",
+        }
+        if repeat:
+            if not last_run_module:
+                return {"status": "error", "message": "There is no previous task to repeat."}
+            module_name = last_run_module
+        if module_name not in modules:
+            return {"status": "error", "message": "Unknown module."}
+        try:
+            enable_offset = bool(settings.get("enable_max_offset", False))
+            max_offset = int(settings.get("max_offset", 1)) if enable_offset else 1
+            if max_offset <= 0:
+                raise ValueError()
+        except (TypeError, ValueError):
+            return {"status": "error", "message": "Max offset must be a positive whole number."}
+        core.config.MAX_OFFSET_SECONDS = max_offset
+        core.config.ENABLE_MAX_OFFSET = enable_offset
+        core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
+        core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
         
         if repeat and last_run_module:
             module_name = last_run_module
@@ -222,15 +278,29 @@ class Api:
                 else:
                     last_directory_choices = [p_vid, p_sub, p_out]
                     
-        if module_name in modules:
-            try:
-                frontend.append_terminal(f"\n--- Launching {module_name} ---\n")()
-                modules[module_name]()
-                frontend.append_terminal(f"\n--- Finished ---\n")()
-                return {"status": "ok"}
-            except Exception as e:
-                frontend.append_terminal(f"\n[ERROR] {e}\n")()
-                return {"status": "error", "message": str(e)}
+        progress = TaskProgress()
+        token = current_task.set(progress)
+        try:
+            frontend.append_terminal(f"\n--- Launching {module_name} ---\n")()
+            modules[module_name]()
+            if not progress.outputs:
+                result = {"status": "cancelled", "message": "No files were processed."}
+            elif progress.warnings:
+                result = {"status": "warning", "message": f"Task completed with {progress.warnings} warning(s). Check the terminal."}
+            else:
+                result = {"status": "ok", "message": f"Task completed. {progress.outputs} file(s) processed."}
+        except TaskCancelled:
+            result = {"status": "cancelled", "message": "Task cancelled."}
+        except (Exception, SystemExit) as exc:
+            result = {"status": "error", "message": str(exc)}
+        finally:
+            sys.stdout.flush()
+            current_task.reset(token)
+            is_repeating = False
+        frontend.append_terminal(f"\n--- {result['message']} ---\n")()
+        if settings.get("notify_on_finish", True):
+            notify_task_finished(labels[module_name], result["status"])
+        return result
 
     def get_version(self):
-        return "1.6.5"
+        return "1.7"

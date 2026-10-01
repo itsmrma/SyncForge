@@ -1,6 +1,6 @@
 import os
 import subprocess
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess
+from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection
 from core.mkv_tools import get_tracks_info, format_track_label
 from core.utils import match_files
 
@@ -66,17 +66,12 @@ def run_custom_merge():
         sel_b_audio = input(" -> Audio IDs to GRAB from B (empty=all, n=none, comma-separated): ").strip().lower()
         sel_b_subs = input(" -> Sub IDs to GRAB from B (empty=all, n=none, comma-separated): ").strip().lower()
 
-        def parse_sel(sel_str, tracks):
-            if sel_str == 'n': return []
-            if not sel_str: return [t['id'] for t in tracks]
-            return [int(x.strip()) for x in sel_str.split(',') if x.strip().isdigit()]
-
         actions_to_execute.append({
             'pairs': pairs_in_group,
-            'keep_a_audio': parse_sel(sel_a_audio, audio_a),
-            'keep_a_subs': parse_sel(sel_a_subs, subs_a),
-            'keep_b_audio': parse_sel(sel_b_audio, audio_b),
-            'keep_b_subs': parse_sel(sel_b_subs, subs_b)
+            'keep_a_audio': parse_track_selection(sel_a_audio, audio_a),
+            'keep_a_subs': parse_track_selection(sel_a_subs, subs_a),
+            'keep_b_audio': parse_track_selection(sel_b_audio, audio_b),
+            'keep_b_subs': parse_track_selection(sel_b_subs, subs_b)
         })
 
     print("\n" + "="*60)

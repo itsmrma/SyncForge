@@ -20,6 +20,16 @@ SyncForge is a powerful, modular, and smart batch-processing tool to manipulate,
 - **In-Place Modifications**: Set default/forced flags directly in the file metadata without slow remuxing (`mkvpropedit`).
 - **Modern Interface**: A gorgeous web-based Material Design 3 UI powered by React and PyWebView, delivering a lightweight, OS-native window experience (no heavy Electron binaries!) to easily select tools, pair files using drag-and-drop, and view real-time logs.
 - **Opus Conversion**: On-the-fly conversion of extracted audio tracks to highly efficient Opus stereo format.
+- **Task Notifications**: Desktop notifications on Windows, Linux, and macOS when a task finishes or fails, plus an in-app result. Toggle them in Settings.
+- **Readable Live Logs**: Scroll up to pause automatic scrolling; scroll back to the bottom to resume it.
+
+Version **1.7** changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+On Linux, desktop notifications require an active desktop notification service
+(D-Bus or `notify-send`). On macOS they use the system `osascript` notification
+command and may require enabling notifications for the script host in System
+Settings. System notification settings, including Do Not Disturb, apply on all
+platforms. An in-app task result is displayed even when desktop banners are disabled.
 
 ## 📦 Pre-compiled Releases (No Python Required)
 
@@ -49,7 +59,7 @@ Ensure the following external tools are installed and available in your system's
 3. Build the React frontend:
    ```bash
    cd web
-   npm install
+   npm ci
    npm run build
    cd ..
    ```

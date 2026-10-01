@@ -13,6 +13,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -39,21 +40,50 @@ jobs:
       run: uv python install 3.12
 
     - name: Install dependencies
-      run: uv sync
+      run: uv sync --locked
+
+    - name: Install media tools (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install mkvtoolnix ffmpeg -y --no-progress
+        "$env:ProgramFiles\MKVToolNix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Install media tools (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg mkvtoolnix
+
+    - name: Install media tools (macOS)
+      if: runner.os == 'macOS'
+      run: brew install ffmpeg mkvtoolnix
+
+    - name: Run Python regression tests
+      run: uv run python -m unittest discover -s tests -v
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22
 
     - name: Build Web GUI
       run: |
         cd web
-        npm install
+        npm ci
+        npm run lint
         npm run build
+
+    - name: Run browser regression tests
+      working-directory: web
+      run: |
+        npx playwright install --with-deps chromium
+        npm test
 
     - name: Build Executable with PyInstaller
       run: uv run python build.py
+
+    - name: Smoke-test bundled subtitle synchronizer
+      run: uv run python tests/smoke_bundle.py dist/${{ matrix.executable }}
 
     - name: Rename executable for specific OS
       shell: bash
@@ -63,10 +93,26 @@ jobs:
         mv dist/${{ matrix.executable }} dist/$ASSET_NAME
         echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
 
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v1
+    - name: Save release executable
+      uses: actions/upload-artifact@v4
       with:
-        files: dist/${{ env.ASSET_NAME }}
+        name: SyncForge-${{ matrix.os_label }}
+        path: dist/${{ env.ASSET_NAME }}
+        if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        path: release-assets
+        merge-multiple: true
+    - name: Publish all platform executables
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release-assets/*
+        body_path: CHANGELOG.md
         draft: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

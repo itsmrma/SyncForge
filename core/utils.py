@@ -2,6 +2,8 @@ import os
 import shutil
 import sys
 import importlib.util
+from core.tasks import current_task
+from core.process_env import external_tool_environment
 
 # Check for math libraries without loading them into memory
 HAS_SCIPY = importlib.util.find_spec('scipy') is not None and importlib.util.find_spec('numpy') is not None
@@ -66,9 +68,31 @@ def get_track_signature(tracks):
             sig_parts.append(f"{t['id']}_{t['type']}_{lang}_{codec}")
     return "|".join(sig_parts)
 
+
+def parse_track_selection(selection, tracks):
+    """Validate track IDs before constructing commands which can remove tracks."""
+    if selection == 'n':
+        return []
+    if not selection:
+        return [track['id'] for track in tracks]
+    try:
+        ids = [int(value.strip()) for value in selection.split(',')]
+    except ValueError:
+        raise ValueError("Track IDs must be comma-separated whole numbers.") from None
+    valid_ids = {track['id'] for track in tracks}
+    if not set(ids).issubset(valid_ids):
+        raise ValueError("The selection contains a track ID that is not available.")
+    return list(dict.fromkeys(ids))
+
 def run_subprocess(cmd, cwd=None):
     """Runs a subprocess, captures output real-time, and prevents cmd window on Windows."""
     import subprocess
+    tool = os.path.splitext(os.path.basename(cmd[0]))[0].lower()
+    if tool == 'ffsubsync':
+        if getattr(sys, 'frozen', False):
+            cmd = [sys.executable, '--ffsubsync', *cmd[1:]]
+        else:
+            cmd = [sys.executable, '-c', 'import sys; from ffsubsync import main; sys.exit(main())', *cmd[1:]]
     creationflags = 0
     if os.name == 'nt':
         creationflags = subprocess.CREATE_NO_WINDOW
@@ -81,6 +105,7 @@ def run_subprocess(cmd, cwd=None):
         encoding='utf-8', 
         errors='replace',
         cwd=cwd, 
+        env=os.environ.copy() if tool == 'ffsubsync' else external_tool_environment(),
         creationflags=creationflags
     )
     
@@ -92,5 +117,19 @@ def run_subprocess(cmd, cwd=None):
             print(line, end='')
             
     process.stdout.close()
-    return process.wait()
+    returncode = process.wait()
+    progress = current_task.get()
+    # MKVToolNix uses 1 for success with warnings, 2 for an actual error.
+    if returncode == 1 and tool in ('mkvmerge', 'mkvextract', 'mkvpropedit'):
+        if progress is not None:
+            progress.warnings += 1
+        print(f"[Warning] {tool} finished with warnings; see the output above.")
+        returncode = 0
+    if returncode != 0:
+        raise subprocess.CalledProcessError(returncode, cmd)
+    if progress is not None and tool in ('mkvmerge', 'mkvpropedit'):
+        # Count final outputs, not temporary intermediate audio files.
+        if tool == 'mkvpropedit' or os.path.splitext(cmd[cmd.index('-o') + 1])[1].lower() == '.mkv':
+            progress.outputs += 1
+    return returncode
 

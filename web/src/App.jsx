@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Tooltip } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography, Button, TextField, FormControlLabel, Checkbox, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Tooltip, Snackbar, Alert } from '@mui/material';
+import Terminal from './Terminal';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import FormatListBulleted from '@mui/icons-material/FormatListBulleted';
 import Flag from '@mui/icons-material/Flag';
@@ -38,6 +39,9 @@ export default function App() {
   const [terminal, setTerminal] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [hasRun, setHasRun] = useState(false);
+  const runInFlight = useRef(false);
   
   const [paths, setPaths] = useState({
     video: '',
@@ -49,7 +53,8 @@ export default function App() {
     max_offset: 1,
     enable_max_offset: false,
     auto_audio: true,
-    auto_subs: true
+    auto_subs: true,
+    notify_on_finish: true
   });
 
   const [matcherState, setMatcherState] = useState({ open: false, targets: [], sources: [], resolve: null });
@@ -58,7 +63,7 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const isDragging = useRef(false);
 
-  const terminalEndRef = useRef(null);
+  const followTerminalRef = useRef(true);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -82,28 +87,18 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    // Expose functions for Python to call
-    window.frontend_api = window.frontend_api || {};
-    window.frontend_api.append_terminal = append_terminal;
-    window.frontend_api.ask_input = ask_input;
-    window.frontend_api.ask_matcher = ask_matcher;
-  }, []);
-
   const append_terminal = (text) => {
     setTerminal(prev => {
         const next = prev + text;
-        if (next.length > 50000) return next.slice(next.length - 50000);
+        // Preserve the text being read while automatic scrolling is paused.
+        if (next.length > 50000 && followTerminalRef.current) return next.slice(next.length - 50000);
         return next;
     });
-    if (terminalEndRef.current) {
-        terminalEndRef.current.scrollIntoView();
-    }
   };
 
   const ask_input = (prompt_text) => {
     const res = window.prompt(prompt_text);
-    return res || "";
+    return res;
   };
 
   const ask_matcher = (targets, sources, callback_id) => {
@@ -118,6 +113,19 @@ export default function App() {
     
     setMatcherState({ open: true, targets, sources: uniqueSources, resolve: resolveAndNotify });
   };
+
+  useEffect(() => {
+    // Expose functions for Python to call
+    window.frontend_api = window.frontend_api || {};
+    window.frontend_api.append_terminal = append_terminal;
+    window.frontend_api.ask_input = ask_input;
+    window.frontend_api.ask_matcher = ask_matcher;
+    return () => {
+      delete window.frontend_api.append_terminal;
+      delete window.frontend_api.ask_input;
+      delete window.frontend_api.ask_matcher;
+    };
+  }, []);
 
   const handleMatcherConfirm = () => {
     const limit = Math.min(matcherState.targets.length, reorderSources.length);
@@ -135,14 +143,30 @@ export default function App() {
   };
 
   const handleRun = async (repeat = false) => {
+    if (runInFlight.current) return;
+    runInFlight.current = true;
     setIsRunning(true);
     setShowTerminal(true);
-    if (window.pywebview && window.pywebview.api) {
-        await window.pywebview.api.run_module(selectedMod.id, settings, paths, repeat);
-    } else {
-        append_terminal("Webview API is not connected. Running in dev mode?\\n");
+    setNotice(null);
+    try {
+      if (window.pywebview && window.pywebview.api) {
+        const result = await window.pywebview.api.run_module(selectedMod.id, settings, paths, repeat);
+        const severity = result?.status === 'ok' ? 'success' :
+          result?.status === 'warning' ? 'warning' : result?.status === 'cancelled' ? 'info' : 'error';
+        setNotice({ severity, message: result?.message || 'The task returned no result. Check the terminal.' });
+        if (result && result.status !== 'busy') setHasRun(true);
+      } else {
+        append_terminal("Webview API is not connected. Running in dev mode?\n");
+        setNotice({ severity: 'error', message: 'The desktop backend is not connected.' });
+      }
+    } catch (error) {
+      const message = error.message || String(error);
+      append_terminal(`\n[ERROR] ${message}\n`);
+      setNotice({ severity: 'error', message });
+    } finally {
+      runInFlight.current = false;
+      setIsRunning(false);
     }
-    setIsRunning(false);
   };
 
   const downloadTerminalLogs = () => {
@@ -198,7 +222,7 @@ export default function App() {
               variant="outlined" 
               startIcon={<Replay />}
               onClick={() => handleRun(true)}
-              disabled={isRunning}
+              disabled={isRunning || !hasRun}
               fullWidth
               sx={{ mb: 2, borderRadius: 2, fontWeight: 'bold' }}
             >
@@ -231,6 +255,10 @@ export default function App() {
                 <FormControlLabel 
                   control={<Checkbox checked={settings.auto_subs} onChange={e => setSettings({...settings, auto_subs: e.target.checked})} />} 
                   label={<Typography fontSize="0.85rem">Auto-sync Subs</Typography>} 
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={settings.notify_on_finish} onChange={e => setSettings({...settings, notify_on_finish: e.target.checked})} />}
+                  label={<Typography fontSize="0.85rem">Notify when task finishes</Typography>}
                 />
               </AccordionDetails>
             </Accordion>
@@ -321,10 +349,7 @@ export default function App() {
           </AnimatePresence>
 
           <Box sx={{ height: showTerminal ? 250 : 0, transition: 'height 0.3s ease', overflow: 'hidden', mt: 2, display: 'flex', flexDirection: 'column' }}>
-             <Paper sx={{ flex: 1, bgcolor: '#1D1B20', color: '#D0BCFF', p: 2, fontFamily: 'monospace', overflowY: 'auto', fontSize: '0.85rem', border: '1px solid #36343B', borderRadius: 2, userSelect: 'text' }}>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', userSelect: 'text' }}>{terminal}</pre>
-                <div ref={terminalEndRef} />
-             </Paper>
+             <Terminal text={terminal} visible={showTerminal} onFollowChange={following => { followTerminalRef.current = following; }} />
           </Box>
           <Box sx={{ display: 'flex', gap: 2, mt: 1, alignSelf: 'flex-start' }}>
             <Button onClick={() => setShowTerminal(!showTerminal)} sx={{ color: '#CAC4D0' }}>
@@ -340,7 +365,7 @@ export default function App() {
       </Box>
 
       {/* Matcher Dialog */}
-      <Dialog open={matcherState.open} maxWidth="xl" fullWidth>
+      <Dialog open={matcherState.open} onClose={handleMatcherCancel} maxWidth="xl" fullWidth>
         <DialogTitle>Pairing Screen (Drag & Drop)</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
@@ -362,7 +387,7 @@ export default function App() {
             <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Sources (Drag to reorder)</Typography>
                 <Reorder.Group axis="y" values={reorderSources} onReorder={setReorderSources} style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                    {reorderSources.map((s, idx) => (
+                    {reorderSources.map((s) => (
                         <Reorder.Item key={s.id} value={s} style={{ marginBottom: 8, height: 48, cursor: 'grab' }}>
                             <Paper sx={{ display: 'flex', alignItems: 'center', p: 1, bgcolor: 'primary.dark', color: 'primary.contrastText', height: '100%', overflow: 'hidden' }}>
                                 <DragHandle sx={{ mr: 1, opacity: 0.7, flexShrink: 0 }} />
@@ -381,6 +406,11 @@ export default function App() {
           <Button onClick={handleMatcherConfirm} variant="contained">Confirm Pairing</Button>
         </DialogActions>
       </Dialog>
+      <Snackbar open={Boolean(notice)} autoHideDuration={8000} onClose={() => setNotice(null)}>
+        <Alert severity={notice?.severity || 'info'} onClose={() => setNotice(null)} sx={{ width: '100%' }}>
+          {notice?.message}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }
