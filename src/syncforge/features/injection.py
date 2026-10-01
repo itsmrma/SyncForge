@@ -1,11 +1,28 @@
 import os
 import tempfile
-from core.utils import ask_directory, get_files_recursive, get_track_signature, HAS_SCIPY, run_subprocess, ask_user
-from core.mkv_tools import get_tracks_info, select_track_interactive, has_attachments
-from core.audio_sync import extract_audio_segment, find_audio_delay, MAX_AUDIO_DELAY_MS
-from core.utils import match_files
 
-VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
+from syncforge.core import config
+from syncforge.core.audio_sync import (
+    MAX_AUDIO_DELAY_MS,
+    extract_audio_segment,
+    find_audio_delay,
+)
+from syncforge.core.config import VIDEO_EXT
+from syncforge.core.mkv_tools import (
+    get_tracks_info,
+    has_attachments,
+    select_track_interactive,
+)
+from syncforge.core.utils import (
+    HAS_SCIPY,
+    ask_directory,
+    ask_user,
+    get_files_recursive,
+    get_track_signature,
+    match_files,
+    run_subprocess,
+)
+
 
 def run_injection():
     print("\n--- SOURCE -> TARGET INJECTION ---")
@@ -28,11 +45,10 @@ def run_injection():
     do_audio = ask_user("Import audio from the source?", kind="confirm").lower() == 'y'
     do_audio_sync = False
 
-    import core.config
 
     if do_audio:
         if HAS_SCIPY:
-            do_audio_sync = core.config.AUTO_SYNC_AUDIO
+            do_audio_sync = config.AUTO_SYNC_AUDIO
             print(f"      Apply auto-sync to audio (WaveSync)? {'y' if do_audio_sync else 'n'} [from global settings]")
         else:
             print("      (Audio auto-sync disabled: numpy/scipy missing)")
@@ -41,7 +57,7 @@ def run_injection():
     do_sub_sync = False
     do_attachments = False
     if do_subs:
-        do_sub_sync = core.config.AUTO_SYNC_SUBS
+        do_sub_sync = config.AUTO_SYNC_SUBS
         print(f"      Apply auto-sync to subtitles (ffsubsync)? {'y' if do_sub_sync else 'n'} [from global settings]")
         print("      (For ASS subtitles, importing original Fonts is vital to keep styling)")
         do_attachments = ask_user("Import attachments (fonts) from the source?", kind="confirm").lower() != 'n'
@@ -146,11 +162,11 @@ def run_injection():
 
                     if os.path.exists(raw_sub_path):
                         if can_sync and do_sub_sync:
-                            print(f"      [Sync] Starting ffsubsync...")
-                            import core.config
+                            print("      [Sync] Starting ffsubsync...")
+
                             cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
-                            if core.config.ENABLE_MAX_OFFSET and core.config.MAX_OFFSET_SECONDS > 0:
-                                cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
+                            if config.ENABLE_MAX_OFFSET and config.MAX_OFFSET_SECONDS > 0:
+                                cmd_ffsubsync.extend(["--max-offset-seconds", str(config.MAX_OFFSET_SECONDS)])
                             run_subprocess(cmd_ffsubsync, cwd=out_dir)
 
                             if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:
@@ -171,6 +187,6 @@ def run_injection():
                     if os.path.exists(t): os.remove(t)
 
                 if returncode != 0:
-                    print(f"   ❌ ERROR during muxing.")
+                    print("   ❌ ERROR during muxing.")
                 else:
                     print("   ✅ Done.")

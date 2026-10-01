@@ -1,17 +1,16 @@
 """Small real media files exercise every processing mode with installed tools."""
 import contextlib
 import io
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from core.mkv_tools import get_tracks_info
-from core import utils
-from ui.backend import Api
-
+from syncforge.core import utils
+from syncforge.core.mkv_tools import get_tracks_info
+from syncforge.ui.backend import Api
 
 TOOLS_AVAILABLE = all(shutil.which(tool) for tool in ('ffmpeg', 'mkvmerge', 'mkvextract', 'mkvpropedit'))
 
@@ -118,7 +117,7 @@ class MediaIntegrationTests(unittest.TestCase):
     def test_failed_conversion_cleans_temporary_files_and_reports_error(self):
         def fail(*args, **kwargs):
             raise subprocess.CalledProcessError(1, ['ffmpeg'])
-        with patch('features.stream_manager.run_subprocess', side_effect=fail):
+        with patch('syncforge.features.stream_manager.run_subprocess', side_effect=fail):
             result = self.run_mode('stream_manager', ['', 'y'])
         self.assertEqual(result['status'], 'error')
         self.assertEqual(list(self.output.iterdir()), [])

@@ -36,3 +36,10 @@ node_modules/
 web/test-results/
 web/playwright-report/
 web/.vite/
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.local

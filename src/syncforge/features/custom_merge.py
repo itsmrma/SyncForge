@@ -1,9 +1,17 @@
 import os
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection, ask_user
-from core.mkv_tools import get_tracks_info, format_track_label
-from core.utils import match_files
 
-VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
+from syncforge.core.config import VIDEO_EXT
+from syncforge.core.mkv_tools import format_track_label, get_tracks_info
+from syncforge.core.utils import (
+    ask_directory,
+    ask_user,
+    get_files_recursive,
+    get_track_signature,
+    match_files,
+    parse_track_selection,
+    run_subprocess,
+)
+
 
 def run_custom_merge():
     print("\n--- MODE 4: CUSTOM MERGE FROM TWO SOURCES (SMART BATCH) ---")

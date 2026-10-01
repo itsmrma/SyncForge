@@ -1,13 +1,13 @@
-import os
-import shutil
-import sys
 import importlib.util
-from core.tasks import current_task, check_cancelled
-from core.processes import start_process, stop_process_tree
-from pathlib import Path
+import os
 import queue
+import sys
 import threading
 import uuid
+from pathlib import Path
+
+from syncforge.core.processes import start_process, stop_process_tree
+from syncforge.core.tasks import check_cancelled, current_task
 
 # Check for math libraries without loading them into memory
 HAS_SCIPY = importlib.util.find_spec('scipy') is not None and importlib.util.find_spec('numpy') is not None
@@ -46,23 +46,6 @@ def match_files(targets, sources):
     if _ask_matcher_callback:
         return _ask_matcher_callback(targets, sources)
     return []
-
-def check_deps():
-    missing = []
-    if not shutil.which("mkvmerge"): missing.append("mkvmerge (MKVToolNix)")
-    if not shutil.which("mkvextract"): missing.append("mkvextract (MKVToolNix)")
-    if not shutil.which("mkvpropedit"): missing.append("mkvpropedit (MKVToolNix)")
-    if not shutil.which("ffmpeg"): missing.append("ffmpeg")
-    if not shutil.which("ffsubsync"): missing.append("ffsubsync")
-    
-    if missing:
-        print("ERROR: The following programs are missing from the system PATH:")
-        for m in missing: print(f" - {m}")
-        sys.exit(1)
-        
-    if not HAS_SCIPY:
-        print("WARNING: 'numpy' and 'scipy' are not installed.")
-        print("Audio waveform synchronization will not work (Subtitle sync will still work).")
 
 def get_files_recursive(folder, extensions):
     """Recursively finds files and normalizes paths for Windows."""
@@ -113,7 +96,7 @@ def run_subprocess(cmd, cwd=None):
         if getattr(sys, 'frozen', False):
             cmd = [sys.executable, '--ffsubsync', *cmd[1:]]
         else:
-            cmd = [sys.executable, str(Path(__file__).resolve().parents[1] / 'main.py'), '--ffsubsync', *cmd[1:]]
+            cmd = [sys.executable, '-m', 'syncforge', '--ffsubsync', *cmd[1:]]
     output = None
     staged = None
     if tool == 'mkvmerge' and '-o' in cmd:

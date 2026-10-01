@@ -883,16 +883,20 @@ sdist = { url = "https://files.pythonhosted.org/packages/66/b7/4a1bc231e0681ebf3
 
 [[package]]
 name = "syncforge"
-version = "1.7.1"
+version = "2"
 source = { editable = "." }
 dependencies = [
     { name = "ffsubsync" },
     { name = "notify-py" },
     { name = "numpy" },
-    { name = "pyinstaller" },
     { name = "pywebview" },
     { name = "pywebview", extra = ["pyside6"], marker = "sys_platform == 'linux'" },
     { name = "scipy" },
+]
+
+[package.dev-dependencies]
+build = [
+    { name = "pyinstaller" },
 ]
 
 [package.metadata]
@@ -900,11 +904,13 @@ requires-dist = [
     { name = "ffsubsync", specifier = ">=0.4.30,<0.5" },
     { name = "notify-py", specifier = ">=0.3.43,<0.4" },
     { name = "numpy", specifier = ">=2.5.3" },
-    { name = "pyinstaller", specifier = ">=6.22.3" },
     { name = "pywebview", specifier = ">=6.2.1" },
     { name = "pywebview", extras = ["pyside6"], marker = "sys_platform == 'linux'", specifier = ">=6.2.1" },
     { name = "scipy", specifier = ">=1.18.1" },
 ]
+
+[package.metadata.requires-dev]
+build = [{ name = "pyinstaller", specifier = ">=6.22.3" }]
 
 [[package]]
 name = "tqdm"

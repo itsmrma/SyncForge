@@ -1,9 +1,11 @@
-import os
 import json
+import os
 from functools import lru_cache
-from core.processes import capture_command
-from core.tasks import check_cancelled
-from core.utils import ask_user
+
+from syncforge.core.processes import capture_command
+from syncforge.core.tasks import check_cancelled
+from syncforge.core.utils import ask_user
+
 
 @lru_cache(maxsize=256)
 def _read_metadata(filepath, size, modified_ns):
@@ -35,7 +37,6 @@ def has_attachments(filepath):
 
 def format_track_label(track):
     t_id = track['id']
-    t_type = track['type']
     props = track.get('properties', {})
     
     lang = props.get('language', 'und')

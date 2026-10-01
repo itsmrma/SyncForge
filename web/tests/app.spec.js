@@ -37,6 +37,15 @@ test('terminal pauses while reading and resumes at the bottom', async ({ page })
   await expect.poll(atBottom).toBe(true);
   await append(page, 'Follow resumed\n'.repeat(20));
   await expect.poll(atBottom).toBe(true);
+
+  await log.hover();
+  await page.mouse.wheel(0, -600);
+  await expect.poll(atBottom).toBe(false);
+  await page.getByRole('button', { name: 'Go to end of terminal' }).click();
+  await expect.poll(atBottom).toBe(true);
+  await expect(page.getByRole('button', { name: 'Go to end of terminal' })).not.toBeVisible();
+  await append(page, 'Button resumed following\n'.repeat(20));
+  await expect.poll(atBottom).toBe(true);
 });
 
 test('backend rejection restores launch button and displays error', async ({ page }) => {
@@ -74,6 +83,48 @@ test('escape cancels the pairing dialog and releases backend', async ({ page }) 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
   expect(await page.evaluate(() => window.matchResponse)).toEqual(['pair-1', []]);
+});
+
+test('pairing confirmation sends the displayed source order including unused sources', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = { api: { resolve_matcher: async (...args) => { window.matchResponse = args; } } };
+    window.frontend_api.ask_matcher(['target.mkv'], ['b.mkv', 'c.mkv', 'a.mkv'], 'ordered');
+  });
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm Pairing' }).click();
+  expect(await page.evaluate(() => window.matchResponse)).toEqual([
+    'ordered', [['target.mkv', 'b.mkv']], ['b.mkv', 'c.mkv', 'a.mkv'],
+  ]);
+});
+
+test('sidebar collapses, switches modules, and opens settings without losing preferences', async ({ page }) => {
+  const sidebar = page.getByRole('complementary', { name: 'Modules and settings' });
+  const originalWidth = await sidebar.evaluate(element => element.clientWidth);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Notify when task finishes' }).uncheck();
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(72);
+  await expect(page.getByRole('separator', { name: 'Resize sidebar' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Custom Track Merge', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Custom Track Merge', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Expand sidebar and show settings' }).click();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
+  await expect(page.getByRole('checkbox', { name: 'Notify when task finishes' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
+});
+
+test('resized sidebar restores its width after collapse', async ({ page }) => {
+  const sidebar = page.getByRole('complementary', { name: 'Modules and settings' });
+  await page.getByRole('separator', { name: 'Resize sidebar' }).hover();
+  await page.mouse.down();
+  await page.mouse.move(370, 100);
+  await page.mouse.up();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(370);
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(370);
 });
 
 const tracks = [

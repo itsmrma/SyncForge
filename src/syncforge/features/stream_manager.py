@@ -1,9 +1,17 @@
 import os
 import tempfile
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess, parse_track_selection, ask_user
-from core.mkv_tools import get_tracks_info, format_track_label
 
-VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
+from syncforge.core.config import VIDEO_EXT
+from syncforge.core.mkv_tools import format_track_label, get_tracks_info
+from syncforge.core.utils import (
+    ask_directory,
+    ask_user,
+    get_files_recursive,
+    get_track_signature,
+    parse_track_selection,
+    run_subprocess,
+)
+
 
 def run_stream_manager():
     print("\n--- MODE 1: STREAM MANAGER (SMART BATCH) ---")
@@ -285,4 +293,4 @@ def run_set_default_tracks():
             else:
                 print(f"   -> No modifications for: {os.path.basename(vid)}")
 
-    print(f"\n✅ Operations completed on original files!")
+    print("\n✅ Operations completed on original files!")

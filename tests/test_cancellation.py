@@ -1,18 +1,18 @@
 import contextlib
 import io
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from core import processes, utils
-from core.tasks import TaskCancelled, TaskProgress, current_task
-from ui import backend
+from syncforge.core import processes, utils
+from syncforge.core.tasks import TaskCancelled, TaskProgress, current_task
+from syncforge.ui import backend
 
 
 class CancellationTests(unittest.TestCase):

@@ -3,14 +3,40 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*' # Si avvia in automatico quando pushi un nuovo tag (es. v1.2)
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
+  frontend:
+    name: Build and test frontend
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: web/package-lock.json
+    - name: Build and test shared Web GUI
+      working-directory: web
+      run: |
+        npm ci
+        npm run lint
+        npm run build
+        npx playwright install --with-deps --only-shell chromium
+        npm test
+    - uses: actions/upload-artifact@v7
+      with:
+        name: web-frontend
+        path: src/syncforge/web/dist/
+        if-no-files-found: error
+        retention-days: 7
+
   build:
     name: Build on ${{ matrix.os }}
+    needs: frontend
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,16 +57,24 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
+
+    - name: Restore tested frontend
+      uses: actions/download-artifact@v8
+      with:
+        name: web-frontend
+        path: src/syncforge/web/dist/
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      uses: astral-sh/setup-uv@v10
+      with:
+        enable-cache: true
 
     - name: Set up Python
       run: uv python install 3.12
 
     - name: Install dependencies
-      run: uv sync --locked
+      run: uv sync --locked --group build
 
     - name: Install media tools (Windows)
       if: runner.os == 'Windows'
@@ -53,38 +87,26 @@ jobs:
       timeout-minutes: 8
       run: |
         sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update
-        sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y ffmpeg mkvtoolnix
+        sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y --no-install-recommends ffmpeg mkvtoolnix
 
     - name: Install media tools (macOS)
       if: runner.os == 'macOS'
       run: brew install ffmpeg mkvtoolnix
 
     - name: Run Python regression tests
-      run: uv run python -m unittest discover -s tests -v
+      run: uv run --group build python -m unittest discover -s tests -v
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
-
-    - name: Build Web GUI
+    - name: Verify installed Python package
+      if: runner.os == 'Linux'
       run: |
-        cd web
-        npm ci
-        npm run lint
-        npm run build
-
-    - name: Run browser regression tests
-      working-directory: web
-      run: |
-        npx playwright install --with-deps chromium
-        npm test
+        uv build --wheel --out-dir build/packages
+        uv run --group build python tests/smoke_package.py build/packages/syncforge-*-py3-none-any.whl
 
     - name: Build Executable with PyInstaller
-      run: uv run python build.py
+      run: uv run --group build python scripts/build.py
 
     - name: Smoke-test bundled subtitle synchronizer
-      run: uv run python tests/smoke_bundle.py dist/${{ matrix.executable }}
+      run: uv run --group build python tests/smoke_bundle.py dist/${{ matrix.executable }}
 
     - name: Rename executable for specific OS
       shell: bash
@@ -95,25 +117,31 @@ jobs:
         echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
 
     - name: Save release executable
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: SyncForge-${{ matrix.os_label }}
         path: dist/${{ env.ASSET_NAME }}
         if-no-files-found: error
+        compression-level: 0
+        retention-days: 7
 
   release:
     name: Publish release
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
+    - uses: actions/checkout@v7
+    - uses: actions/download-artifact@v8
       with:
+        pattern: SyncForge-*
         path: release-assets
         merge-multiple: true
+    - name: Read release title
+      run: echo "RELEASE_TITLE=$(sed -n 's/^## //p' CHANGELOG.md | head -n 1)" >> "$GITHUB_ENV"
     - name: Publish all platform executables
       uses: softprops/action-gh-release@v2
       with:
         files: release-assets/*
         body_path: CHANGELOG.md
+        name: ${{ env.RELEASE_TITLE }}
         draft: false

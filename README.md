@@ -1,104 +1,76 @@
-# SyncForge 🎬⚒️
+# SyncForge
 
-SyncForge is a powerful, modular, and smart batch-processing tool to manipulate, merge, and synchronize audio and subtitle tracks across multiple MKV video files. It acts as an orchestrator for tools like `MKVToolNix`, `ffmpeg`, and `ffsubsync`, applying intelligent grouping and automatic audio waveform synchronization using `scipy`.
+SyncForge batch-processes video files with MKVToolNix, FFmpeg, and ffsubsync,
+using a React desktop interface through pywebview.
 
-## ⚠️ Disclaimer: Read Before Using!
+**[v2 — Structure Overhaul](https://github.com/itsmrma/SyncForge/releases/tag/v2)**
+reorganizes the application and build system. See [CHANGELOG.md](CHANGELOG.md).
 
-> **IMPORTANT: USE AT YOUR OWN RISK**
-> 
-> Hey! Just a quick heads-up: I built SyncForge as a **personal project** to speed up my own video workflow. I'm sharing it here in case someone else finds it useful, but please keep in mind that **you use it entirely at your own risk**.
-> 
-> I am **not responsible** for any data loss, corrupted MKV files, ruined libraries, or hardware damage. Since this tool performs batch operations on large files, *please* make sure you have backups of your media before running it. If something breaks, you're on your own!
-> 
-> **Also note:** I developed and use this exclusively on **Windows**. While I provide Linux and macOS builds, I haven't tested them at all. They might work perfectly, or they might crash and burn.
+## Features
 
-## ✨ Features
+- **Stream Manager:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
+- **Default and forced flags:** edit MKV metadata without remuxing.
+- **External subtitles:** align subtitle files to video audio.
+- **Subtitles from MKV:** extract, synchronize, and inject subtitles from another video.
+- **WaveSync Injection:** synchronize and merge source audio/subtitles using waveform analysis.
+- **Custom Track Merge:** combine selected tracks from two batches of videos.
 
-- **Smart Batching**: Groups files based on their internal track structures (audio/subtitles) so you don't have to manually configure each file.
-- **Waveform Audio Sync**: Analyzes audio waves using Fast Fourier Transform (`scipy`) to precisely calculate delays and automatically sync different audio sources.
-- **Automatic Subtitle Sync**: Leverages `ffsubsync` to align out-of-sync subtitles automatically.
-- **In-Place Modifications**: Set default/forced flags directly in the file metadata without slow remuxing (`mkvpropedit`).
-- **Modern Interface**: A gorgeous web-based Material Design 3 UI powered by React and PyWebView, delivering a lightweight, OS-native window experience (no heavy Electron binaries!) to easily select tools, pair files using drag-and-drop, and view real-time logs.
-- **Opus Conversion**: On-the-fly conversion of extracted audio tracks to highly efficient Opus stereo format.
-- **Task Notifications**: Desktop notifications on Windows, Linux, and macOS when a task finishes or fails, plus an in-app result. Toggle them in Settings.
-- **Readable Live Logs**: Scroll up to pause automatic scrolling; scroll back to the bottom to resume it.
+Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
+collapses to an icon rail and restores its width when expanded. **Repeat Last**
+restores folders and the confirmed source ordering, with new files appended for
+review. Scroll up to pause terminal following; scroll down or press **Go to end**
+to resume. Task results appear in the app and optional desktop notifications.
 
-Version **1.7.1** changes are listed in [CHANGELOG.md](CHANGELOG.md).
+**Stop task** interrupts analysis and tool processes. Completed mux outputs are
+kept and partial output is removed. In-place metadata edits finish their current
+write before stopping. Keep backups of media you intend to modify.
 
-Track selection and confirmations use in-app popups with clearly marked IDs,
-language, codec, names, and flags. Use **Stop task** on the main screen or inside
-a selection dialog to cancel. Completed files are kept; incomplete mux output
-is removed. An in-place metadata edit finishes its current write before stopping.
+## Download and requirements
 
-On Linux, desktop notifications require an active desktop notification service
-(D-Bus or `notify-send`). On macOS they use the system `osascript` notification
-command and may require enabling notifications for the script host in System
-Settings. System notification settings, including Do Not Disturb, apply on all
-platforms. An in-app task result is displayed even when desktop banners are disabled.
+Download standalone Windows, Linux, and macOS executables from
+[GitHub Releases](https://github.com/itsmrma/SyncForge/releases).
+They include Python and ffsubsync. Install **MKVToolNix** (`mkvmerge`, `mkvextract`,
+`mkvpropedit`) and **FFmpeg** (`ffmpeg`), and make them available on `PATH`.
 
-## 📦 Pre-compiled Releases (No Python Required)
+Linux bundles the Qt webview backend, which accounts for most of its larger
+executable size. Windows and macOS use their platform webviews.
 
-If you don't want to mess with Python or source code, you can download the **pre-compiled standalone executables** from the [GitHub Releases](https://github.com/itsmrma/SyncForge/releases) page.
+Linux notifications require a desktop notification service. macOS notifications
+use `osascript` and may require enabling notifications for its script host.
+System notification preferences apply; results also appear inside the app.
 
-> **⚠️ Note on Pre-compiled Builds:**
-> These executable files are automatically generated by GitHub Actions for convenience. **I cannot guarantee they will function 100% flawlessly on every system** (especially on macOS and Linux, as I only test and use Windows). If you experience issues with the executables, please run the app from source instead!
+## Run from source
 
-## 🛠️ Prerequisites (For both Executable and Source)
+Install [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org/), then:
 
-Ensure the following external tools are installed and available in your system's `PATH`:
-- **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`)
-- **FFmpeg** (`ffmpeg`)
-
-*(Note: `ffsubsync` is automatically bundled with the python dependencies).*
-
-## 💻 Running from Source (Installation)
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/itsmrma/SyncForge.git
-   cd SyncForge
-   ```
-
-2. Install [uv](https://docs.astral.sh/uv/), a blazingly fast Python package manager, and [Node.js](https://nodejs.org/).
-
-3. Build the React frontend:
-   ```bash
-   cd web
-   npm ci
-   npm run build
-   cd ..
-   ```
-
-4. Sync the Python environment and install dependencies:
-   ```bash
-   uv sync
-   ```
-   *(This will automatically create a virtual environment and install PyWebView, numpy, and scipy).*
-
-To launch the GUI, simply run:
-```bash
-uv run python main.py
+```sh
+git clone https://github.com/itsmrma/SyncForge.git
+cd SyncForge
+uv sync --locked
+cd web
+npm ci
+npm run build
+cd ..
+uv run syncforge
 ```
 
-Or, if you prefer to compile it into a standalone executable yourself:
-```bash
-uv run python build.py
-```
+`uv run python -m syncforge` and `uv run python main.py` start the same application.
+Fonts are bundled locally and do not require a network connection.
 
-## 🚀 Usage / Available Modes
+## Development
 
-1. **Stream Manager (Smart Batch)**: Select a folder of videos, strip unwanted audio/subs, and optionally convert audio to Opus.
-2. **Set Default and Forced Tracks (In-Place)**: Quickly change default/forced flags for tracks inside MKV files without remuxing.
-3. **Sync External Subtitles**: Sync standard `.srt` files to your video files.
-4. **Sync Subtitles from another MKV**: Extract subtitles from a source MKV, synchronize them, and inject them into a target MKV.
-5. **WaveSync Injection**: The ultimate dubbing/sync tool. Extract audio and subs from a source file, automatically sync them to a high-quality RAW target video, and merge them all together.
-6. **Custom Merge**: Grab specific audio/sub tracks from a "Folder A" and combine them with tracks from a "Folder B".
+Python application code is under `src/syncforge`, separated into `core`,
+`features`, and `ui`. React source is under `web/src`, with separate components,
+module definitions, and theme. Standalone build tooling is in `scripts`; regression
+and distribution checks are in `tests`. Generated files are ignored by Git.
 
-## ⚡ Performance Improvements Made
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for structure, test, and build commands.
 
-- **MKVToolNix Output Caching**: Fetching MKV tracks info is heavily cached using `functools.lru_cache` to drastically reduce repeated `mkvmerge -J` calls on identical files during analysis loops.
-- **Modular Architecture**: Operations are decoupled. Loading heavy libraries (`scipy`, `numpy`) only delays features that actively need them, keeping startup fast.
-- **Clean Temp Management**: Temporary extractions are immediately cleaned up after successful muxing to preserve disk IO and space.
+GitHub builds and browser-tests the frontend once on Linux, then shares it with
+the three platform builds. Python/media regressions and bundled synchronizer
+checks run on every platform; Linux also verifies an installed wheel. Release
+assets publish after all checks pass. Desktop interaction is manually verified
+on Windows; automated checks also run on Linux and macOS.
 
-## 📄 License
-This project is open-source and free to use.
+Inter fonts are distributed with their
+[SIL Open Font License notice](web/public/Inter-LICENSE.txt), also included in builds.

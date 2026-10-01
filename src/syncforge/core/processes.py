@@ -2,8 +2,9 @@
 import os
 import signal
 import subprocess
-from core.tasks import check_cancelled
-from core.process_env import external_tool_environment
+
+from syncforge.core.process_env import external_tool_environment
+from syncforge.core.tasks import check_cancelled
 
 
 def start_process(cmd, *, cwd=None, capture=False, bundled=False):

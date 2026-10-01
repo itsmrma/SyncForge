@@ -1,6 +1,6 @@
 [project]
 name = "syncforge"
-version = "1.7.1"
+version = "2"
 description = "Batch merge and synchronize audio and subtitle tracks in a desktop GUI"
 readme = "README.md"
 authors = [
@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.5.3",
-    "pyinstaller>=6.22.3",
     "scipy>=1.18.1",
     "pywebview>=6.2.1",
     "notify-py>=0.3.43,<0.4",
@@ -18,8 +17,19 @@ dependencies = [
 ]
 
 [project.scripts]
-syncforge = "syncforge:main"
+syncforge = "syncforge.app:main"
+
+[dependency-groups]
+build = ["pyinstaller>=6.22.3"]
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+source-include = [
+    "CHANGELOG.md", "main.py", "docs/**", "scripts/**", "hooks/**", "tests/**",
+    "web/src/**", "web/public/**", "web/index.html", "web/package.json",
+    "web/package-lock.json", "web/vite.config.js", "web/playwright.config.js",
+    "web/tests/**", "web/.oxlintrc.json",
+]

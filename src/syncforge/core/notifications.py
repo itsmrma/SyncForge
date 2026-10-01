@@ -1,9 +1,10 @@
 """Desktop notifications without depending on a browser's Notification API."""
 import platform
+import shutil
 import subprocess
 import threading
-import shutil
-from core.process_env import external_tool_environment
+
+from syncforge.core.process_env import external_tool_environment
 
 
 def send_notification(title, message):

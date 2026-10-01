@@ -1,11 +1,25 @@
-import sys
-import builtins
-import os
-import time
 import json
+import os
+import sys
+import threading
+import time
+import uuid
+
 import webview
-from core.tasks import TaskCancelled, TaskProgress, current_task, check_cancelled
-from core.notifications import notify_task_finished
+
+from syncforge import __version__
+from syncforge.core import config, utils
+from syncforge.core.notifications import notify_task_finished
+from syncforge.core.tasks import (
+    TaskCancelled,
+    TaskProgress,
+    check_cancelled,
+    current_task,
+)
+from syncforge.features.custom_merge import run_custom_merge
+from syncforge.features.injection import run_injection
+from syncforge.features.stream_manager import run_set_default_tracks, run_stream_manager
+from syncforge.features.sub_sync import run_sync_subs, run_sync_subs_from_mkv
 
 window_ref = None
 active_api = None
@@ -20,26 +34,14 @@ class FrontendShim:
                     pass
         return caller
         
-    def ask_matcher(self, target, source):
-        def caller():
-            if window_ref:
-                try:
-                    res = window_ref.evaluate_js(f"window.frontend_api && window.frontend_api.ask_matcher ? window.frontend_api.ask_matcher({json.dumps(target)}, {json.dumps(source)}) : []")
-                    return res if res else []
-                except Exception:
-                    return []
-            return []
-        return caller
-
 frontend = FrontendShim()
 
-def setup_shim(win, api=None):
+def connect_frontend(win, api=None):
     global window_ref, active_api
     window_ref = win
     active_api = api
     sys.stdout = StreamInterceptor()
-    builtins.input = patched_input
-    core.utils.set_ask_input_callback(request_input)
+    utils.set_ask_input_callback(request_input)
     win.events.closed += cancel_pending_matchers
 
 
@@ -51,13 +53,13 @@ def cancel_pending_matchers():
     for evt in list(input_events.values()):
         evt.set()
 
-# --- SETUP MOCKS BEFORE IMPORTING FEATURES ---
+# Folder choices reused by Repeat Last.
 last_run_module = None
 last_directory_choices = []
 is_repeating = False
 current_directory_index = 0
 
-def mock_ask_directory(caption=""):
+def choose_directory(caption=""):
     global is_repeating, current_directory_index, last_directory_choices
     if is_repeating:
         if current_directory_index < len(last_directory_choices):
@@ -95,14 +97,11 @@ def mock_ask_directory(caption=""):
         pass
     return res
 
-import core.utils
-core.utils.set_ask_directory_callback(mock_ask_directory)
 
-import threading
-import uuid
 
 matcher_events = {}
 matcher_results = {}
+matcher_orders = {}
 input_events = {}
 input_results = {}
 
@@ -130,7 +129,7 @@ def request_input(prompt, **options):
         input_events.pop(callback_id, None)
         input_results.pop(callback_id, None)
 
-def mock_ask_matcher(target_list, source_list):
+def request_matcher(target_list, source_list, on_order=None):
     callback_id = str(uuid.uuid4())
     if not window_ref:
         return []
@@ -149,6 +148,9 @@ def mock_ask_matcher(target_list, source_list):
         check_cancelled()
         
         res = matcher_results.get(callback_id, [])
+        if res and on_order:
+            order = matcher_orders.get(callback_id) or [pair[1] for pair in res]
+            on_order(order + [source for source in source_list if source not in order])
     except TaskCancelled:
         raise
     except Exception as e:
@@ -158,18 +160,11 @@ def mock_ask_matcher(target_list, source_list):
     finally:
         matcher_events.pop(callback_id, None)
         matcher_results.pop(callback_id, None)
+        matcher_orders.pop(callback_id, None)
         
     return res
 
-core.utils.set_ask_matcher_callback(mock_ask_matcher)
-# ---------------------------------------------
 
-from features.stream_manager import run_stream_manager, run_set_default_tracks
-from features.sub_sync import run_sync_subs, run_sync_subs_from_mkv
-from features.injection import run_injection
-from features.custom_merge import run_custom_merge
-import core.config
-from core.utils import get_files_recursive
 
 class StreamInterceptor:
     encoding = 'utf-8'
@@ -208,17 +203,31 @@ class StreamInterceptor:
             except Exception:
                 pass
 
-def patched_input(prompt=""):
-    frontend.append_terminal(prompt)()
-    res = request_input(prompt)
-    frontend.append_terminal(res + "\n")()
-    return res
-
 class Api:
     def __init__(self):
         self._run_lock = threading.Lock()
         self._state_lock = threading.Lock()
         self._active_task = None
+        self._matcher_orders = []
+        self._matcher_index = 0
+        self._repeat_matcher_order = False
+        utils.set_ask_directory_callback(choose_directory)
+        utils.set_ask_matcher_callback(self._match_files)
+
+    def _match_files(self, targets, sources):
+        index = self._matcher_index
+        self._matcher_index += 1
+        if self._repeat_matcher_order and index < len(self._matcher_orders):
+            previous = self._matcher_orders[index]
+            sources = [source for source in previous if source in sources] + [
+                source for source in sources if source not in previous]
+
+        def save_order(order):
+            while len(self._matcher_orders) <= index:
+                self._matcher_orders.append([])
+            self._matcher_orders[index] = list(order)
+
+        return request_matcher(targets, sources, on_order=save_order)
 
     def resolve_input(self, callback_id, result):
         event = input_events.get(callback_id)
@@ -241,10 +250,12 @@ class Api:
                 pass
         return {"status": "stopping"}
 
-    def resolve_matcher(self, callback_id, res):
+    def resolve_matcher(self, callback_id, res, source_order=None):
         global matcher_results, matcher_events
         if callback_id in matcher_events:
             matcher_results[callback_id] = res
+            if source_order is not None:
+                matcher_orders[callback_id] = source_order
             matcher_events[callback_id].set()
 
     def pick_folder(self):
@@ -298,10 +309,14 @@ class Api:
                 raise ValueError()
         except (TypeError, ValueError):
             return {"status": "error", "message": "Max offset must be a positive whole number."}
-        core.config.MAX_OFFSET_SECONDS = max_offset
-        core.config.ENABLE_MAX_OFFSET = enable_offset
-        core.config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
-        core.config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
+        config.MAX_OFFSET_SECONDS = max_offset
+        config.ENABLE_MAX_OFFSET = enable_offset
+        config.AUTO_SYNC_AUDIO = settings.get("auto_audio", True)
+        config.AUTO_SYNC_SUBS = settings.get("auto_subs", True)
+        self._repeat_matcher_order = bool(repeat)
+        self._matcher_index = 0
+        if not repeat:
+            self._matcher_orders = []
         
         if repeat and last_run_module:
             module_name = last_run_module
@@ -360,4 +375,4 @@ class Api:
         return result
 
     def get_version(self):
-        return "1.7.1"
+        return __version__

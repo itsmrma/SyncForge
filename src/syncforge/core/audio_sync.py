@@ -1,5 +1,5 @@
-from core.utils import HAS_SCIPY, run_subprocess
-from core.tasks import check_cancelled, TaskCancelled
+from syncforge.core.tasks import TaskCancelled, check_cancelled
+from syncforge.core.utils import HAS_SCIPY, run_subprocess
 
 MAX_AUDIO_DELAY_MS = 3000
 

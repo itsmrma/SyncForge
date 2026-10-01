@@ -1,11 +1,17 @@
 import os
 import tempfile
-from core.utils import ask_directory, get_files_recursive, get_track_signature, run_subprocess
-from core.mkv_tools import get_tracks_info, select_track_interactive
-from core.utils import match_files
 
-VIDEO_EXT = ('.mkv', '.mp4', '.avi', '.mov', '.flv', '.webm')
-SUB_EXT = ('.srt', '.ass', '.vtt', '.ssa')
+from syncforge.core import config
+from syncforge.core.config import SUB_EXT, VIDEO_EXT
+from syncforge.core.mkv_tools import get_tracks_info, select_track_interactive
+from syncforge.core.utils import (
+    ask_directory,
+    get_files_recursive,
+    get_track_signature,
+    match_files,
+    run_subprocess,
+)
+
 
 def run_sync_subs():
     print("\n--- MODE 2: SYNC EXTERNAL SUBTITLES ---")
@@ -27,12 +33,11 @@ def run_sync_subs():
             v_clean = os.path.abspath(os.path.normpath(v_path))
             s_clean = os.path.abspath(os.path.normpath(s_path))
 
-            import core.config
 
-            if core.config.AUTO_SYNC_SUBS:
+            if config.AUTO_SYNC_SUBS:
                 cmd_ffsubsync = ["ffsubsync", v_clean, "-i", s_clean, "-o", synced]
-                if core.config.ENABLE_MAX_OFFSET and core.config.MAX_OFFSET_SECONDS > 0:
-                    cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
+                if config.ENABLE_MAX_OFFSET and config.MAX_OFFSET_SECONDS > 0:
+                    cmd_ffsubsync.extend(["--max-offset-seconds", str(config.MAX_OFFSET_SECONDS)])
 
                 run_subprocess(cmd_ffsubsync)
             else:
@@ -131,12 +136,12 @@ def run_sync_subs_from_mkv():
                 final_sub_to_merge = os.path.splitext(raw_sub_path)[0] + ".idx" if sub_ext == ".sub" else raw_sub_path
 
                 if os.path.exists(raw_sub_path):
-                    import core.config
-                    if can_sync and core.config.AUTO_SYNC_SUBS:
-                        print(f"      [Sync] Running ffsubsync...")
+
+                    if can_sync and config.AUTO_SYNC_SUBS:
+                        print("      [Sync] Running ffsubsync...")
                         cmd_ffsubsync = ["ffsubsync", tgt_clean, "-i", raw_sub_path, "-o", synced_sub_path]
-                        if core.config.ENABLE_MAX_OFFSET and core.config.MAX_OFFSET_SECONDS > 0:
-                            cmd_ffsubsync.extend(["--max-offset-seconds", str(core.config.MAX_OFFSET_SECONDS)])
+                        if config.ENABLE_MAX_OFFSET and config.MAX_OFFSET_SECONDS > 0:
+                            cmd_ffsubsync.extend(["--max-offset-seconds", str(config.MAX_OFFSET_SECONDS)])
                         run_subprocess(cmd_ffsubsync, cwd=out_dir)
 
                         if os.path.exists(synced_sub_path) and os.path.getsize(synced_sub_path) > 0:
@@ -145,14 +150,14 @@ def run_sync_subs_from_mkv():
                             print("      ✅ Sync successful.")
                         else:
                             print("      ⚠️ Sync failed or impossible. Using original.")
-                    elif can_sync and not core.config.AUTO_SYNC_SUBS:
+                    elif can_sync and not config.AUTO_SYNC_SUBS:
                         print("      [Sync] Skipped (disabled in settings). Using original.")
 
                     cmd = ["mkvmerge", "-o", out_file, tgt_clean, "--language", "0:ita", final_sub_to_merge]
                     returncode = run_subprocess(cmd, cwd=out_dir)
 
                     if returncode != 0:
-                        print(f"   ❌ ERROR during muxing.")
+                        print("   ❌ ERROR during muxing.")
                     else:
                         print("   ✅ Done.")
 

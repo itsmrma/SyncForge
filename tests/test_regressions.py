@@ -1,19 +1,19 @@
 import io
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from core import mkv_tools, notifications, utils
-from core.audio_sync import find_audio_delay
-from core.process_env import external_tool_environment
-from core.tasks import TaskCancelled, TaskProgress, current_task
-from ui import backend
+from syncforge.core import mkv_tools, notifications, utils
+from syncforge.core.audio_sync import find_audio_delay
+from syncforge.core.process_env import external_tool_environment
+from syncforge.core.tasks import TaskCancelled, TaskProgress, current_task
+from syncforge.ui import backend
 
 
 class TaskTests(unittest.TestCase):
@@ -95,11 +95,53 @@ class TaskTests(unittest.TestCase):
         self.api.resolve_matcher('expired', [])
         self.assertNotIn('expired', backend.matcher_results)
 
+    def test_repeat_restores_pairing_order_and_new_run_resets_it(self):
+        displayed = []
+
+        def choose(targets, sources, on_order=None):
+            displayed.append(list(sources))
+            order = ['b', 'a', 'c'] if len(displayed) == 1 else list(sources)
+            on_order(order)
+            return list(zip(targets, order))
+
+        def task():
+            utils.match_files(['target'], ['a', 'b', 'c'])
+
+        with patch.object(backend, 'request_matcher', side_effect=choose), patch.object(backend, 'run_stream_manager', side_effect=task):
+            self.api.run_module('stream_manager', {})
+            self.api.run_module('stream_manager', {}, repeat=True)
+            self.api.run_module('stream_manager', {})
+        self.assertEqual(displayed, [['a', 'b', 'c'], ['b', 'a', 'c'], ['a', 'b', 'c']])
+
+    def test_repeat_pairing_handles_removed_and_new_files(self):
+        self.api._matcher_orders = [['b', 'a', 'removed']]
+        self.api._repeat_matcher_order = True
+        with patch.object(backend, 'request_matcher', return_value=[]) as prompt:
+            self.api._match_files(['target'], ['a', 'b', 'new'])
+        self.assertEqual(prompt.call_args.args[1], ['b', 'a', 'new'])
+        # Cancelling the prompt retains the last confirmed order.
+        self.assertEqual(self.api._matcher_orders, [['b', 'a', 'removed']])
+
+    def test_matcher_retains_full_order_including_unpaired_sources(self):
+        saved = []
+        window = MagicMock()
+
+        def respond(script):
+            callback_id = next(iter(backend.matcher_events))
+            self.api.resolve_matcher(callback_id, [['target', 'b']], ['b', 'c', 'a'])
+            return True
+
+        window.evaluate_js.side_effect = respond
+        with patch.object(backend, 'window_ref', window):
+            self.assertEqual(backend.request_matcher(['target'], ['a', 'b', 'c'], on_order=saved.append), [['target', 'b']])
+        self.assertEqual(saved, [['b', 'c', 'a']])
+        self.assertEqual(backend.matcher_orders, {})
+
     def test_missing_matcher_frontend_does_not_wait(self):
         window = MagicMock()
         window.evaluate_js.return_value = False
         with patch.object(backend, 'window_ref', window):
-            self.assertEqual(backend.mock_ask_matcher(['a'], ['b']), [])
+            self.assertEqual(backend.request_matcher(['a'], ['b']), [])
         self.assertEqual(backend.matcher_events, {})
 
     def test_window_close_releases_pending_matcher(self):
@@ -114,7 +156,7 @@ class TaskTests(unittest.TestCase):
     def test_cancelled_input_raises_instead_of_looping(self):
         with patch.object(backend, 'window_ref', None):
             with self.assertRaises(TaskCancelled):
-                backend.patched_input('Select a track')
+                backend.request_input('Select a track')
 
     def test_custom_prompt_waits_for_bridge_response_and_cleans_up(self):
         def respond(script):
