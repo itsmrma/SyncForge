@@ -53,7 +53,7 @@ def cancel_pending_matchers():
     for evt in list(input_events.values()):
         evt.set()
 
-# Folder choices reused by Repeat Last.
+# Input file/folder and output folder choices reused by Repeat Last.
 last_run_module = None
 last_directory_choices = []
 is_repeating = False
@@ -73,8 +73,8 @@ def choose_directory(caption=""):
             res = os.path.abspath(os.path.normpath(res))
             if "OUTPUT" in caption.upper():
                 os.makedirs(res, exist_ok=True)
-            elif not os.path.isdir(res):
-                raise ValueError(f"Folder does not exist: {res}")
+            elif not (os.path.isdir(res) or os.path.isfile(res)):
+                raise ValueError(f"File or folder does not exist: {res}")
             return res
         else:
             is_repeating = False # Fallback
@@ -268,6 +268,18 @@ class Api:
                 pass
         return ""
 
+    def pick_file(self, media_type="video"):
+        extensions = config.SUB_EXT if media_type == "subtitles" else config.VIDEO_EXT
+        label = "Subtitle files" if media_type == "subtitles" else "Video files"
+        if window_ref:
+            paths = window_ref.create_file_dialog(
+                webview.OPEN_DIALOG, allow_multiple=False,
+                file_types=(f"{label} ({';'.join('*' + ext for ext in extensions)})",),
+            )
+            if paths:
+                return os.path.normpath(paths[0])
+        return ""
+
     def run_module(self, module_name, settings, paths=None, repeat=False):
         if not self._run_lock.acquire(blocking=False):
             return {"status": "busy", "message": "A task is already running."}
@@ -334,7 +346,7 @@ class Api:
                 p_sub = paths.get("sub", "")
                 p_out = paths.get("output", "")
                 if not p_out:
-                    p_out = p_vid
+                    p_out = os.path.dirname(os.path.abspath(p_vid)) if os.path.isfile(p_vid) else p_vid
                 
                 # Depending on the module, we queue the paths in the order they are asked
                 if module_name == "set_default":

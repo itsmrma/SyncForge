@@ -48,9 +48,16 @@ def match_files(targets, sources):
     return []
 
 def get_files_recursive(folder, extensions):
-    """Recursively finds files and normalizes paths for Windows."""
+    """Return one selected file or recursively find matching files in a folder."""
+    check_cancelled()
     found_files = []
     normalized_folder = os.path.abspath(os.path.normpath(folder))
+    if os.path.isfile(normalized_folder):
+        if not normalized_folder.lower().endswith(extensions):
+            raise ValueError(f"Unsupported file type: {normalized_folder}")
+        return [normalized_folder]
+    if not os.path.isdir(normalized_folder):
+        raise ValueError(f"File or folder does not exist: {normalized_folder}")
     
     for root, dirs, files in os.walk(normalized_folder):
         check_cancelled()

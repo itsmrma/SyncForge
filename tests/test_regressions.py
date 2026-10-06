@@ -95,6 +95,43 @@ class TaskTests(unittest.TestCase):
         self.api.resolve_matcher('expired', [])
         self.assertNotIn('expired', backend.matcher_results)
 
+    def test_single_file_repeat_defaults_output_to_parent_folder(self):
+        received = []
+
+        def task():
+            received.append((utils.ask_directory('Select TARGET'), utils.ask_directory('Select SOURCE'),
+                             utils.ask_directory('Select OUTPUT Folder')))
+
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / 'target.mkv'
+            source = Path(folder) / 'source.mkv'
+            target.touch()
+            source.touch()
+            with patch.object(backend, 'run_custom_merge', side_effect=task):
+                self.api.run_module('custom_merge', {}, {'video': str(target), 'sub': str(source)})
+                self.api.run_module('stream_manager', {}, repeat=True)
+            self.assertEqual(received, [(str(target), str(source), folder)] * 2)
+            source.unlink()
+            with patch.object(backend, 'run_custom_merge', side_effect=task):
+                result = self.api.run_module('custom_merge', {}, repeat=True)
+            self.assertEqual(result['status'], 'error')
+            self.assertIn('File or folder does not exist', result['message'])
+
+    def test_file_picker_filters_video_and_subtitle_files_and_handles_cancel(self):
+        window = MagicMock()
+        window.create_file_dialog.return_value = ('chosen.mkv',)
+        with patch.object(backend, 'window_ref', window):
+            self.assertEqual(self.api.pick_file(), 'chosen.mkv')
+            options = window.create_file_dialog.call_args
+            self.assertEqual(options.args, (backend.webview.OPEN_DIALOG,))
+            self.assertFalse(options.kwargs['allow_multiple'])
+            self.assertIn('*.mkv', options.kwargs['file_types'][0])
+            self.api.pick_file('subtitles')
+            self.assertIn('*.srt', window.create_file_dialog.call_args.kwargs['file_types'][0])
+            self.assertNotIn('*.mkv', window.create_file_dialog.call_args.kwargs['file_types'][0])
+            window.create_file_dialog.return_value = None
+            self.assertEqual(self.api.pick_file(), '')
+
     def test_repeat_restores_pairing_order_and_new_run_resets_it(self):
         displayed = []
 
@@ -192,6 +229,29 @@ class TaskTests(unittest.TestCase):
 
     def test_stop_without_running_task_is_harmless(self):
         self.assertEqual(self.api.stop_task(), {'status': 'idle'})
+
+
+class FileSelectionTests(unittest.TestCase):
+    def test_selected_file_excludes_siblings_and_folder_still_recurses(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            selected = root / 'selected.MKV'
+            selected.touch()
+            (root / 'nested').mkdir()
+            sibling = root / 'nested' / 'other.mkv'
+            sibling.touch()
+            (root / 'ignore.txt').touch()
+            self.assertEqual(utils.get_files_recursive(str(selected), ('.mkv',)), [str(selected)])
+            self.assertEqual(utils.get_files_recursive(folder, ('.mkv',)), sorted([str(selected), str(sibling)]))
+
+    def test_unsupported_file_and_missing_path_report_errors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            wrong = Path(folder) / 'wrong.txt'
+            wrong.touch()
+            with self.assertRaisesRegex(ValueError, 'Unsupported file type'):
+                utils.get_files_recursive(str(wrong), ('.mkv',))
+            with self.assertRaisesRegex(ValueError, 'File or folder does not exist'):
+                utils.get_files_recursive(str(Path(folder) / 'missing.mkv'), ('.mkv',))
 
 
 class SubprocessTests(unittest.TestCase):

@@ -3,8 +3,8 @@
 SyncForge batch-processes video files with MKVToolNix, FFmpeg, and ffsubsync,
 using a React desktop interface through pywebview.
 
-**[2.0 — Structure Overhaul](https://github.com/itsmrma/SyncForge/releases/tag/v2)**
-reorganizes the application and build system. See [CHANGELOG.md](CHANGELOG.md).
+**[2.1 — Single File Selection](https://github.com/itsmrma/SyncForge/releases/tag/v2.1)**
+adds individual file selection for targets and sources. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
@@ -16,8 +16,11 @@ reorganizes the application and build system. See [CHANGELOG.md](CHANGELOG.md).
 - **Custom Track Merge:** combine selected tracks from two batches of videos.
 
 Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
-collapses to an icon rail and restores its width when expanded. **Repeat Last**
-restores folders and the confirmed source ordering, with new files appended for
+collapses to an icon rail and restores its width when expanded. Use **File** or
+**Folder** to select each target/source; external subtitles also accept a single
+subtitle file. File and folder inputs can be combined. Output remains a folder;
+leave it empty to use the target file's parent folder or the target folder.
+**Repeat Last** restores files, folders, and the confirmed source ordering, with new files appended for
 review. Scroll up to pause terminal following; scroll down or press **Go to end**
 to resume. Task results appear in the app and optional desktop notifications.
 

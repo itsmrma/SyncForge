@@ -50,9 +50,10 @@ class MediaIntegrationTests(unittest.TestCase):
         self.redirect.__enter__()
         self.addCleanup(self.redirect.__exit__, None, None, None)
 
-    def run_mode(self, mode, answers=()):
+    def run_mode(self, mode, answers=(), paths=None):
         with patch('builtins.input', side_effect=answers), patch.object(utils, '_ask_matcher_callback', side_effect=lambda targets, sources: list(zip(targets, sources))):
             return self.api.run_module(mode, {'auto_audio': False, 'auto_subs': False, 'notify_on_finish': False},
+                                       paths if paths is not None else
                                        {'video': str(self.target), 'sub': str(self.source), 'output': str(self.output)})
 
     def assert_output(self, result, suffix):
@@ -113,6 +114,37 @@ class MediaIntegrationTests(unittest.TestCase):
 
     def test_custom_merge(self):
         self.assert_output(self.run_mode('custom_merge', ['n', 'n', '', '']), 'merged')
+
+    def test_single_files_in_every_processing_mode(self):
+        # A neighbouring video must never be processed when a file is selected.
+        sibling = self.target / 'untouched.mkv'
+        shutil.copy2(self.video, sibling)
+        original_sibling = sibling.read_bytes()
+        modes = [
+            ('stream_manager', ['', 'n'], 'mod'),
+            ('set_default', ['1', '2', '2'], None),
+            ('sync_subs', [], 'subbed'),
+            ('sync_subs_mkv', [], 'subbed'),
+            ('injection', ['n', 'n', 'n', 'y', 'n'], 'final'),
+            ('custom_merge', ['n', 'n', '', ''], 'merged'),
+        ]
+        for mode, answers, suffix in modes:
+            with self.subTest(mode=mode):
+                source = self.source / ('subs.srt' if mode == 'sync_subs' else 'video.mkv')
+                paths = {'video': str(self.target / 'video.mkv'), 'sub': str(source), 'output': str(self.output)}
+                result = self.run_mode(mode, answers, paths)
+                if suffix:
+                    self.assert_output(result, suffix)
+                else:
+                    self.assertEqual(result['status'], 'ok', self.log.getvalue())
+                self.assertEqual(sibling.read_bytes(), original_sibling)
+                self.assertFalse(list(self.output.glob('untouched_*')))
+
+    def test_file_target_folder_source_with_default_output(self):
+        self.output = self.target
+        result = self.run_mode('custom_merge', ['n', 'n', '', ''],
+                               {'video': str(self.target / 'video.mkv'), 'sub': str(self.source)})
+        self.assert_output(result, 'merged')
 
     def test_failed_conversion_cleans_temporary_files_and_reports_error(self):
         def fail(*args, **kwargs):

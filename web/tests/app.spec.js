@@ -10,6 +10,77 @@ async function append(page, text) {
   await expect(page.getByRole('log')).toContainText(text.trim().split('\n').at(-1));
 }
 
+for (const [title, id, targetLabel, sourceLabel, sourceType] of [
+  ['Stream Manager', 'stream_manager', 'Video File or Folder'],
+  ['Set Default & Forced', 'set_default', 'Video File or Folder'],
+  ['Sync External Subtitles', 'sync_subs', 'Video File or Folder', 'Subtitle File or Folder', 'subtitles'],
+  ['Sync Subs from MKV', 'sync_subs_mkv', 'Target Video File or Folder', 'Source Video File or Folder', 'video'],
+  ['WaveSync Injection', 'injection', 'Target File or Folder (High Quality)', 'Source File or Folder (Audio/Subs)', 'video'],
+  ['Custom Track Merge', 'custom_merge', 'File or Folder A (Base Video)', 'File or Folder B (Additional Audio/Subs)', 'video'],
+]) {
+  test(`${title} accepts individual files through native pickers`, async ({ page }) => {
+    await page.setViewportSize({ width: 1000, height: 750 });
+    await page.evaluate(() => {
+      window.pickTypes = [];
+      window.pywebview = { api: {
+        pick_file: async type => {
+          window.pickTypes.push(type);
+          return type === 'subtitles' ? '/media/subtitle.srt' : `/media/video-${window.pickTypes.length}.mkv`;
+        },
+        pick_folder: async () => '/media/output',
+        run_module: async (...args) => {
+          window.lastRun = args;
+          return { status: 'ok', message: 'Task completed.' };
+        },
+      } };
+    });
+    await page.getByRole('button', { name: title, exact: true }).click();
+    const targetPicker = page.getByRole('button', { name: `Select file for ${targetLabel}`, exact: true });
+    await expect(targetPicker).toBeInViewport();
+    await targetPicker.click();
+    await expect(page.getByRole('textbox', { name: targetLabel, exact: true })).toHaveValue('/media/video-1.mkv');
+    if (sourceLabel) {
+      await page.getByRole('button', { name: `Select file for ${sourceLabel}`, exact: true }).click();
+      await expect(page.getByRole('textbox', { name: sourceLabel, exact: true })).toHaveValue(
+        sourceType === 'subtitles' ? '/media/subtitle.srt' : '/media/video-2.mkv');
+    }
+    expect(await page.evaluate(() => window.pickTypes)).toEqual(sourceLabel ? ['video', sourceType] : ['video']);
+    await expect(page.getByRole('button', { name: 'Select file for Output Folder', exact: true })).toHaveCount(0);
+    if (id !== 'set_default') {
+      await page.getByRole('button', { name: 'Select folder for Output Folder', exact: true }).click();
+      await expect(page.getByRole('textbox', { name: 'Output Folder', exact: true })).toHaveValue('/media/output');
+    }
+    await page.getByRole('button', { name: 'Launch Module' }).click();
+    const run = await page.evaluate(() => window.lastRun);
+    expect(run[0]).toBe(id);
+    expect(run[2].video).toBe('/media/video-1.mkv');
+    if (sourceLabel) expect(run[2].sub).toBe(sourceType === 'subtitles' ? '/media/subtitle.srt' : '/media/video-2.mkv');
+    await page.getByRole('button', { name: 'OK', exact: true }).click();
+    await page.getByRole('button', { name: 'Repeat Last' }).click();
+    expect((await page.evaluate(() => window.lastRun))[3]).toBe(true);
+  });
+}
+
+test('folder selection and cancelled file selection preserve the chosen path', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = { api: { pick_folder: async () => '/media/batch', pick_file: async () => '' } };
+  });
+  await page.getByRole('button', { name: 'Select folder for Video File or Folder', exact: true }).click();
+  await page.getByRole('button', { name: 'Select file for Video File or Folder', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Video File or Folder', exact: true })).toHaveValue('/media/batch');
+});
+
+test('file picker failures are displayed without clearing the input', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Video File or Folder', exact: true }).fill('/media/selected.mkv');
+  await page.evaluate(() => {
+    window.pywebview = { api: { pick_file: async () => { throw new Error('Picker unavailable'); } } };
+  });
+  await page.getByRole('button', { name: 'Select file for Video File or Folder', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Picker unavailable');
+  await page.getByRole('button', { name: 'OK', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Video File or Folder', exact: true })).toHaveValue('/media/selected.mkv');
+});
+
 test('terminal pauses while reading and resumes at the bottom', async ({ page }) => {
   await page.getByRole('button', { name: 'Show Terminal' }).click();
   const log = page.getByRole('log');

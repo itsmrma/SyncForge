@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ThemeProvider, CssBaseline, Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
+import { ThemeProvider, CssBaseline, Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
 import Terminal from './components/Terminal';
 import InputDialog from './components/InputDialog';
 import darkTheme from './theme';
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import MatcherDialog from './components/MatcherDialog';
 import Sidebar from './components/Sidebar';
+import PathInput from './components/PathInput';
 
 export default function App() {
   const [selectedMod, setSelectedMod] = useState(modules[0]);
@@ -159,11 +160,14 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handlePickFolder = async (key) => {
+  const handlePickPath = async (key, kind, mediaType) => {
     if (window.pywebview && window.pywebview.api) {
-        const folder = await window.pywebview.api.pick_folder();
-        if (folder) {
-            setPaths(prev => ({ ...prev, [key]: folder }));
+        try {
+          const path = kind === 'file' ? await window.pywebview.api.pick_file(mediaType) :
+            await window.pywebview.api.pick_folder();
+          if (path) setPaths(prev => ({ ...prev, [key]: path }));
+        } catch (error) {
+          setNotice({ severity: 'error', message: error.message || String(error) });
         }
     }
   };
@@ -192,41 +196,21 @@ export default function App() {
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4, maxWidth: 600 }}>
                 {selectedMod.needs.includes('video') && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField 
-                      label={selectedMod.labels[0]} 
-                      value={paths.video} 
-                      onChange={(e) => setPaths(p => ({...p, video: e.target.value}))}
-                      fullWidth 
-                      size="small" 
-                    />
-                    <Button variant="outlined" onClick={() => handlePickFolder('video')}>Browse</Button>
-                  </Box>
+                  <PathInput label={selectedMod.labels[0]} value={paths.video} mediaType="video" disabled={isRunning}
+                    onChange={video => setPaths(p => ({ ...p, video }))}
+                    onPick={(kind, type) => handlePickPath('video', kind, type)} />
                 )}
                 {selectedMod.needs.includes('sub') && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField 
-                      label={selectedMod.labels[1]} 
-                      value={paths.sub} 
-                      onChange={(e) => setPaths(p => ({...p, sub: e.target.value}))}
-                      fullWidth 
-                      size="small" 
-                    />
-                    <Button variant="outlined" onClick={() => handlePickFolder('sub')}>Browse</Button>
-                  </Box>
+                  <PathInput label={selectedMod.labels[1]} value={paths.sub} disabled={isRunning}
+                    mediaType={selectedMod.id === 'sync_subs' ? 'subtitles' : 'video'}
+                    onChange={sub => setPaths(p => ({ ...p, sub }))}
+                    onPick={(kind, type) => handlePickPath('sub', kind, type)} />
                 )}
                 {selectedMod.needs.includes('output') && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField 
-                      label={selectedMod.labels[2]} 
-                      value={paths.output} 
-                      onChange={(e) => setPaths(p => ({...p, output: e.target.value}))}
-                      fullWidth 
-                      size="small" 
-                      placeholder="Leave empty to use Video Folder"
-                    />
-                    <Button variant="outlined" onClick={() => handlePickFolder('output')}>Browse</Button>
-                  </Box>
+                  <PathInput label={selectedMod.labels[2]} value={paths.output} disabled={isRunning}
+                    placeholder="Leave empty to use the target's folder"
+                    onChange={output => setPaths(p => ({ ...p, output }))}
+                    onPick={kind => handlePickPath('output', kind)} />
                 )}
               </Box>
               
