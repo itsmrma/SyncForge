@@ -70,7 +70,7 @@ export default function Sidebar({ selectedMod, onSelect, running, hasRun, onRepe
           {collapsed ? <Tooltip title="Settings" placement="right">
             <IconButton aria-label="Expand sidebar and show settings" onClick={() => { setCollapsed(false); setSettingsOpen(true); }}
               sx={{ display: 'flex', mx: 'auto' }}><Settings /></IconButton>
-          </Tooltip> : <SettingsPanel settings={settings} onChange={onSettingsChange}
+          </Tooltip> : <SettingsPanel selectedMod={selectedMod} settings={settings} onChange={onSettingsChange}
             expanded={settingsOpen} onToggle={() => setSettingsOpen(value => !value)} />}
         </Box>
       </Box>

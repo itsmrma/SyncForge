@@ -15,6 +15,7 @@ from syncforge.core.utils import (
 
 def run_custom_merge():
     print("\n--- MODE 4: CUSTOM MERGE FROM TWO SOURCES (SMART BATCH) ---")
+    print("ℹ️ Direct remux: combines selected tracks without altering timing or audio sync.")
     folder_a = ask_directory( "Select Folder A (Base Video + Audio/Subs)")
     folder_b = ask_directory( "Select Folder B (Additional Audio/Subs)")
     if not folder_a or not folder_b: return

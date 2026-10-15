@@ -284,3 +284,40 @@ test('long track lists keep IDs and actions usable in a 1000 by 750 window', asy
   await page.getByRole('button', { name: 'Confirm selection' }).click();
   expect(await page.evaluate(() => window.inputResponse)).toEqual(['input-1', '8']);
 });
+
+test('module-specific settings are disabled and annotated when not supported by the active module', async ({ page }) => {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const autoAudio = page.getByRole('checkbox', { name: /Auto-sync Audio/ });
+  const autoSubs = page.getByRole('checkbox', { name: /Auto-sync Subs/ });
+  const maxOffset = page.getByRole('checkbox', { name: /Enable Max Offset limit/ });
+  const notify = page.getByRole('checkbox', { name: 'Notify when task finishes' });
+
+  // Stream Manager: auto-sync audio/subs and max offset are disabled
+  await expect(autoAudio).toBeDisabled();
+  await expect(autoSubs).toBeDisabled();
+  await expect(maxOffset).toBeDisabled();
+  await expect(notify).toBeEnabled();
+
+  // Custom Track Merge: auto-sync audio/subs and max offset are disabled
+  await page.getByRole('button', { name: 'Custom Track Merge', exact: true }).click();
+  await expect(autoAudio).toBeDisabled();
+  await expect(autoSubs).toBeDisabled();
+  await expect(maxOffset).toBeDisabled();
+  await expect(notify).toBeEnabled();
+  await expect(page.getByText('Not used in this module (WaveSync Injection only)')).toBeVisible();
+
+  // WaveSync Injection: all settings are enabled
+  await page.getByRole('button', { name: 'WaveSync Injection', exact: true }).click();
+  await expect(autoAudio).toBeEnabled();
+  await expect(autoSubs).toBeEnabled();
+  await expect(maxOffset).toBeEnabled();
+  await expect(notify).toBeEnabled();
+  await expect(page.getByText('Not used in this module (WaveSync Injection only)')).not.toBeVisible();
+
+  // Sync External Subtitles: auto_subs and maxOffset are enabled, auto_audio is disabled
+  await page.getByRole('button', { name: 'Sync External Subtitles', exact: true }).click();
+  await expect(autoAudio).toBeDisabled();
+  await expect(autoSubs).toBeEnabled();
+  await expect(maxOffset).toBeEnabled();
+  await expect(notify).toBeEnabled();
+});

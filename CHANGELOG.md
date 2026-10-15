@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1 - Contextual Settings & Clarifications
+
+- Automatically disable and grey out settings in the sidebar that do not apply to the active module (Auto-sync Audio, Auto-sync Subs, Max Offset limit).
+- Add contextual annotations and tooltips to disabled settings indicating which module they belong to (e.g., WaveSync Injection only).
+- Clarify that Custom Track Merge performs direct lossless remuxing without altering timing or audio/subtitle synchronization.
+- Print an informational notice in the terminal when launching Custom Track Merge.
+- Add browser test coverage for module-specific settings disabling and annotations.
+
 ## 2.1 - Single File Selection
 
 - Select an individual video or a folder for the target in every processing mode.

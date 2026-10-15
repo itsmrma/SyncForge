@@ -3,8 +3,8 @@
 SyncForge batch-processes video files with MKVToolNix, FFmpeg, and ffsubsync,
 using a React desktop interface through pywebview.
 
-**[2.1 — Single File Selection](https://github.com/itsmrma/SyncForge/releases/tag/v2.1)**
-adds individual file selection for targets and sources. See [CHANGELOG.md](CHANGELOG.md).
+**[2.1.1 — Contextual Settings](https://github.com/itsmrma/SyncForge/releases/tag/v2.1.1)**
+disables and annotates settings that do not apply to the active module. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
@@ -13,7 +13,7 @@ adds individual file selection for targets and sources. See [CHANGELOG.md](CHANG
 - **External subtitles:** align subtitle files to video audio.
 - **Subtitles from MKV:** extract, synchronize, and inject subtitles from another video.
 - **WaveSync Injection:** synchronize and merge source audio/subtitles using waveform analysis.
-- **Custom Track Merge:** combine selected tracks from two batches of videos.
+- **Custom Track Merge:** combine selected tracks from two videos or batches of videos (direct remux without sync).
 
 Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
 collapses to an icon rail and restores its width when expanded. Use **File** or
