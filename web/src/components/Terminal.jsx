@@ -1,17 +1,34 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { Box, Button, Paper } from '@mui/material';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Box, Button, Chip, Paper } from '@mui/material';
 import ArrowDownward from '@mui/icons-material/ArrowDownward';
 
 export default function Terminal({ text, visible, onFollowChange }) {
   const containerRef = useRef(null);
   const followingRef = useRef(true);
   const [paused, setPaused] = useState(false);
+  const [filter, setFilter] = useState('all');
+
+  const displayedText = useMemo(() => {
+    if (filter === 'all' || !text) return text;
+    const lines = text.split('\n');
+    if (filter === 'errors') {
+      return lines
+        .filter((l) => /\b(error|failed|fatal|exception)\b|\[error\]/i.test(l))
+        .join('\n');
+    }
+    if (filter === 'warnings') {
+      return lines
+        .filter((l) => /\b(warn|warning)\b|\[warn/i.test(l))
+        .join('\n');
+    }
+    return text;
+  }, [text, filter]);
 
   useLayoutEffect(() => {
     if (visible && followingRef.current && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [text, visible]);
+  }, [displayedText, visible]);
 
   const handleScroll = () => {
     const element = containerRef.current;
@@ -53,9 +70,47 @@ export default function Terminal({ text, visible, onFollowChange }) {
         }}
       >
         <pre style={{ margin: 0, whiteSpace: 'pre-wrap', userSelect: 'text' }}>
-          {text}
+          {displayedText}
         </pre>
       </Paper>
+      {visible && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 16,
+            display: 'flex',
+            gap: 0.5,
+            zIndex: 2,
+            bgcolor: 'rgba(7, 10, 16, 0.85)',
+            px: 0.75,
+            py: 0.25,
+            borderRadius: 1.5,
+            border: '1px solid rgba(148, 163, 184, 0.15)',
+          }}
+        >
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'errors', label: 'Errors' },
+            { id: 'warnings', label: 'Warnings' },
+          ].map((item) => (
+            <Chip
+              key={item.id}
+              label={item.label}
+              size="small"
+              clickable
+              onClick={() => setFilter(item.id)}
+              color={filter === item.id ? 'primary' : 'default'}
+              variant={filter === item.id ? 'filled' : 'outlined'}
+              sx={{
+                height: 20,
+                fontSize: '0.68rem',
+                fontWeight: 600,
+              }}
+            />
+          ))}
+        </Box>
+      )}
       {paused && visible && (
         <Button
           variant="contained"

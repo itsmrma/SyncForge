@@ -67,21 +67,45 @@ impl FrontendBridge for TauriWindowBridge {
     }
 
     fn pick_folder(&self) -> String {
-        rfd::FileDialog::new()
-            .pick_folder()
+        self.pick_folder_with_default(None)
+    }
+
+    fn pick_folder_with_default(&self, default_dir: Option<&str>) -> String {
+        let mut dlg = rfd::FileDialog::new();
+        if let Some(dir) = default_dir {
+            let p = std::path::Path::new(dir);
+            if p.is_dir() {
+                dlg = dlg.set_directory(p);
+            }
+        }
+        dlg.pick_folder()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default()
     }
 
     fn pick_file(&self, label: &str, extensions: &[&str]) -> String {
+        self.pick_file_with_default(label, extensions, None)
+    }
+
+    fn pick_file_with_default(
+        &self,
+        label: &str,
+        extensions: &[&str],
+        default_dir: Option<&str>,
+    ) -> String {
         let clean_exts: Vec<String> = extensions
             .iter()
             .map(|e| e.trim_start_matches('.').to_string())
             .collect();
         let ext_refs: Vec<&str> = clean_exts.iter().map(|s| s.as_str()).collect();
-        rfd::FileDialog::new()
-            .add_filter(label, &ext_refs)
-            .pick_file()
+        let mut dlg = rfd::FileDialog::new().add_filter(label, &ext_refs);
+        if let Some(dir) = default_dir {
+            let p = std::path::Path::new(dir);
+            if p.is_dir() {
+                dlg = dlg.set_directory(p);
+            }
+        }
+        dlg.pick_file()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default()
     }
@@ -94,6 +118,24 @@ impl FrontendBridge for TauriWindowBridge {
         file_percent: f64,
     ) {
         if let Some(win) = self.app.get_webview_window("main") {
+            let overall_pct = if total_files > 0 {
+                let completed = file_index.saturating_sub(1) as f64;
+                let file_part = (file_percent.clamp(0.0, 100.0)) / 100.0;
+                (((completed + file_part) / (total_files as f64)) * 100.0)
+                    .round()
+                    .clamp(0.0, 100.0) as u64
+            } else {
+                0
+            };
+            let _ = win.set_progress_bar(tauri::window::ProgressBarState {
+                status: Some(if total_files > 0 {
+                    tauri::window::ProgressBarStatus::Normal
+                } else {
+                    tauri::window::ProgressBarStatus::Indeterminate
+                }),
+                progress: Some(overall_pct),
+            });
+
             let payload = serde_json::json!({
                 "currentFile": current_file,
                 "fileIndex": file_index,
@@ -107,6 +149,15 @@ impl FrontendBridge for TauriWindowBridge {
                 );
                 let _ = win.eval(&script);
             }
+        }
+    }
+
+    fn clear_progress(&self) {
+        if let Some(win) = self.app.get_webview_window("main") {
+            let _ = win.set_progress_bar(tauri::window::ProgressBarState {
+                status: Some(tauri::window::ProgressBarStatus::None),
+                progress: None,
+            });
         }
     }
 }
@@ -149,20 +200,36 @@ fn resolve_matcher(
 }
 
 #[tauri::command]
-async fn pick_folder(state: State<'_, Api>) -> Result<String, String> {
+async fn pick_folder(
+    state: State<'_, Api>,
+    default_path: Option<String>,
+) -> Result<String, String> {
     let api = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || api.pick_folder())
-        .await
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        api.pick_folder_with_default(default_path.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn pick_file(state: State<'_, Api>, media_type: Option<String>) -> Result<String, String> {
+async fn pick_file(
+    state: State<'_, Api>,
+    media_type: Option<String>,
+    default_path: Option<String>,
+) -> Result<String, String> {
     let api = state.inner().clone();
     let kind = media_type.unwrap_or_else(|| "video".to_string());
-    tauri::async_runtime::spawn_blocking(move || api.pick_file(&kind))
-        .await
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        api.pick_file_with_default(&kind, default_path.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn show_in_folder(state: State<'_, Api>, path: String) -> Result<(), String> {
+    state.show_in_folder(&path)
 }
 
 #[tauri::command]
@@ -197,6 +264,7 @@ pub fn run() {
             resolve_matcher,
             pick_folder,
             pick_file,
+            show_in_folder,
             get_version
         ])
         .run(tauri::generate_context!())

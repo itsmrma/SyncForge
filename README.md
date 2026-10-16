@@ -3,8 +3,8 @@
 SyncForge batch-processes video files with MKVToolNix, FFmpeg, and `ffsubsync`,
 powered by a native **Rust** backend and **Tauri v2** desktop interface.
 
-**[3.0.0 — Native Rust & Tauri v2 Rewrite](https://github.com/itsmrma/SyncForge/releases/tag/v3.0.0)**
-brings a complete Rust + Tauri v2 architecture, pure-Rust FFT waveform synchronization, direct `ffsubsync` executable integration, and a modern desktop UI. See [CHANGELOG.md](CHANGELOG.md).
+**[3.1 — Quality of Life Improvements & Production Bundle Fix](https://github.com/itsmrma/SyncForge/releases/tag/v3.1)**
+adds drag-and-drop paths, smart TV episode auto-matching, track search & language presets, live ETA & taskbar progress, settings persistence, terminal log filters, and standalone production bundle fixes. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.

@@ -71,16 +71,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libayatana-appindicator3-dev || sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libappindicator3-dev
 
-    - name: Setup Node for macOS bundle
-      if: runner.os == 'macOS'
+    - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: 22
         cache: npm
         cache-dependency-path: web/package-lock.json
 
-    - name: Install macOS web dependencies
-      if: runner.os == 'macOS'
+    - name: Install web dependencies
       working-directory: web
       run: npm ci
 
@@ -93,7 +91,7 @@ jobs:
         if [ "${{ runner.os }}" = "macOS" ]; then
           npx --prefix web tauri build --bundles app
         else
-          cargo build --release --manifest-path src-tauri/Cargo.toml
+          npx --prefix web tauri build --no-bundle
         fi
 
     - name: Package direct standalone executables (No installer)
@@ -107,6 +105,8 @@ jobs:
         if [ "${{ runner.os }}" = "macOS" ]; then
           # Ad-hoc sign the entire app bundle to seal Info.plist and Resources
           codesign --force --deep -s - target/release/bundle/macos/SyncForge.app
+          # Create single-file .dmg disk image containing SyncForge.app directly
+          hdiutil create -volname "SyncForge" -srcfolder target/release/bundle/macos/SyncForge.app -ov -format UDZO "dist/SyncForge-macOS-${VERSION}.dmg"
           # Package .app preserving macOS permissions and resource forks
           ditto -c -k --sequesterRsrc --keepParent target/release/bundle/macos/SyncForge.app "dist/SyncForge-macOS-${VERSION}-app.zip"
           tar -czvf "dist/SyncForge-macOS-${VERSION}.tar.gz" -C target/release/bundle/macos SyncForge.app

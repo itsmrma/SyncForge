@@ -46,7 +46,18 @@ pub trait FrontendBridge: Send + Sync {
     fn ask_matcher(&self, targets: &[String], sources: &[String], callback_id: &str) -> bool;
     fn cancel_requests(&self);
     fn pick_folder(&self) -> String;
+    fn pick_folder_with_default(&self, _default_dir: Option<&str>) -> String {
+        self.pick_folder()
+    }
     fn pick_file(&self, label: &str, extensions: &[&str]) -> String;
+    fn pick_file_with_default(
+        &self,
+        label: &str,
+        extensions: &[&str],
+        _default_dir: Option<&str>,
+    ) -> String {
+        self.pick_file(label, extensions)
+    }
     fn update_progress(
         &self,
         _current_file: &str,
@@ -55,6 +66,7 @@ pub trait FrontendBridge: Send + Sync {
         _file_percent: f64,
     ) {
     }
+    fn clear_progress(&self) {}
 }
 
 #[derive(Debug, Default)]
@@ -75,6 +87,7 @@ pub struct ApiInner {
     pub run_lock: Mutex<bool>,
     pub active_task: Mutex<Option<Arc<TaskProgress>>>,
     pub repeat_state: Mutex<RepeatState>,
+    pub last_browsed_dir: Mutex<Option<String>>,
     pub input_events: Mutex<HashMap<String, WaitEvent>>,
     pub input_results: Mutex<HashMap<String, Option<String>>>,
     pub matcher_events: Mutex<HashMap<String, WaitEvent>>,
@@ -102,6 +115,7 @@ impl Api {
                 run_lock: Mutex::new(false),
                 active_task: Mutex::new(None),
                 repeat_state: Mutex::new(RepeatState::default()),
+                last_browsed_dir: Mutex::new(None),
                 input_events: Mutex::new(HashMap::new()),
                 input_results: Mutex::new(HashMap::new()),
                 matcher_events: Mutex::new(HashMap::new()),
@@ -518,26 +532,115 @@ impl Api {
         json!({ "status": "stopping" })
     }
 
+    fn resolve_initial_dir(&self, hint: Option<&str>) -> Option<String> {
+        if let Some(h) = hint {
+            let trimmed = h.trim();
+            if !trimmed.is_empty() {
+                let p = Path::new(trimmed);
+                if p.is_dir() {
+                    return Some(p.to_string_lossy().to_string());
+                }
+                if let Some(parent) = p.parent() {
+                    if !parent.as_os_str().is_empty() && parent.is_dir() {
+                        return Some(parent.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        self.inner.last_browsed_dir.lock().unwrap().clone()
+    }
+
+    fn remember_browsed_path(&self, chosen: &str) {
+        let trimmed = chosen.trim();
+        if trimmed.is_empty() {
+            return;
+        }
+        let p = Path::new(trimmed);
+        if p.is_dir() {
+            *self.inner.last_browsed_dir.lock().unwrap() = Some(p.to_string_lossy().to_string());
+        } else if let Some(parent) = p.parent() {
+            if !parent.as_os_str().is_empty() {
+                *self.inner.last_browsed_dir.lock().unwrap() =
+                    Some(parent.to_string_lossy().to_string());
+            }
+        }
+    }
+
     pub fn pick_folder(&self) -> String {
+        self.pick_folder_with_default(None)
+    }
+
+    pub fn pick_folder_with_default(&self, default_path: Option<&str>) -> String {
         if let Some(bridge) = self.inner.bridge.read().unwrap().clone() {
-            return bridge.pick_folder();
+            let initial_dir = self.resolve_initial_dir(default_path);
+            let chosen = bridge.pick_folder_with_default(initial_dir.as_deref());
+            if !chosen.is_empty() {
+                self.remember_browsed_path(&chosen);
+            }
+            return chosen;
         }
         String::new()
     }
 
     pub fn pick_file(&self, media_type: &str) -> String {
+        self.pick_file_with_default(media_type, None)
+    }
+
+    pub fn pick_file_with_default(&self, media_type: &str, default_path: Option<&str>) -> String {
         let (label, extensions) = if media_type == "subtitles" {
             ("Subtitle files", SUB_EXT)
         } else {
             ("Video files", VIDEO_EXT)
         };
         if let Some(bridge) = self.inner.bridge.read().unwrap().clone() {
-            let chosen = bridge.pick_file(label, extensions);
+            let initial_dir = self.resolve_initial_dir(default_path);
+            let chosen =
+                bridge.pick_file_with_default(label, extensions, initial_dir.as_deref());
             if !chosen.is_empty() {
-                return Path::new(&chosen).to_path_buf().to_string_lossy().to_string();
+                let norm = Path::new(&chosen).to_path_buf().to_string_lossy().to_string();
+                self.remember_browsed_path(&norm);
+                return norm;
             }
         }
         String::new()
+    }
+
+    pub fn show_in_folder(&self, path: &str) -> Result<(), String> {
+        let trimmed = path.trim();
+        if trimmed.is_empty() {
+            return Err("Path is empty.".to_string());
+        }
+        let target = Path::new(trimmed);
+        let dir_to_open = if target.is_dir() {
+            target.to_path_buf()
+        } else if let Some(parent) = target.parent() {
+            if !parent.as_os_str().is_empty() && parent.is_dir() {
+                parent.to_path_buf()
+            } else {
+                return Err(format!("Folder does not exist: {}", trimmed));
+            }
+        } else {
+            return Err(format!("Folder does not exist: {}", trimmed));
+        };
+
+        #[cfg(target_os = "windows")]
+        let cmd_res = std::process::Command::new("explorer")
+            .arg(&dir_to_open)
+            .spawn();
+
+        #[cfg(target_os = "macos")]
+        let cmd_res = std::process::Command::new("open")
+            .arg(&dir_to_open)
+            .spawn();
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        let cmd_res = std::process::Command::new("xdg-open")
+            .arg(&dir_to_open)
+            .spawn();
+
+        cmd_res
+            .map(|_| ())
+            .map_err(|e| format!("Failed to open folder: {}", e))
     }
 
     pub fn get_version(&self) -> String {
@@ -744,6 +847,7 @@ impl Api {
         self.inner.repeat_state.lock().unwrap().is_repeating = false;
         if let Some(bridge) = self.inner.bridge.read().unwrap().clone() {
             bridge.cancel_requests();
+            bridge.clear_progress();
         }
         reset_file_progress();
 

@@ -394,4 +394,104 @@ test('dual progress bars display overall progress and current file progress whil
   await expect(page.getByTestId('progress-container')).toHaveCount(0);
 });
 
+test('QoL: output folder placeholder, clear button, show in folder, and localStorage persistence', async ({ page }) => {
+  const outInput = page.getByRole('textbox', { name: 'Output Folder', exact: true });
+  await expect(outInput).toHaveAttribute(
+    'placeholder',
+    'If not selected, output folder remains the source folder'
+  );
+
+  await page.evaluate(() => {
+    window.shownPaths = [];
+    window.pywebview = {
+      api: {
+        show_in_folder: async (p) => {
+          window.shownPaths.push(p);
+        },
+      },
+    };
+  });
+
+  const videoInput = page.getByRole('textbox', { name: 'Video File or Folder', exact: true });
+  await videoInput.fill('/media/season1/ep01.mkv');
+  await page.getByRole('button', { name: 'Open folder for Video File or Folder' }).click();
+  expect(await page.evaluate(() => window.shownPaths)).toEqual(['/media/season1/ep01.mkv']);
+
+  await page.getByRole('button', { name: 'Clear Video File or Folder' }).click();
+  await expect(videoInput).toHaveValue('');
+
+  // Persistence of selected module and settings across reload
+  await page.getByRole('button', { name: 'WaveSync Injection', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Play sound on completion' }).uncheck();
+  await page.reload();
+  await page.waitForFunction(() => Boolean(window.frontend_api));
+  await expect(page.getByRole('heading', { name: 'WaveSync Injection', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: 'Play sound on completion' })).not.toBeChecked();
+});
+
+test('QoL: matcher auto-matches episodes, reverses/resets order, and skips unchecked episodes', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        resolve_matcher: async (...args) => {
+          window.matchResponse = args;
+        },
+      },
+    };
+    window.frontend_api.ask_matcher(
+      ['Show.S01E01.1080p.mkv', 'Show.S01E02.1080p.mkv', 'Show.S01E03.1080p.mkv'],
+      ['Subs_Ep03.srt', 'Subs_Ep01.srt', 'Subs_Ep02.srt'],
+      'qol-match'
+    );
+  });
+
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Auto-Match Episodes' }).click();
+  // Uncheck episode 2 to skip it
+  await page.getByRole('checkbox', { name: 'Include target Show.S01E02.1080p.mkv' }).uncheck();
+  await page.getByRole('button', { name: 'Confirm Pairing' }).click();
+
+  expect(await page.evaluate(() => window.matchResponse)).toEqual([
+    'qol-match',
+    [
+      ['Show.S01E01.1080p.mkv', 'Subs_Ep01.srt'],
+      ['Show.S01E03.1080p.mkv', 'Subs_Ep03.srt'],
+    ],
+    ['Subs_Ep01.srt', 'Subs_Ep02.srt', 'Subs_Ep03.srt'],
+  ]);
+});
+
+test('QoL: track search filter, language presets, and terminal log filters', async ({ page }) => {
+  const sampleTracks = [
+    { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese Original' } },
+    { id: 2, type: 'audio', codec: 'AC3', properties: { language: 'ita', track_name: 'Italiano' } },
+    { id: 3, type: 'subtitles', codec: 'SRT', properties: { language: 'eng', track_name: 'Director Commentary SDH' } },
+  ];
+  await showInput(page, { prompt: 'Choose tracks to keep', kind: 'multiple', tracks: sampleTracks });
+
+  const filterInput = page.getByPlaceholder('Filter tracks by language, name, codec, or ID...');
+  await filterInput.fill('jpn');
+  await expect(page.getByRole('dialog')).toContainText('ID 1');
+  await expect(page.getByRole('dialog')).not.toContainText('ID 2');
+  await page.getByRole('button', { name: 'Clear track filter' }).click();
+  await expect(page.getByRole('dialog')).toContainText('ID 2');
+
+  await page.getByRole('button', { name: 'No Commentary/SDH' }).click();
+  await page.getByRole('button', { name: 'Confirm selection' }).click();
+  expect(await page.evaluate(() => window.inputResponse)).toEqual(['input-1', '1,2']);
+
+  // Terminal filters
+  await page.getByRole('button', { name: 'Show Terminal' }).click();
+  await append(page, 'Normal output line\n[WARNING] Slight drift detected\n[ERROR] Mux failed\n');
+  await expect(page.getByRole('button', { name: 'Copy Logs' })).toBeVisible();
+  await page.getByRole('button', { name: 'Errors', exact: true }).click();
+  await expect(page.getByRole('log')).toContainText('[ERROR] Mux failed');
+  await expect(page.getByRole('log')).not.toContainText('Normal output line');
+  await page.getByRole('button', { name: 'All', exact: true }).click();
+  await expect(page.getByRole('log')).toContainText('Normal output line');
+});
+
+
 

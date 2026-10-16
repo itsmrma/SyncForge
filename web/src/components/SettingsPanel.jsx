@@ -148,6 +148,18 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
           label={<Typography fontSize="0.82rem">Notify when task finishes</Typography>}
           sx={{ width: '100%', mr: 0 }}
         />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={Boolean(settings.sound_on_finish ?? true)}
+              onChange={(e) => onChange({ ...settings, sound_on_finish: e.target.checked })}
+            />
+          }
+          label={<Typography fontSize="0.82rem">Play sound on completion</Typography>}
+          sx={{ width: '100%', mr: 0 }}
+        />
       </AccordionDetails>
     </Accordion>
   );

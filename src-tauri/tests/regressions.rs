@@ -355,6 +355,10 @@ fn test_file_picker_and_matcher_ordering() {
     *bridge.picked_file.lock().unwrap() = String::new();
     assert_eq!(api.pick_file("video"), "");
 
+    // show_in_folder validates empty and non-existent paths
+    assert!(api.show_in_folder("").is_err());
+    assert!(api.show_in_folder("/nonexistent_syncforge_path_xyz/file.mkv").is_err());
+
     // Matcher retains full order including unpaired sources and repeat restores order
     let displayed: Arc<Mutex<Vec<Vec<String>>>> = Arc::new(Mutex::new(Vec::new()));
     let disp_clone = displayed.clone();

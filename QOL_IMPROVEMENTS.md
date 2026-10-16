@@ -17,7 +17,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 1. 📂 Selezione Percorsi & Gestione File (Input UX)
 
-### - [ ] 1.1 Supporto Drag & Drop Nativo
+### - [x] 1.1 Supporto Drag & Drop Nativo
 - **Descrizione**: Permettere di trascinare file o cartelle direttamente dalla finestra del sistema operativo (Finder / Explorer) all'interno dell'interfaccia.
 - **Dettagli implementativi**:
   - Drag & drop mirato su ciascun componente `PathInput`.
@@ -30,7 +30,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
   - `web/src/components/PathInput.jsx`
   - `web/src/App.jsx`
 
-### - [ ] 1.2 Pulsante "Svuota campo" (Clear "X")
+### - [x] 1.2 Pulsante "Svuota campo" (Clear "X")
 - **Descrizione**: Aggiungere un'icona rapida di cancellazione (adornment con pulsante "X") nei campi di testo di percorso quando contengono testo.
 - **Dettagli implementativi**:
   - Inserire un `endAdornment` con `IconButton` (`ClearIcon`) dentro il `TextField` di `PathInput`.
@@ -38,7 +38,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 - **File coinvolti**:
   - `web/src/components/PathInput.jsx`
 
-### - [ ] 1.3 Pulsante "Apri nel Finder / Explorer"
+### - [x] 1.3 Pulsante "Apri nel Finder / Explorer"
 - **Descrizione**: Permettere di aprire rapidamente la cartella di output o la cartella del file corrente nel file manager di sistema con un solo clic.
 - **Dettagli implementativi**:
   - Aggiungere un comando Tauri per aprire percorsi nativi (usando `opener` o `open::that` in Rust).
@@ -49,7 +49,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
   - `web/src/components/PathInput.jsx`
   - `web/src/App.jsx`
 
-### - [ ] 1.4 Memorizzazione ultima cartella nei dialog nativi (`rfd`)
+### - [x] 1.4 Memorizzazione ultima cartella nei dialog nativi (`rfd`)
 - **Descrizione**: Quando l'utente preme i pulsanti "File" o "Folder", il selettore di file nativo dovrebbe aprirsi nella cartella del percorso già inserito (o nell'ultima cartella utilizzata), invece che ripartire dalla cartella di default di sistema.
 - **Dettagli implementativi**:
   - In `lib.rs` / `backend.rs`, passare un parametro opzionale `default_path` a `rfd::FileDialog::new().set_directory(...)`.
@@ -62,7 +62,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 2. 🔀 Matcher Batch & Serie TV
 
-### - [ ] 2.1 Auto-Pairing intelligente basato su numero episodio/stagione
+### - [x] 2.1 Auto-Pairing intelligente basato su numero episodio/stagione
 - **Descrizione**: Nel batch processing di intere stagioni (es. 12-26 episodi), i nomi dei file video e dei sottotitoli spesso provengono da release diverse e non si ordinano correttamente per ordine alfabetico puro.
 - **Dettagli implementativi**:
   - Aggiungere un pulsante "Auto-Match Episodi" in `MatcherDialog`.
@@ -71,7 +71,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 - **File coinvolti**:
   - `web/src/components/MatcherDialog.jsx`
 
-### - [ ] 2.2 Azioni rapide di ordinamento ed esclusione file nel Matcher
+### - [x] 2.2 Azioni rapide di ordinamento ed esclusione file nel Matcher
 - **Descrizione**: Strumenti per manipolare rapidamente la lista di accoppiamento nel `MatcherDialog`.
 - **Dettagli implementativi**:
   - Pulsante **"Inverti ordine sorgenti"**: utilissimo se i file sono numerati in ordine decrescente o invertiti.
@@ -84,7 +84,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 3. 🎛️ Gestione Tracce & Stream Manager
 
-### - [ ] 3.1 Barra di ricerca/filtro rapido per le tracce (`InputDialog`)
+### - [x] 3.1 Barra di ricerca/filtro rapido per le tracce (`InputDialog`)
 - **Descrizione**: Nei file MKV ricchi di stream (remux Blu-ray con 8+ tracce audio e 15+ sottotitoli in diverse lingue), scorrere l'elenco per trovare la traccia desiderata può essere dispersivo.
 - **Dettagli implementativi**:
   - Aggiungere un campo compatto di ricerca testuale in cima a `InputDialog`.
@@ -92,7 +92,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 - **File coinvolti**:
   - `web/src/components/InputDialog.jsx`
 
-### - [ ] 3.2 Preset rapidi di selezione lingua basati sulla lingua di sistema
+### - [x] 3.2 Preset rapidi di selezione lingua basati sulla lingua di sistema
 - **Descrizione**: Pulsanti / chip rapidi per selezionare o deselezionare blocchi di tracce in base alle preferenze linguistiche.
 - **Dettagli implementativi**:
   - **Rilevamento dinamico della lingua di sistema**: usare `navigator.language` / `Intl.Locale` nel frontend (o locale dal backend) per identificare la lingua dell'utente (es. `it-IT` ➔ `ita` / `it`).
@@ -107,7 +107,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 4. ⏱️ Monitoraggio, Progresso & Notifiche
 
-### - [ ] 4.1 Stima del tempo rimanente (ETA) e velocità di elaborazione
+### - [x] 4.1 Stima del tempo rimanente (ETA) e velocità di elaborazione
 - **Descrizione**: Durante lunghe operazioni batch (es. conversione audio in Opus o analisi FFT su video 4K), mostrare una stima del tempo mancante.
 - **Dettagli implementativi**:
   - Registrare il timestamp di avvio e il tempo medio impiegato per file completato.
@@ -115,7 +115,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 - **File coinvolti**:
   - `web/src/App.jsx`
 
-### - [ ] 4.2 Avanzamento nativo nella barra delle applicazioni / Dock
+### - [x] 4.2 Avanzamento nativo nella barra delle applicazioni / Dock
 - **Descrizione**: Riflettere lo stato di avanzamento delle operazioni direttamente sull'icona dell'applicazione nel Dock (macOS) o nella barra delle applicazioni (Windows).
 - **Dettagli implementativi**:
   - Utilizzare l'API nativa della finestra Tauri (`window.set_progress_bar({ state, progress })`).
@@ -124,7 +124,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
   - `src-tauri/src/lib.rs` (o via `@tauri-apps/api/window` nel frontend)
   - `web/src/App.jsx`
 
-### - [ ] 4.3 Suono di notifica discreto (opzionale)
+### - [x] 4.3 Suono di notifica discreto (opzionale)
 - **Descrizione**: Emettere un suono leggero e piacevole (un "chime") al completamento di un task con successo o un tono di avviso in caso di errore.
 - **Dettagli implementativi**:
   - Aggiungere un'opzione nelle impostazioni ("Play sound on completion", abilitata di default).
@@ -137,7 +137,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 5. 💾 Persistenza & Preferenze Utente
 
-### - [ ] 5.1 Salvataggio persistente delle impostazioni (`localStorage`)
+### - [x] 5.1 Salvataggio persistente delle impostazioni (`localStorage`)
 - **Descrizione**: Attualmente, alla chiusura e riapertura dell'applicazione, tutte le opzioni (`auto_audio`, `auto_subs`, `enable_max_offset`, `max_offset`, `notify_on_finish`) tornano ai valori di default predefiniti.
 - **Dettagli implementativi**:
   - Sincronizzare lo stato di `settings` con `localStorage` (o file di configurazione Tauri) all'aggiornamento.
@@ -146,7 +146,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
   - `web/src/App.jsx`
   - `web/src/components/SettingsPanel.jsx`
 
-### - [ ] 5.2 Memorizzazione dell'ultimo modulo utilizzato
+### - [x] 5.2 Memorizzazione dell'ultimo modulo utilizzato
 - **Descrizione**: Riaprire l'applicazione direttamente sull'ultimo modulo utilizzato (es. *WaveSync Injection* o *Custom Track Merge*) anziché doverlo selezionare ogni volta nella sidebar.
 - **Dettagli implementativi**:
   - Salvare l'ID dell'ultimo modulo in `localStorage` e usarlo come stato iniziale di `selectedMod`.
@@ -157,7 +157,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 
 ## 6. 💻 Terminale & Diagnostica
 
-### - [ ] 6.1 Pulsante "Copia Log negli appunti" (Copy to Clipboard)
+### - [x] 6.1 Pulsante "Copia Log negli appunti" (Copy to Clipboard)
 - **Descrizione**: Spesso l'utente ha solo bisogno di copiare un errore o una parte del log per cercarla o incollarla, senza dover scaricare un file `.txt` sul disco.
 - **Dettagli implementativi**:
   - Aggiungere un pulsante "Copy Logs" accanto a "Download Logs".
@@ -165,7 +165,7 @@ Questo documento raccoglie le proposte di miglioramento della Quality of Life (Q
 - **File coinvolti**:
   - `web/src/App.jsx`
 
-### - [ ] 6.2 Filtro rapido per errori e avvisi nel Terminale
+### - [x] 6.2 Filtro rapido per errori e avvisi nel Terminale
 - **Descrizione**: Con task complessi o file video con decine di stream, i log di FFmpeg e MKVToolNix possono diventare molto lunghi e rendere difficile individuare il motivo di un fallimento.
 - **Dettagli implementativi**:
   - Aggiungere chip/filtri rapidi nella testata del terminale: `[Tutti]`, `[Solo Errori]`, `[Warning]`.

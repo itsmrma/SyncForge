@@ -17,6 +17,8 @@ import Stop from '@mui/icons-material/Stop';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import Download from '@mui/icons-material/Download';
+import ContentCopy from '@mui/icons-material/ContentCopy';
+import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import Terminal from './components/Terminal';
 import InputDialog from './components/InputDialog';
@@ -27,15 +29,90 @@ import darkTheme from './theme';
 import modules from './modules';
 import { desktopBridge } from './bridge';
 
+const DEFAULT_SETTINGS = {
+  max_offset: 1,
+  enable_max_offset: false,
+  auto_audio: true,
+  auto_subs: true,
+  notify_on_finish: true,
+  sound_on_finish: true,
+};
+
+function loadInitialSettings() {
+  try {
+    const raw = localStorage.getItem('syncforge_settings');
+    if (raw) {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return DEFAULT_SETTINGS;
+}
+
+function loadInitialModule() {
+  try {
+    const savedId = localStorage.getItem('syncforge_selected_mod');
+    if (savedId) {
+      const found = modules.find((m) => m.id === savedId);
+      if (found) return found;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return modules[0];
+}
+
+function formatDuration(totalSeconds) {
+  const sec = Math.max(0, Math.round(totalSeconds));
+  const mins = Math.floor(sec / 60);
+  const rem = sec % 60;
+  return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+}
+
+function playCompletionSound(status) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (status === 'ok' || status === 'warning') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.setValueAtTime(659.25, now + 0.11); // E5
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.36);
+    } else if (status === 'error') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.31);
+    }
+  } catch {
+    // ignore audio synthesis failures in headless environments
+  }
+}
+
 export default function App() {
-  const [selectedMod, setSelectedMod] = useState(modules[0]);
+  const [selectedMod, setSelectedMod] = useState(loadInitialModule);
   const [terminal, setTerminal] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [inputRequest, setInputRequest] = useState(null);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [copiedLogs, setCopiedLogs] = useState(false);
   const [notice, setNotice] = useState(null);
   const [hasRun, setHasRun] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progress, setProgress] = useState({
     active: false,
     currentFile: '',
@@ -44,6 +121,8 @@ export default function App() {
     filePercent: 0,
   });
   const runInFlight = useRef(false);
+  const taskStartRef = useRef(null);
+  const hoveredFieldRef = useRef(null);
 
   const [paths, setPaths] = useState({
     video: '',
@@ -51,13 +130,51 @@ export default function App() {
     output: '',
   });
 
-  const [settings, setSettings] = useState({
-    max_offset: 1,
-    enable_max_offset: false,
-    auto_audio: true,
-    auto_subs: true,
-    notify_on_finish: true,
-  });
+  const [settings, setSettings] = useState(loadInitialSettings);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('syncforge_settings', JSON.stringify(settings));
+    } catch {
+      // ignore storage errors
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('syncforge_selected_mod', selectedMod.id);
+    } catch {
+      // ignore storage errors
+    }
+  }, [selectedMod]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      taskStartRef.current = null;
+      return;
+    }
+    taskStartRef.current = Date.now();
+    const interval = setInterval(() => {
+      if (taskStartRef.current) {
+        setElapsedSeconds(Math.floor((Date.now() - taskStartRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (
+        e.key === 'F12' ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) ||
+        (e.metaKey && e.altKey && ['I', 'i', 'J', 'j'].includes(e.key))
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const [matcherState, setMatcherState] = useState({
     open: false,
@@ -109,6 +226,57 @@ export default function App() {
     });
   };
 
+  const assignDroppedPaths = (droppedList) => {
+    if (!droppedList || !droppedList.length || runInFlight.current) return;
+    const hovered = hoveredFieldRef.current;
+    if (hovered && selectedMod.needs.includes(hovered)) {
+      setPaths((prev) => ({ ...prev, [hovered]: droppedList[0] }));
+      return;
+    }
+
+    setPaths((prev) => {
+      const next = { ...prev };
+      for (const item of droppedList) {
+        const ext = item.includes('.')
+          ? item.slice(item.lastIndexOf('.')).toLowerCase()
+          : '';
+        const isSub = ['.srt', '.ass', '.ssa', '.sub', '.vtt'].includes(ext);
+        const isVideo = ['.mkv', '.mp4', '.avi', '.mov'].includes(ext);
+
+        if (isSub && selectedMod.needs.includes('sub')) {
+          next.sub = item;
+        } else if (isVideo) {
+          if (
+            !next.video ||
+            !selectedMod.needs.includes('sub') ||
+            selectedMod.id === 'sync_subs'
+          ) {
+            next.video = item;
+          } else if (!next.sub) {
+            next.sub = item;
+          } else {
+            next.video = item;
+          }
+        } else {
+          // Folder or unknown extension
+          if (!next.video) {
+            next.video = item;
+          } else if (selectedMod.needs.includes('sub') && !next.sub) {
+            next.sub = item;
+          } else if (selectedMod.needs.includes('output')) {
+            next.output = item;
+          }
+        }
+      }
+      return next;
+    });
+  };
+
+  const assignDroppedPathsRef = useRef(null);
+  useEffect(() => {
+    assignDroppedPathsRef.current = assignDroppedPaths;
+  });
+
   useEffect(() => {
     window.frontend_api = window.frontend_api || {};
     window.frontend_api.append_terminal = append_terminal;
@@ -125,20 +293,42 @@ export default function App() {
         filePercent: data.filePercent ?? prev.filePercent,
       }));
     };
+
+    let unlistenDrop = null;
+    if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+      import('@tauri-apps/api/webviewWindow')
+        .then(({ getCurrentWebviewWindow }) => {
+          const win = getCurrentWebviewWindow();
+          return win.onDragDropEvent((event) => {
+            if (event.payload.type === 'drop' && event.payload.paths?.length) {
+              assignDroppedPathsRef.current(event.payload.paths);
+            }
+          });
+        })
+        .then((unlisten) => {
+          unlistenDrop = unlisten;
+        })
+        .catch(() => {});
+    }
+
     return () => {
       delete window.frontend_api.append_terminal;
       delete window.frontend_api.ask_input;
       delete window.frontend_api.ask_matcher;
       delete window.frontend_api.cancel_requests;
       delete window.frontend_api.update_progress;
+      if (typeof unlistenDrop === 'function') unlistenDrop();
     };
   }, []);
 
-  const handleMatcherConfirm = () => {
+  const handleMatcherConfirm = (excludedTargets = []) => {
+    const excludedSet = new Set(Array.isArray(excludedTargets) ? excludedTargets : []);
     const limit = Math.min(matcherState.targets.length, reorderSources.length);
     const pairs = [];
     for (let i = 0; i < limit; i++) {
-      pairs.push([matcherState.targets[i], reorderSources[i].path]);
+      if (!excludedSet.has(i)) {
+        pairs.push([matcherState.targets[i], reorderSources[i].path]);
+      }
     }
     matcherState.resolve(
       pairs,
@@ -157,6 +347,7 @@ export default function App() {
     runInFlight.current = true;
     setIsRunning(true);
     setIsStopping(false);
+    setElapsedSeconds(0);
     setNotice(null);
     setProgress({
       active: true,
@@ -181,6 +372,9 @@ export default function App() {
               : result?.status === 'cancelled'
                 ? 'info'
                 : 'error';
+        if (settings.sound_on_finish ?? true) {
+          playCompletionSound(result?.status);
+        }
         setNotice({
           severity,
           message:
@@ -198,11 +392,15 @@ export default function App() {
     } catch (error) {
       const message = error.message || String(error);
       append_terminal(`\n[ERROR] ${message}\n`);
+      if (settings.sound_on_finish ?? true) {
+        playCompletionSound('error');
+      }
       setNotice({ severity: 'error', message });
     } finally {
       runInFlight.current = false;
       setIsRunning(false);
       setIsStopping(false);
+      setElapsedSeconds(0);
       setProgress({
         active: false,
         currentFile: '',
@@ -243,13 +441,37 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const copyTerminalLogs = async () => {
+    try {
+      await navigator.clipboard.writeText(terminal);
+      setCopiedLogs(true);
+      setTimeout(() => setCopiedLogs(false), 2000);
+    } catch {
+      // ignore clipboard permission errors
+    }
+  };
+
+  const handleShowInFolder = async (targetPath) => {
+    if (!targetPath || !desktopBridge.isConnected()) return;
+    try {
+      await desktopBridge.showInFolder(targetPath);
+    } catch (error) {
+      setNotice({
+        severity: 'error',
+        message: error.message || String(error),
+      });
+    }
+  };
+
   const handlePickPath = async (key, kind, mediaType) => {
     if (desktopBridge.isConnected()) {
       try {
+        const defaultHint =
+          paths[key] || paths.video || paths.sub || paths.output || '';
         const path =
           kind === 'file'
-            ? await desktopBridge.pickFile(mediaType)
-            : await desktopBridge.pickFolder();
+            ? await desktopBridge.pickFile(mediaType, defaultHint)
+            : await desktopBridge.pickFolder(defaultHint);
         if (path) setPaths((prev) => ({ ...prev, [key]: path }));
       } catch (error) {
         setNotice({
@@ -276,10 +498,27 @@ export default function App() {
         )
       : 0;
 
+  const etaSeconds =
+    overallPercent > 2 && overallPercent < 100 && elapsedSeconds > 0
+      ? Math.max(1, Math.round((elapsedSeconds * (100 - overallPercent)) / overallPercent))
+      : null;
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Box
+        onContextMenu={(e) => e.preventDefault()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const files = e.dataTransfer?.files;
+          if (files && files.length > 0) {
+            const list = Array.from(files)
+              .map((f) => f.path || f.name)
+              .filter(Boolean);
+            assignDroppedPaths(list);
+          }
+        }}
         sx={{
           display: 'flex',
           height: '100vh',
@@ -413,6 +652,10 @@ export default function App() {
                     disabled={isRunning}
                     onChange={(video) => setPaths((p) => ({ ...p, video }))}
                     onPick={(kind, type) => handlePickPath('video', kind, type)}
+                    onShowInFolder={handleShowInFolder}
+                    onDragHoverChange={(hovered) => {
+                      hoveredFieldRef.current = hovered ? 'video' : null;
+                    }}
                   />
                 )}
                 {selectedMod.needs.includes('sub') && (
@@ -425,6 +668,10 @@ export default function App() {
                     }
                     onChange={(sub) => setPaths((p) => ({ ...p, sub }))}
                     onPick={(kind, type) => handlePickPath('sub', kind, type)}
+                    onShowInFolder={handleShowInFolder}
+                    onDragHoverChange={(hovered) => {
+                      hoveredFieldRef.current = hovered ? 'sub' : null;
+                    }}
                   />
                 )}
                 {selectedMod.needs.includes('output') && (
@@ -432,9 +679,13 @@ export default function App() {
                     label={selectedMod.labels[2]}
                     value={paths.output}
                     disabled={isRunning}
-                    placeholder="Leave empty to use the target's folder"
+                    placeholder="If not selected, output folder remains the source folder"
                     onChange={(output) => setPaths((p) => ({ ...p, output }))}
                     onPick={(kind) => handlePickPath('output', kind)}
+                    onShowInFolder={handleShowInFolder}
+                    onDragHoverChange={(hovered) => {
+                      hoveredFieldRef.current = hovered ? 'output' : null;
+                    }}
                   />
                 )}
               </Box>
@@ -505,16 +756,33 @@ export default function App() {
                             mb: 0.75,
                           }}
                         >
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 600,
-                              color: 'text.secondary',
-                              fontSize: '0.82rem',
-                            }}
-                          >
-                            Overall Progress
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color: 'text.secondary',
+                                fontSize: '0.82rem',
+                              }}
+                            >
+                              Overall Progress
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              data-testid="eta-label"
+                              sx={{
+                                fontFamily: 'monospace',
+                                color: 'text.secondary',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              {`Elapsed: ${formatDuration(elapsedSeconds)}${
+                                etaSeconds !== null
+                                  ? ` • ETA: ~${formatDuration(etaSeconds)}`
+                                  : ''
+                              }`}
+                            </Typography>
+                          </Box>
                           <Typography
                             variant="body2"
                             data-testid="overall-progress-label"
@@ -659,14 +927,24 @@ export default function App() {
               {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
             </Button>
             {terminal && (
-              <Button
-                size="small"
-                startIcon={<Download fontSize="small" />}
-                onClick={downloadTerminalLogs}
-                sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-              >
-                Download Logs
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  startIcon={<ContentCopy fontSize="small" />}
+                  onClick={copyTerminalLogs}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+                >
+                  {copiedLogs ? 'Copied!' : 'Copy Logs'}
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<Download fontSize="small" />}
+                  onClick={downloadTerminalLogs}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+                >
+                  Download Logs
+                </Button>
+              </>
             )}
           </Box>
         </Box>
@@ -682,6 +960,7 @@ export default function App() {
         />
       )}
       <MatcherDialog
+        key={matcherState.open ? 'open' : 'closed'}
         state={matcherState}
         sources={reorderSources}
         onReorder={setReorderSources}
@@ -710,7 +989,17 @@ export default function App() {
             {notice?.message}
           </Alert>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          {(notice?.severity === 'success' || notice?.severity === 'warning') &&
+            (paths.output || paths.video) && (
+              <Button
+                variant="outlined"
+                startIcon={<FolderOpenOutlined fontSize="small" />}
+                onClick={() => handleShowInFolder(paths.output || paths.video)}
+              >
+                Show in Folder
+              </Button>
+            )}
           <Button variant="contained" onClick={() => setNotice(null)}>
             OK
           </Button>

@@ -70,25 +70,40 @@ export const desktopBridge = {
     }
   },
 
-  async pickFile(mediaType) {
+  async pickFile(mediaType, defaultPath) {
     const mock = getMockApi();
     if (mock && mock.pick_file) {
-      return await mock.pick_file(mediaType);
+      return await mock.pick_file(mediaType, defaultPath);
     }
     if (hasTauri()) {
-      return await invoke('pick_file', { mediaType });
+      return await invoke('pick_file', {
+        mediaType,
+        defaultPath: defaultPath || null,
+      });
     }
     return '';
   },
 
-  async pickFolder() {
+  async pickFolder(defaultPath) {
     const mock = getMockApi();
     if (mock && mock.pick_folder) {
-      return await mock.pick_folder();
+      return await mock.pick_folder(defaultPath);
     }
     if (hasTauri()) {
-      return await invoke('pick_folder');
+      return await invoke('pick_folder', {
+        defaultPath: defaultPath || null,
+      });
     }
     return '';
+  },
+
+  async showInFolder(path) {
+    const mock = getMockApi();
+    if (mock && mock.show_in_folder) {
+      return await mock.show_in_folder(path);
+    }
+    if (hasTauri()) {
+      return await invoke('show_in_folder', { path });
+    }
   },
 };

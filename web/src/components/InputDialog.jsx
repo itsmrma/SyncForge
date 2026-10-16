@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Alert,
   Box,
@@ -9,10 +9,50 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
+  IconButton,
   Radio,
   TextField,
   Typography,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
+
+const LANG_MAP = {
+  it: { codes: ['it', 'ita', 'italian', 'italiano'], label: 'ITA' },
+  en: { codes: ['en', 'eng', 'english'], label: 'ENG' },
+  ja: { codes: ['ja', 'jpn', 'japanese'], label: 'JPN' },
+  es: { codes: ['es', 'spa', 'spanish', 'español'], label: 'SPA' },
+  fr: { codes: ['fr', 'fra', 'fre', 'french', 'français'], label: 'FRA' },
+  de: { codes: ['de', 'deu', 'ger', 'german', 'deutsch'], label: 'DEU' },
+  pt: { codes: ['pt', 'por', 'portuguese'], label: 'POR' },
+  ru: { codes: ['ru', 'rus', 'russian'], label: 'RUS' },
+  zh: { codes: ['zh', 'zho', 'chi', 'chinese'], label: 'ZHO' },
+  ko: { codes: ['ko', 'kor', 'korean'], label: 'KOR' },
+};
+
+function getSystemLanguageInfo() {
+  const raw =
+    (typeof navigator !== 'undefined' && navigator.language) || 'en-US';
+  const short = raw.split(/[-_]/)[0].toLowerCase();
+  return (
+    LANG_MAP[short] || {
+      codes: [short],
+      label: short.toUpperCase(),
+    }
+  );
+}
+
+function trackMatchesLang(track, codes) {
+  const props = track.properties || {};
+  const lang = (props.language || '').toLowerCase();
+  const name = (props.track_name || '').toLowerCase();
+  return codes.some(
+    (code) =>
+      lang === code ||
+      name.includes(code)
+  );
+}
 
 export default function InputDialog({ request, onResolve, onStop, stopping }) {
   const {
@@ -27,8 +67,32 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
     kind === 'multiple' ? tracks.map((t) => t.id) : []
   );
   const [text, setText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const sysLang = useMemo(() => getSystemLanguageInfo(), []);
+
+  const filteredTracks = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return tracks;
+    return tracks.filter((track) => {
+      const props = track.properties || {};
+      const haystack = [
+        `id ${track.id}`,
+        String(track.id),
+        track.type || '',
+        track.codec || '',
+        props.language || 'und',
+        props.track_name || '',
+        props.default_track ? 'default' : '',
+        props.forced_track ? 'forced' : '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [tracks, searchQuery]);
 
   const resolve = async (value) => {
     if (submitting || stopping) return;
@@ -49,6 +113,33 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
           ? prev.filter((value) => value !== id)
           : [...prev, id]
     );
+
+  const selectOnlySystemLang = () => {
+    const matching = tracks
+      .filter((t) => trackMatchesLang(t, sysLang.codes))
+      .map((t) => t.id);
+    setSelected(matching);
+  };
+
+  const selectOnlyOriginalLang = () => {
+    const origCodes = [...LANG_MAP.ja.codes, ...LANG_MAP.en.codes];
+    const matching = tracks
+      .filter((t) => trackMatchesLang(t, origCodes))
+      .map((t) => t.id);
+    setSelected(matching);
+  };
+
+  const deselectCommentarySdh = () => {
+    const pattern =
+      /\b(commentary|commento|sdh|hearing impaired|non udenti|descriptions|descriptive)\b/i;
+    setSelected((prev) =>
+      prev.filter((id) => {
+        const tr = tracks.find((t) => t.id === id);
+        const name = tr?.properties?.track_name || '';
+        return !pattern.test(name);
+      })
+    );
+  };
 
   const confirm = () =>
     resolve(
@@ -96,8 +187,48 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 ? 'Select the tracks to keep. The ID shown here is the MKVToolNix track ID.'
                 : 'Select one track. The ID shown here is the MKVToolNix track ID.'}
             </Typography>
+            {tracks.length > 0 && (
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Filter tracks by language, name, codec, or ID..."
+                aria-label="Filter tracks"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ mb: 1.5 }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          aria-label="Clear track filter"
+                          onClick={() => setSearchQuery('')}
+                          edge="end"
+                        >
+                          <ClearIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  },
+                }}
+              />
+            )}
             {kind === 'multiple' && (
-              <Box sx={{ display: 'flex', gap: 1, mb: 1.5, alignItems: 'center' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  mb: 1.5,
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <Button
                   size="small"
                   variant="outlined"
@@ -114,6 +245,30 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 >
                   Select none
                 </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={selectOnlySystemLang}
+                  disabled={submitting || stopping}
+                >
+                  Only {sysLang.label}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={selectOnlyOriginalLang}
+                  disabled={submitting || stopping}
+                >
+                  Only Original (JPN/ENG)
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={deselectCommentarySdh}
+                  disabled={submitting || stopping}
+                >
+                  No Commentary/SDH
+                </Button>
                 <Chip
                   size="small"
                   label={`${selected.length} selected`}
@@ -127,7 +282,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
               </Alert>
             )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {tracks.map((track) => {
+              {filteredTracks.map((track) => {
                 const properties = track.properties || {};
                 const checked = selected.includes(track.id);
                 const Control = kind === 'multiple' ? Checkbox : Radio;
