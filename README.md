@@ -3,15 +3,15 @@
 SyncForge batch-processes video files with MKVToolNix, FFmpeg, and `ffsubsync`,
 powered by a native **Rust** backend and **Tauri v2** desktop interface.
 
+<p align="center">
+  <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
+</p>
+
 **[3.1 — Quality of Life Improvements & Production Bundle Fix](https://github.com/itsmrma/SyncForge/releases/tag/v3.1)**
 adds drag-and-drop paths, smart TV episode auto-matching, track search & language presets, live ETA & taskbar progress, settings persistence, terminal log filters, and standalone production bundle fixes. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
-
-<p align="center">
-  <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
-</p>
 
 ## Features
 

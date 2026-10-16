@@ -18,7 +18,6 @@ web/.vite/
 temp_*/
 syncforge_*/
 .syncforge-part-*
-brag-output*/
 scratch/
 *.log
 *.mkv
@@ -50,5 +49,4 @@ graphify-out/cache/
 .DS_Store
 Thumbs.db
 *.local
-.agents/
 skills-lock.json

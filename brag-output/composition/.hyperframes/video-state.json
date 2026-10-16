@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "historyId": "82e63eed-002a-4467-b70a-62801e620b7e",
+  "currentRevision": "8dc92062-6d74-48c8-80c3-12c669e5b2ce",
+  "pendingChanges": false,
+  "files": {
+    "assets/sfx/impact/impactBell_heavy_000.ogg": {
+      "hash": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\94\\94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f"
+    },
+    "assets/sfx/impact/impactSoft_medium_000.ogg": {
+      "hash": "7d3ba0bb5e60a11b5d3e558c141303dcf494256675fbf753c0d252d2cf0481e3",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\7d\\7d3ba0bb5e60a11b5d3e558c141303dcf494256675fbf753c0d252d2cf0481e3"
+    },
+    "assets/sfx/interface/click_001.ogg": {
+      "hash": "ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\cc\\ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9"
+    },
+    "assets/sfx/interface/drop_001.ogg": {
+      "hash": "692ee3a6f1821402ca649ff735bee9591dc4846c8098fc7d6a90fd15fa57c1af",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\69\\692ee3a6f1821402ca649ff735bee9591dc4846c8098fc7d6a90fd15fa57c1af"
+    },
+    "assets/sfx/interface/switch_001.ogg": {
+      "hash": "3b74efad87f1e69dbd1d05c5ad952ab90859b5a3d11da6ec5bd79b4f03b42afa",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\3b\\3b74efad87f1e69dbd1d05c5ad952ab90859b5a3d11da6ec5bd79b4f03b42afa"
+    },
+    "index.html": {
+      "hash": "ee6f2f17a76eadc2a4204280015cac75274af2216e97cbb1ded5f6569846eb43",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\ee\\ee6f2f17a76eadc2a4204280015cac75274af2216e97cbb1ded5f6569846eb43"
+    },
+    "assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3": {
+      "hash": "5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\58\\5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1"
+    }
+  },
+  "revisions": {
+    "5ae281e8-6e13-48f7-b3f3-d1fc27ab1dca": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1792169673111,
+      "endedAt": 1792169673113,
+      "files": {
+        "index.html": {
+          "before": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\87\\870e5be60f83d0c23e35c1fa45ea615d3e7134b288742a8fc6cd577e26c3607f",
+          "after": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\6a\\6a4e995bb64640bc33d8be9f2d0177bd6777de74f20975f436ac086246b78a48"
+        }
+      }
+    },
+    "8dc92062-6d74-48c8-80c3-12c669e5b2ce": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1792169781494,
+      "endedAt": 1792169781497,
+      "files": {
+        "index.html": {
+          "before": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\6a\\6a4e995bb64640bc33d8be9f2d0177bd6777de74f20975f436ac086246b78a48",
+          "after": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\ee\\ee6f2f17a76eadc2a4204280015cac75274af2216e97cbb1ded5f6569846eb43"
+        }
+      }
+    }
+  },
+  "checks": {
+    "latest": {
+      "revision": "8dc92062-6d74-48c8-80c3-12c669e5b2ce",
+      "id": "2327550e-48e0-40ca-b8f8-f7f0d1a112d1"
+    },
+    "revisions": {
+      "5ae281e8-6e13-48f7-b3f3-d1fc27ab1dca": [
+        {
+          "id": "066d294e-2282-4f21-b70f-95bba0e7ffa3",
+          "scope": "project",
+          "metadata": {
+            "ok": false,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 3000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1792169692748,
+          "contentHash": "cebefb0a32edb02979e0bc1a5fa0c15d515a458afe968f3e4e941213118babff",
+          "revision": "5ae281e8-6e13-48f7-b3f3-d1fc27ab1dca",
+          "inputFingerprint": "4cb8c12239968780748e6da0ce44c0abe0a073cf7e61151b7a831198873cfae0",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision",
+          "status": "cleaned",
+          "cleanedAfterRender": "8d12e365-936b-4bbc-9f84-82e35af599e8"
+        }
+      ],
+      "8dc92062-6d74-48c8-80c3-12c669e5b2ce": [
+        {
+          "id": "2327550e-48e0-40ca-b8f8-f7f0d1a112d1",
+          "scope": "project",
+          "report": "C:\\Users\\mbena\\Documents\\SyncForge\\brag-output\\composition\\.hyperframes\\artifacts\\checks\\2327550e-48e0-40ca-b8f8-f7f0d1a112d1.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 3000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1792169791651,
+          "contentHash": "794ccd35f3bb74d2fb9396c09d41b054a2cdb485dc3c2c4df94aa4dbe154e937",
+          "revision": "8dc92062-6d74-48c8-80c3-12c669e5b2ce",
+          "inputFingerprint": "2db5d123dd059d2ab527742a8402b61342a444d5742478b94f64da288bf2f194",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ]
+    },
+    "unversioned": [
+      {
+        "id": "d19d5c8d-8d01-485f-90e3-889d427fc85c",
+        "scope": "project",
+        "report": "C:\\Users\\mbena\\Documents\\SyncForge\\brag-output\\composition\\.hyperframes\\artifacts\\checks\\d19d5c8d-8d01-485f-90e3-889d427fc85c.json",
+        "metadata": {
+          "ok": false,
+          "browserSkipped": true,
+          "options": {
+            "samples": 9,
+            "atTransitions": false,
+            "maxIssues": 80,
+            "collapseStatic": true,
+            "tolerance": 2,
+            "timeout": 3000,
+            "contrast": true,
+            "strict": false,
+            "snapshots": false,
+            "browserGpuMode": "auto"
+          }
+        },
+        "createdAt": 1792169593011,
+        "contentHash": "f52a74c32f3eefa8474529480032f66df43ef3c0ce89a3d1fe10f447225de4c9",
+        "revision": null,
+        "inputFingerprint": "e8c5811080e0df94ace226e835cc5ac32bff165ac610d239a292679ccd10f9d9",
+        "inputScope": "local-project-files",
+        "attribution": "unversioned"
+      }
+    ]
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "8d12e365-936b-4bbc-9f84-82e35af599e8",
+      "completedAt": 1792169875131,
+      "output": "C:\\Users\\mbena\\Documents\\SyncForge\\brag-output\\brag.mp4",
+      "status": "completed",
+      "revision": "8dc92062-6d74-48c8-80c3-12c669e5b2ce"
+    },
+    "retainedRevisions": [
+      "8dc92062-6d74-48c8-80c3-12c669e5b2ce"
+    ]
+  },
+  "pendingArtifactCleanup": []
+}
