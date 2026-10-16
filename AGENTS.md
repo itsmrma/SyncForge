@@ -98,3 +98,12 @@ cargo test --workspace
   5. `README.md` (top release badge and link)
 - **Changelog Convention**: `CHANGELOG.md` maintains notes for the **current release only** under `## <version> - <Title>`.
 - **Git Tags**: Tags follow `vX.Y.Z` (e.g., `v3.0.0`).
+
+---
+
+## 🎨 UI & Design Guidelines
+
+- **Icons & Visuals**: Always use **Material Design icons** (`@mui/icons-material/*`). **Never use emojis or unicode emotes** in the user interface, modals, tooltips, alerts, status messages, or settings cards.
+- **Alignment & Layout**: Always ensure form inputs and action buttons maintain pixel-perfect vertical alignment (e.g., using `alignItems: 'flex-start'` on containers where input fields have `helperText`, with buttons matching the 40px small input height).
+- **Clear Buttons**: Input clear actions (`X`) must be integrated inside the input box as an `InputAdornment` (`slotProps.input.endAdornment`), never floating disconnected outside adjacent action buttons.
+
