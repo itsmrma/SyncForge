@@ -38,6 +38,8 @@ pub struct RunResult {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_dir: Option<String>,
 }
 
 pub trait FrontendBridge: Send + Sync {
@@ -661,6 +663,7 @@ impl Api {
                 return RunResult {
                     status: "busy".to_string(),
                     message: Some("A task is already running.".to_string()),
+                    output_dir: None,
                 };
             }
             *busy = true;
@@ -721,6 +724,7 @@ impl Api {
         ];
 
         let mut module_name = requested_module.to_string();
+        let mut resolved_output_dir: Option<String> = None;
         if repeat {
             let st = self.inner.repeat_state.lock().unwrap();
             match &st.last_run_module {
@@ -729,6 +733,7 @@ impl Api {
                     return RunResult {
                         status: "error".to_string(),
                         message: Some("There is no previous task to repeat.".to_string()),
+                        output_dir: None,
                     }
                 }
             }
@@ -739,6 +744,7 @@ impl Api {
             return RunResult {
                 status: "error".to_string(),
                 message: Some("Unknown module.".to_string()),
+                output_dir: None,
             };
         };
 
@@ -751,6 +757,7 @@ impl Api {
             return RunResult {
                 status: "error".to_string(),
                 message: Some("Max offset must be a positive whole number.".to_string()),
+                output_dir: None,
             };
         };
 
@@ -805,6 +812,9 @@ impl Api {
             if repeat && st.last_run_module.is_some() {
                 st.is_repeating = true;
                 st.current_directory_index = 0;
+                if let Some(last_dir) = st.last_directory_choices.last() {
+                    resolved_output_dir = Some(last_dir.clone());
+                }
             } else {
                 st.last_run_module = Some(module_name.clone());
                 st.is_repeating = true;
@@ -832,6 +842,10 @@ impl Api {
                         } else {
                             p_out = p_vid.clone();
                         }
+                    }
+
+                    if !p_out.is_empty() {
+                        resolved_output_dir = Some(p_out.clone());
                     }
 
                     if module_name == "set_default" {
@@ -889,6 +903,7 @@ impl Api {
                     RunResult {
                         status: "cancelled".to_string(),
                         message: Some("No files were processed.".to_string()),
+                        output_dir: resolved_output_dir.clone(),
                     }
                 } else if warnings > 0 {
                     RunResult {
@@ -897,11 +912,13 @@ impl Api {
                             "Task completed with {} warning(s). Check the terminal.",
                             warnings
                         )),
+                        output_dir: resolved_output_dir.clone(),
                     }
                 } else {
                     RunResult {
                         status: "ok".to_string(),
                         message: Some(format!("Task completed. {} file(s) processed.", outputs)),
+                        output_dir: resolved_output_dir.clone(),
                     }
                 }
             }
@@ -911,10 +928,12 @@ impl Api {
                     "Task stopped. {} completed file(s) kept; partial output removed.",
                     outputs
                 )),
+                output_dir: resolved_output_dir.clone(),
             },
             Err(TaskError::Message(msg)) => RunResult {
                 status: "error".to_string(),
                 message: Some(msg),
+                output_dir: resolved_output_dir.clone(),
             },
         };
 

@@ -10,6 +10,7 @@ src-tauri/WixTools/
 node_modules/
 web/dist/
 web/test-results/
+test-results/
 web/playwright-report/
 web/.vite/
 

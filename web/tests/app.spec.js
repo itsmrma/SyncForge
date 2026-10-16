@@ -558,7 +558,7 @@ test('QoL: drag-and-drop animation activates visual cue on textboxes and tqdm pr
 
 test('QoL: track selection separates audio/subtitles, displays group files, and does not select French for Only ENG/Original', async ({ page }) => {
   const testTracks = [
-    { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese' } },
+    { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese', default_track: true } },
     { id: 2, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'eng', track_name: 'English' } },
     { id: 3, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'fre', track_name: 'French' } },
     { id: 4, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'ger', track_name: 'German' } },
@@ -587,16 +587,22 @@ test('QoL: track selection separates audio/subtitles, displays group files, and 
   await expect(dialog).toContainText('Show_S01E02.mkv');
   await dialog.getByRole('button', { name: 'Hide files in this group' }).click();
 
-  // 3. Test "Only Original (JPN/ENG)": MUST select ID 1 (Japanese) and ID 2 (English) and NEVER select ID 3 (French)
-  await dialog.getByRole('button', { name: 'Only Original (JPN/ENG)' }).click();
+  // 3. Test "Only Default": MUST select ID 1 (default_track: true) and NOT ID 2..5
+  await dialog.getByRole('button', { name: 'Only Default' }).click();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
+
+  // 4. Test "Only JPN": MUST select ID 1 (Japanese) and NOT ID 2..5
+  await dialog.getByRole('button', { name: 'Only JPN' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 4' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 5' })).not.toBeChecked();
 
-  // 4. Test "Only ENG": MUST select only ID 2 (English) and NOT ID 3 (French)
-  await dialog.getByRole('button', { name: /Only ENG/i }).click();
+  // 5. Test "Only ENG": MUST select only ID 2 (English) and NOT ID 3 (French)
+  await dialog.getByRole('button', { name: 'Only ENG' }).click();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
 

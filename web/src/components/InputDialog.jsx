@@ -147,17 +147,44 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
           : [...prev, id]
     );
 
-  const selectOnlySystemLang = () => {
+  const detectedLanguages = useMemo(() => {
+    const map = new Map();
+    for (const track of tracks) {
+      const props = track.properties || {};
+      const lang = (props.language || '').toLowerCase().trim();
+      const langIetf = (props.language_ietf || '').toLowerCase().trim();
+      const codeToTest = langIetf || lang;
+      if (codeToTest && codeToTest !== 'und') {
+        const found = Object.values(LANG_MAP).find((item) =>
+          item.codes.some((c) => codeToTest === c || codeToTest.startsWith(`${c}-`))
+        );
+        const label = found ? found.label : codeToTest.slice(0, 3).toUpperCase();
+        const codes = found ? found.codes : [codeToTest];
+        if (!map.has(label)) {
+          map.set(label, { label, codes });
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [tracks]);
+
+  const hasDefaultTracks = useMemo(
+    () => tracks.some((t) => t.properties?.default_track),
+    [tracks]
+  );
+
+  const selectOnlyDefault = () => {
     const matching = tracks
-      .filter((t) => trackMatchesLang(t, sysLang.codes))
+      .filter((t) => t.properties?.default_track)
       .map((t) => t.id);
-    setSelected(matching);
+    if (matching.length > 0) {
+      setSelected(matching);
+    }
   };
 
-  const selectOnlyOriginalLang = () => {
-    const origCodes = [...LANG_MAP.ja.codes, ...LANG_MAP.en.codes];
+  const selectOnlyLang = (codes) => {
     const matching = tracks
-      .filter((t) => trackMatchesLang(t, origCodes))
+      .filter((t) => trackMatchesLang(t, codes))
       .map((t) => t.id);
     setSelected(matching);
   };
@@ -543,22 +570,38 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 >
                   Select none
                 </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={selectOnlySystemLang}
-                  disabled={submitting || stopping}
-                >
-                  Only {sysLang.label}
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={selectOnlyOriginalLang}
-                  disabled={submitting || stopping}
-                >
-                  Only Original (JPN/ENG)
-                </Button>
+                {hasDefaultTracks && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={selectOnlyDefault}
+                    disabled={submitting || stopping}
+                  >
+                    Only Default
+                  </Button>
+                )}
+                {detectedLanguages.length > 0 ? (
+                  detectedLanguages.map((l) => (
+                    <Button
+                      key={l.label}
+                      size="small"
+                      variant="outlined"
+                      onClick={() => selectOnlyLang(l.codes)}
+                      disabled={submitting || stopping}
+                    >
+                      Only {l.label}
+                    </Button>
+                  ))
+                ) : (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => selectOnlyLang(sysLang.codes)}
+                    disabled={submitting || stopping}
+                  >
+                    Only {sysLang.label}
+                  </Button>
+                )}
                 <Button
                   size="small"
                   variant="outlined"

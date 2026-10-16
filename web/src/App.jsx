@@ -72,6 +72,18 @@ function formatDuration(totalSeconds) {
   return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
 }
 
+function getParentFolder(filePath) {
+  if (!filePath) return '';
+  const normalized = filePath.replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  const last = parts[parts.length - 1];
+  if (last.includes('.')) {
+    parts.pop();
+    return parts.join('/') || '/';
+  }
+  return filePath;
+}
+
 function playCompletionSound(status) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -110,6 +122,13 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [inputRequest, setInputRequest] = useState(null);
+  const [matcherState, setMatcherState] = useState({
+    open: false,
+    targets: [],
+    sources: [],
+    resolve: null,
+  });
+  const [reorderSources, setReorderSources] = useState([]);
   const [showTerminal, setShowTerminal] = useState(false);
   const [copiedLogs, setCopiedLogs] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -124,6 +143,10 @@ export default function App() {
   });
   const runInFlight = useRef(false);
   const taskStartRef = useRef(null);
+  const processingStartRef = useRef(null);
+  const progressHistoryRef = useRef([]);
+  const [etaSeconds, setEtaSeconds] = useState(null);
+  const currentOverallPercentRef = useRef(0);
   const hoveredFieldRef = useRef(null);
   const [isWindowDragging, setIsWindowDragging] = useState(false);
   const dragCounterRef = useRef(0);
@@ -152,19 +175,53 @@ export default function App() {
     }
   }, [selectedMod]);
 
-  useEffect(() => {
-    if (!isRunning) {
-      taskStartRef.current = null;
+  const updateEta = (overall) => {
+    if (!processingStartRef.current || overall < 3 || overall >= 99) {
+      setEtaSeconds(null);
       return;
     }
+    const activeSec = (Date.now() - processingStartRef.current) / 1000;
+    if (activeSec < 1.5) {
+      setEtaSeconds(null);
+      return;
+    }
+    let rate = overall / activeSec;
+    const hist = progressHistoryRef.current;
+    if (hist.length >= 2) {
+      const oldest = hist[0];
+      const newest = hist[hist.length - 1];
+      const dt = (newest.time - oldest.time) / 1000;
+      const dp = newest.percent - oldest.percent;
+      if (dt >= 1.5 && dp > 0) {
+        const recentRate = dp / dt;
+        rate = 0.65 * recentRate + 0.35 * rate;
+      }
+    }
+    if (rate > 0) {
+      const remaining = (100 - overall) / rate;
+      setEtaSeconds(Math.max(1, Math.round(remaining)));
+    } else {
+      setEtaSeconds(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!isRunning) return;
     taskStartRef.current = Date.now();
     const interval = setInterval(() => {
       if (taskStartRef.current) {
         setElapsedSeconds(Math.floor((Date.now() - taskStartRef.current) / 1000));
       }
+      if (inputRequest || matcherState.open) {
+        processingStartRef.current = null;
+        progressHistoryRef.current = [];
+        setEtaSeconds(null);
+      } else if (processingStartRef.current) {
+        updateEta(currentOverallPercentRef.current);
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, inputRequest, matcherState.open]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -218,14 +275,6 @@ export default function App() {
     };
   }, []);
 
-  const [matcherState, setMatcherState] = useState({
-    open: false,
-    targets: [],
-    sources: [],
-    resolve: null,
-  });
-  const [reorderSources, setReorderSources] = useState([]);
-
   const followTerminalRef = useRef(true);
 
   const append_terminal = (text) => {
@@ -234,6 +283,9 @@ export default function App() {
       const pMatch = text.match(/Progress:\s*(\d+)%/i) || text.match(/(\d+)%\|/);
       if (pMatch) {
         const pct = parseInt(pMatch[1], 10);
+        if (!processingStartRef.current && pct > 0) {
+          processingStartRef.current = Date.now();
+        }
         setProgress((p) => ({ ...p, filePercent: pct }));
       }
       if (next.length > 50000 && followTerminalRef.current) {
@@ -326,6 +378,24 @@ export default function App() {
     window.frontend_api.ask_matcher = ask_matcher;
     window.frontend_api.cancel_requests = cancel_requests;
     window.frontend_api.update_progress = (data) => {
+      const filePct = data.filePercent ?? 0;
+      const fileIdx = data.fileIndex ?? 1;
+      const totalF = data.totalFiles ?? 1;
+      if (!processingStartRef.current && (filePct > 0 || fileIdx > 0)) {
+        processingStartRef.current = Date.now();
+      }
+      const curOverall =
+        totalF > 0
+          ? Math.min(100, Math.max(0, ((Math.max(0, fileIdx - 1) + filePct / 100) / totalF) * 100))
+          : 0;
+      const now = Date.now();
+      const hist = progressHistoryRef.current;
+      hist.push({ time: now, percent: curOverall });
+      while (hist.length > 12 || (hist.length > 2 && now - hist[0].time > 8000)) {
+        hist.shift();
+      }
+      updateEta(curOverall);
+
       setProgress((prev) => ({
         ...prev,
         active: true,
@@ -424,11 +494,17 @@ export default function App() {
         if (settings.sound_on_finish ?? true) {
           playCompletionSound(result?.status);
         }
+        const effectiveOutputDir =
+          result?.output_dir ||
+          paths.output ||
+          settings.default_output_dir ||
+          (paths.video ? getParentFolder(paths.video) : '');
         setNotice({
           severity,
           message:
             result?.message ||
             'The task returned no result. Check the terminal.',
+          outputDir: effectiveOutputDir,
         });
         if (result && result.status !== 'busy') setHasRun(true);
       } else {
@@ -450,6 +526,9 @@ export default function App() {
       setIsRunning(false);
       setIsStopping(false);
       setElapsedSeconds(0);
+      processingStartRef.current = null;
+      progressHistoryRef.current = [];
+      setEtaSeconds(null);
       setProgress({
         active: false,
         currentFile: '',
@@ -547,10 +626,12 @@ export default function App() {
         )
       : 0;
 
-  const etaSeconds =
-    overallPercent > 2 && overallPercent < 100 && elapsedSeconds > 0
-      ? Math.max(1, Math.round((elapsedSeconds * (100 - overallPercent)) / overallPercent))
-      : null;
+  useEffect(() => {
+    currentOverallPercentRef.current = overallPercent;
+    if (isRunning && processingStartRef.current) {
+      updateEta(overallPercent);
+    }
+  }, [overallPercent, isRunning]);
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -1050,11 +1131,18 @@ export default function App() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
           {(notice?.severity === 'success' || notice?.severity === 'warning') &&
-            (paths.output || paths.video) && (
+            Boolean(notice?.outputDir || paths.output || settings.default_output_dir || paths.video) && (
               <Button
                 variant="outlined"
                 startIcon={<FolderOpenOutlined fontSize="small" />}
-                onClick={() => handleShowInFolder(paths.output || paths.video)}
+                onClick={() =>
+                  handleShowInFolder(
+                    notice?.outputDir ||
+                    paths.output ||
+                    settings.default_output_dir ||
+                    getParentFolder(paths.video)
+                  )
+                }
               >
                 Show in Folder
               </Button>
