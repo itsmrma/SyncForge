@@ -1,19 +1,19 @@
-﻿__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-env/
-venv/
-.venv/
-env.bak/
-venv.bak/
+# Rust / Tauri build artifacts
+target/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+*.app/
+
+
+# Frontend build & test artifacts
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+web/.vite/
+
+# Temporary media and runtime files
 temp_*/
 syncforge_*/
 .syncforge-part-*
@@ -28,14 +28,19 @@ scratch/
 *.sup
 *.sub
 
+# Legacy / local environments
+__pycache__/
+*.pyc
+.venv/
+venv/
 build/
 dist/
 *.spec
 *.zip
-node_modules/
-web/test-results/
-web/playwright-report/
-web/.vite/
+
+# Graphify cache / temp files
+graphify-out/cache/
+.graphify_*
 
 # Local editor and operating-system files
 .vscode/

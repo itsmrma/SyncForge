@@ -1,19 +1,19 @@
 # SyncForge
 
-SyncForge batch-processes video files with MKVToolNix, FFmpeg, and ffsubsync,
-using a React desktop interface through pywebview.
+SyncForge batch-processes video files with MKVToolNix, FFmpeg, and `ffsubsync`,
+powered by a native **Rust** backend and **Tauri v2** desktop interface.
 
-**[2.1.1 — Contextual Settings](https://github.com/itsmrma/SyncForge/releases/tag/v2.1.1)**
-disables and annotates settings that do not apply to the active module. See [CHANGELOG.md](CHANGELOG.md).
+**[3.0.0 — Native Rust & Tauri v2 Rewrite](https://github.com/itsmrma/SyncForge/releases/tag/v3.0.0)**
+brings a complete Rust + Tauri v2 architecture, pure-Rust FFT waveform synchronization, direct `ffsubsync` executable integration, and a modern desktop UI. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Features
 
 - **Stream Manager:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
-- **Default and forced flags:** edit MKV metadata without remuxing.
-- **External subtitles:** align subtitle files to video audio.
+- **Default and forced flags:** edit MKV metadata in-place without remuxing.
+- **External subtitles:** align subtitle files to video audio using the `ffsubsync` executable.
 - **Subtitles from MKV:** extract, synchronize, and inject subtitles from another video.
-- **WaveSync Injection:** synchronize and merge source audio/subtitles using waveform analysis.
-- **Custom Track Merge:** combine selected tracks from two videos or batches of videos (direct remux without sync).
+- **WaveSync Injection:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
+- **Custom Track Merge:** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
 
 Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
 collapses to an icon rail and restores its width when expanded. Use **File** or
@@ -30,50 +30,38 @@ write before stopping. Keep backups of media you intend to modify.
 
 ## Download and requirements
 
-Download standalone Windows, Linux, and macOS executables from
+Download standalone Windows, Linux, and macOS builds from
 [GitHub Releases](https://github.com/itsmrma/SyncForge/releases).
-They include Python and ffsubsync. Install **MKVToolNix** (`mkvmerge`, `mkvextract`,
-`mkvpropedit`) and **FFmpeg** (`ffmpeg`), and make them available on `PATH`.
-
-Linux bundles the Qt webview backend, which accounts for most of its larger
-executable size. Windows and macOS use their platform webviews.
-
-Linux notifications require a desktop notification service. macOS notifications
-use `osascript` and may require enabling notifications for its script host.
-System notification preferences apply; results also appear inside the app.
+Install **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`), **FFmpeg** (`ffmpeg`),
+and **ffsubsync** (`ffsubsync`), and make them available on `PATH`.
 
 ## Run from source
 
-Install [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org/), then:
+Install [Rust](https://rustup.rs/) and [Node.js](https://nodejs.org/), then:
 
 ```sh
 git clone https://github.com/itsmrma/SyncForge.git
-cd SyncForge
-uv sync --locked
-cd web
+cd SyncForge/web
 npm ci
 npm run build
-cd ..
-uv run syncforge
+npx tauri dev
 ```
 
-`uv run python -m syncforge` and `uv run python main.py` start the same application.
-Fonts are bundled locally and do not require a network connection.
+To build an optimized standalone executable/bundle:
+
+```sh
+cd web
+npx tauri build
+```
 
 ## Development
 
-Python application code is under `src/syncforge`, separated into `core`,
-`features`, and `ui`. React source is under `web/src`, with separate components,
-module definitions, and theme. Standalone build tooling is in `scripts`; regression
-and distribution checks are in `tests`. Generated files are ignored by Git.
+Rust backend code is under `src-tauri/src`, separated into `core`, `features`, and `ui`.
+React frontend source is under `web/src`, with separate components, module definitions,
+IPC bridge, and theme. Rust regression, cancellation, and integration tests are in
+`src-tauri/tests`; browser integration tests are in `web/tests`.
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for structure, test, and build commands.
-
-GitHub builds and browser-tests the frontend once on Linux, then shares it with
-the three platform builds. Python/media regressions and bundled synchronizer
-checks run on every platform; Linux also verifies an installed wheel. Release
-assets publish after all checks pass. Desktop interaction is manually verified
-on Windows; automated checks also run on Linux and macOS.
 
 Inter fonts are distributed with their
 [SIL Open Font License notice](web/public/Inter-LICENSE.txt), also included in builds.

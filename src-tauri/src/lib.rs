@@ -1,0 +1,203 @@
+pub mod core;
+pub mod features;
+pub mod ui;
+
+use std::sync::Arc;
+use serde_json::Value;
+use tauri::{AppHandle, Manager, State, WindowEvent};
+
+use crate::ui::backend::{Api, FrontendBridge, PathsInput, RunResult};
+
+struct TauriWindowBridge {
+    app: AppHandle,
+}
+
+impl FrontendBridge for TauriWindowBridge {
+    fn append_terminal(&self, text: &str) {
+        if let Some(win) = self.app.get_webview_window("main") {
+            if let Ok(encoded) = serde_json::to_string(text) {
+                let script = format!(
+                    "if(window.frontend_api && window.frontend_api.append_terminal) window.frontend_api.append_terminal({});",
+                    encoded
+                );
+                let _ = win.eval(&script);
+            }
+        }
+    }
+
+    fn ask_input(&self, payload: &Value, callback_id: &str) -> bool {
+        if let Some(win) = self.app.get_webview_window("main") {
+            if let (Ok(payload_json), Ok(id_json)) = (
+                serde_json::to_string(payload),
+                serde_json::to_string(callback_id),
+            ) {
+                let script = format!(
+                    "if(window.frontend_api && window.frontend_api.ask_input) window.frontend_api.ask_input({}, {});",
+                    payload_json, id_json
+                );
+                return win.eval(&script).is_ok();
+            }
+        }
+        false
+    }
+
+    fn ask_matcher(&self, targets: &[String], sources: &[String], callback_id: &str) -> bool {
+        if let Some(win) = self.app.get_webview_window("main") {
+            if let (Ok(t_json), Ok(s_json), Ok(id_json)) = (
+                serde_json::to_string(targets),
+                serde_json::to_string(sources),
+                serde_json::to_string(callback_id),
+            ) {
+                let script = format!(
+                    "if(window.frontend_api && window.frontend_api.ask_matcher) window.frontend_api.ask_matcher({}, {}, {});",
+                    t_json, s_json, id_json
+                );
+                return win.eval(&script).is_ok();
+            }
+        }
+        false
+    }
+
+    fn cancel_requests(&self) {
+        if let Some(win) = self.app.get_webview_window("main") {
+            let script =
+                "if(window.frontend_api && window.frontend_api.cancel_requests) window.frontend_api.cancel_requests();";
+            let _ = win.eval(script);
+        }
+    }
+
+    fn pick_folder(&self) -> String {
+        rfd::FileDialog::new()
+            .pick_folder()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+
+    fn pick_file(&self, label: &str, extensions: &[&str]) -> String {
+        let clean_exts: Vec<String> = extensions
+            .iter()
+            .map(|e| e.trim_start_matches('.').to_string())
+            .collect();
+        let ext_refs: Vec<&str> = clean_exts.iter().map(|s| s.as_str()).collect();
+        rfd::FileDialog::new()
+            .add_filter(label, &ext_refs)
+            .pick_file()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+
+    fn update_progress(
+        &self,
+        current_file: &str,
+        file_index: usize,
+        total_files: usize,
+        file_percent: f64,
+    ) {
+        if let Some(win) = self.app.get_webview_window("main") {
+            let payload = serde_json::json!({
+                "currentFile": current_file,
+                "fileIndex": file_index,
+                "totalFiles": total_files,
+                "filePercent": file_percent,
+            });
+            if let Ok(json_str) = serde_json::to_string(&payload) {
+                let script = format!(
+                    "if(window.frontend_api && window.frontend_api.update_progress) window.frontend_api.update_progress({});",
+                    json_str
+                );
+                let _ = win.eval(&script);
+            }
+        }
+    }
+}
+
+#[tauri::command]
+async fn run_module(
+    state: State<'_, Api>,
+    module_name: String,
+    settings: Value,
+    paths: Option<PathsInput>,
+    repeat: Option<bool>,
+) -> Result<RunResult, String> {
+    let api = state.inner().clone();
+    let is_repeat = repeat.unwrap_or(false);
+    tauri::async_runtime::spawn_blocking(move || {
+        api.run_module(&module_name, &settings, paths, is_repeat)
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn stop_task(state: State<'_, Api>) -> Value {
+    state.stop_task()
+}
+
+#[tauri::command]
+fn resolve_input(state: State<'_, Api>, callback_id: String, result: Option<String>) {
+    state.resolve_input(&callback_id, result);
+}
+
+#[tauri::command]
+fn resolve_matcher(
+    state: State<'_, Api>,
+    callback_id: String,
+    res: Vec<(String, String)>,
+    source_order: Option<Vec<String>>,
+) {
+    state.resolve_matcher(&callback_id, res, source_order);
+}
+
+#[tauri::command]
+async fn pick_folder(state: State<'_, Api>) -> Result<String, String> {
+    let api = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || api.pick_folder())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn pick_file(state: State<'_, Api>, media_type: Option<String>) -> Result<String, String> {
+    let api = state.inner().clone();
+    let kind = media_type.unwrap_or_else(|| "video".to_string());
+    tauri::async_runtime::spawn_blocking(move || api.pick_file(&kind))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_version(state: State<'_, Api>) -> String {
+    state.get_version()
+}
+
+pub fn run() {
+    let api = Api::new();
+    let api_for_setup = api.clone();
+    let api_for_events = api.clone();
+
+    tauri::Builder::default()
+        .manage(api)
+        .setup(move |app| {
+            let bridge = Arc::new(TauriWindowBridge {
+                app: app.handle().clone(),
+            });
+            api_for_setup.set_bridge(Some(bridge));
+            Ok(())
+        })
+        .on_window_event(move |_window, event| {
+            if let WindowEvent::Destroyed = event {
+                api_for_events.cancel_pending_matchers();
+            }
+        })
+        .invoke_handler(tauri::generate_handler![
+            run_module,
+            stop_task,
+            resolve_input,
+            resolve_matcher,
+            pick_folder,
+            pick_file,
+            get_version
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running SyncForge Tauri application");
+}

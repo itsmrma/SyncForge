@@ -15,8 +15,8 @@ export default function Terminal({ text, visible, onFollowChange }) {
 
   const handleScroll = () => {
     const element = containerRef.current;
-    // Allow for subpixel rounding in the platform's webview.
-    followingRef.current = element.scrollHeight - element.clientHeight - element.scrollTop <= 2;
+    followingRef.current =
+      element.scrollHeight - element.clientHeight - element.scrollTop <= 2;
     setPaused(!followingRef.current);
     onFollowChange(followingRef.current);
   };
@@ -31,21 +31,49 @@ export default function Terminal({ text, visible, onFollowChange }) {
   return (
     <Box sx={{ position: 'relative', display: 'flex', flex: 1, minHeight: 0 }}>
       <Paper
-      ref={containerRef}
-      onScroll={handleScroll}
-      role="log"
-      aria-label="Task terminal"
-      sx={{ flex: 1, minHeight: 0, bgcolor: '#1D1B20', color: '#D0BCFF', p: 2,
-        fontFamily: 'monospace', overflowY: 'auto', overflowAnchor: 'none', fontSize: '0.85rem',
-        border: '1px solid #36343B', borderRadius: 2, userSelect: 'text' }}
-    >
-      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', userSelect: 'text' }}>{text}</pre>
+        ref={containerRef}
+        onScroll={handleScroll}
+        role="log"
+        aria-label="Task terminal"
+        elevation={0}
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          bgcolor: '#070A10',
+          color: '#E2E8F0',
+          p: 2,
+          fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
+          overflowY: 'auto',
+          overflowAnchor: 'none',
+          fontSize: '0.82rem',
+          lineHeight: 1.55,
+          border: '1px solid rgba(148, 163, 184, 0.16)',
+          borderRadius: 2,
+          userSelect: 'text',
+        }}
+      >
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', userSelect: 'text' }}>
+          {text}
+        </pre>
       </Paper>
-      {paused && visible && <Button variant="contained" size="small" startIcon={<ArrowDownward />}
-        aria-label="Go to end of terminal" onClick={goToEnd}
-        sx={{ position: 'absolute', right: 16, bottom: 12, borderRadius: 4, boxShadow: 3 }}>
-        Go to end
-      </Button>}
+      {paused && visible && (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<ArrowDownward />}
+          aria-label="Go to end of terminal"
+          onClick={goToEnd}
+          sx={{
+            position: 'absolute',
+            right: 16,
+            bottom: 12,
+            borderRadius: 2,
+            boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+          }}
+        >
+          Go to end
+        </Button>
+      )}
     </Box>
   );
 }

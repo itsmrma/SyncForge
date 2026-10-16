@@ -321,3 +321,77 @@ test('module-specific settings are disabled and annotated when not supported by 
   await expect(maxOffset).toBeEnabled();
   await expect(notify).toBeEnabled();
 });
+
+test('tauri v2 invoke bridge dispatches module execution and file pickers natively', async ({ page }) => {
+  await page.evaluate(() => {
+    delete window.pywebview;
+    window.tauriInvocations = [];
+    window.__TAURI_INTERNALS__ = {
+      invoke: async (cmd, args) => {
+        window.tauriInvocations.push([cmd, args]);
+        if (cmd === 'pick_file') return '/media/tauri-video.mkv';
+        if (cmd === 'pick_folder') return '/media/tauri-out';
+        if (cmd === 'run_module') return { status: 'ok', message: 'Task completed via Tauri.' };
+        return null;
+      },
+    };
+  });
+  await page.getByRole('button', { name: 'Select file for Video File or Folder', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Video File or Folder', exact: true })).toHaveValue('/media/tauri-video.mkv');
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  await expect(page.getByRole('alert')).toContainText('Task completed via Tauri.');
+  const calls = await page.evaluate(() => window.tauriInvocations);
+  expect(calls[0][0]).toBe('pick_file');
+  expect(calls[1][0]).toBe('run_module');
+  expect(calls[1][1].moduleName).toBe('stream_manager');
+});
+
+test('sidebar does not display the rust badge', async ({ page }) => {
+  await expect(page.getByText('RUST', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('SyncForge', { exact: true })).toBeVisible();
+});
+
+test('dual progress bars display overall progress and current file progress while running', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        run_module: () => new Promise((resolve) => {
+          window._resolveTask = resolve;
+        }),
+        pick_file: async () => '/media/test.mkv',
+        pick_folder: async () => '/media/out',
+      },
+    };
+  });
+
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  await expect(page.getByTestId('progress-container')).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Overall Progress' })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Current File Progress' })).toBeVisible();
+
+  // Test updating progress from backend
+  await page.evaluate(() => {
+    window.frontend_api.update_progress({
+      currentFile: 'episode_05.mkv',
+      fileIndex: 5,
+      totalFiles: 10,
+      filePercent: 60,
+    });
+  });
+
+  await expect(page.getByTestId('overall-progress-label')).toContainText('File 5 of 10');
+  await expect(page.getByTestId('current-file-label')).toContainText('episode_05.mkv');
+  await expect(page.getByTestId('file-progress-label')).toContainText('60%');
+
+  // Complete task and verify progress bars hide cleanly
+  await page.evaluate(() => {
+    if (window._resolveTask) {
+      window._resolveTask({ status: 'ok', message: 'All done.' });
+    }
+  });
+  await expect(page.getByRole('alert')).toContainText('All done.');
+  await page.getByRole('button', { name: 'OK', exact: true }).click();
+  await expect(page.getByTestId('progress-container')).toHaveCount(0);
+});
+
+

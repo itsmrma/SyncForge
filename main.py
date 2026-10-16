@@ -1,5 +1,0 @@
-"""Compatibility launcher for source checkouts and PyInstaller."""
-from syncforge.app import main
-
-if __name__ == '__main__':
-    main()

@@ -18,9 +18,22 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
   const isMaxOffsetApplicable = ['injection', 'sync_subs', 'sync_subs_mkv'].includes(modId);
 
   return (
-    <Accordion expanded={expanded} onChange={onToggle} disableGutters elevation={0} sx={{ bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2, '&:before': { display: 'none' } }}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="subtitle2">Settings</Typography>
+    <Accordion
+      expanded={expanded}
+      onChange={onToggle}
+      disableGutters
+      elevation={0}
+      sx={{
+        bgcolor: '#131926',
+        border: '1px solid rgba(148, 163, 184, 0.14)',
+        borderRadius: 2,
+        '&:before': { display: 'none' },
+      }}
+    >
+      <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ minHeight: 42 }}>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.84rem' }}>
+          Settings
+        </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ pt: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         <Tooltip
@@ -33,15 +46,16 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
               disabled={!isMaxOffsetApplicable}
               control={
                 <Checkbox
+                  size="small"
                   checked={settings.enable_max_offset}
-                  onChange={e => onChange({ ...settings, enable_max_offset: e.target.checked })}
+                  onChange={(e) => onChange({ ...settings, enable_max_offset: e.target.checked })}
                 />
               }
               label={
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography fontSize="0.85rem">Enable Max Offset limit</Typography>
+                  <Typography fontSize="0.82rem">Enable Max Offset limit</Typography>
                   {!isMaxOffsetApplicable && (
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem', lineHeight: 1.2 }}>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.70rem', lineHeight: 1.2 }}>
                       Not used in this module (Subtitle sync only)
                     </Typography>
                   )}
@@ -59,8 +73,8 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
           fullWidth
           disabled={!isMaxOffsetApplicable || !settings.enable_max_offset}
           value={settings.max_offset}
-          onChange={e => onChange({ ...settings, max_offset: e.target.value })}
-          sx={{ mb: 1.5, mt: 0.5 }}
+          onChange={(e) => onChange({ ...settings, max_offset: e.target.value })}
+          sx={{ mb: 1, mt: 0.5 }}
         />
 
         <Tooltip
@@ -73,15 +87,16 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
               disabled={!isAudioSyncApplicable}
               control={
                 <Checkbox
+                  size="small"
                   checked={settings.auto_audio}
-                  onChange={e => onChange({ ...settings, auto_audio: e.target.checked })}
+                  onChange={(e) => onChange({ ...settings, auto_audio: e.target.checked })}
                 />
               }
               label={
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography fontSize="0.85rem">Auto-sync Audio</Typography>
+                  <Typography fontSize="0.82rem">Auto-sync Audio</Typography>
                   {!isAudioSyncApplicable && (
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem', lineHeight: 1.2 }}>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.70rem', lineHeight: 1.2 }}>
                       Not used in this module (WaveSync Injection only)
                     </Typography>
                   )}
@@ -102,15 +117,16 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
               disabled={!isSubSyncApplicable}
               control={
                 <Checkbox
+                  size="small"
                   checked={settings.auto_subs}
-                  onChange={e => onChange({ ...settings, auto_subs: e.target.checked })}
+                  onChange={(e) => onChange({ ...settings, auto_subs: e.target.checked })}
                 />
               }
               label={
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography fontSize="0.85rem">Auto-sync Subs</Typography>
+                  <Typography fontSize="0.82rem">Auto-sync Subs</Typography>
                   {!isSubSyncApplicable && (
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem', lineHeight: 1.2 }}>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.70rem', lineHeight: 1.2 }}>
                       Not used in this module (Subtitle sync only)
                     </Typography>
                   )}
@@ -124,11 +140,12 @@ export default function SettingsPanel({ selectedMod, settings, onChange, expande
         <FormControlLabel
           control={
             <Checkbox
+              size="small"
               checked={settings.notify_on_finish}
-              onChange={e => onChange({ ...settings, notify_on_finish: e.target.checked })}
+              onChange={(e) => onChange({ ...settings, notify_on_finish: e.target.checked })}
             />
           }
-          label={<Typography fontSize="0.85rem">Notify when task finishes</Typography>}
+          label={<Typography fontSize="0.82rem">Notify when task finishes</Typography>}
           sx={{ width: '100%', mr: 0 }}
         />
       </AccordionDetails>

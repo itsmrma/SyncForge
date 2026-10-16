@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="50%" stop-color="#1E1B4B"/>
+      <stop offset="100%" stop-color="#090D16"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="sub" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <rect x="40" y="40" width="944" height="944" rx="192" fill="none" stroke="#6366F1" stroke-opacity="0.28" stroke-width="8"/>
+  <!-- Waveform bars -->
+  <g fill="url(#wave)">
+    <rect x="192" y="380" width="44" height="180" rx="22"/>
+    <rect x="276" y="290" width="44" height="360" rx="22"/>
+    <rect x="360" y="220" width="44" height="500" rx="22"/>
+    <rect x="444" y="320" width="44" height="300" rx="22"/>
+    <rect x="528" y="250" width="44" height="440" rx="22"/>
+    <rect x="612" y="190" width="44" height="560" rx="22"/>
+    <rect x="696" y="300" width="44" height="340" rx="22"/>
+    <rect x="780" y="390" width="44" height="160" rx="22"/>
+  </g>
+  <!-- Subtitle / Sync bar at bottom -->
+  <rect x="230" y="790" width="320" height="40" rx="20" fill="url(#sub)"/>
+  <rect x="580" y="790" width="214" height="40" rx="20" fill="url(#sub)" opacity="0.8"/>
+</svg>
