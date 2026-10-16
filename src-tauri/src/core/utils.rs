@@ -24,6 +24,8 @@ pub struct AskOptions {
     pub allow_skip: bool,
     #[serde(default)]
     pub context: Option<String>,
+    #[serde(default)]
+    pub files: Vec<String>,
 }
 
 fn default_kind() -> String {

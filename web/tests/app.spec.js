@@ -546,6 +546,56 @@ test('QoL: drag-and-drop animation activates visual cue on textboxes and tqdm pr
   await page.getByRole('button', { name: 'OK', exact: true }).click();
 });
 
+test('QoL: track selection separates audio/subtitles, displays group files, and does not select French for Only ENG/Original', async ({ page }) => {
+  const testTracks = [
+    { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese' } },
+    { id: 2, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'eng', track_name: 'English' } },
+    { id: 3, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'fre', track_name: 'French' } },
+    { id: 4, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'ger', track_name: 'German' } },
+    { id: 5, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'pol', track_name: 'Polish' } },
+  ];
+
+  await showInput(page, {
+    prompt: 'Choose the audio and subtitle tracks to keep',
+    kind: 'multiple',
+    tracks: testTracks,
+    context: 'Group 1/1 • 2 files',
+    files: ['/media/Show_S01E01.mkv', '/media/Show_S01E02.mkv'],
+  });
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  // 1. Verify audio and subtitles section headers are rendered distinctly
+  await expect(dialog.getByText('Audio Tracks (1)')).toBeVisible();
+  await expect(dialog.getByText('Subtitle Tracks (4)')).toBeVisible();
+
+  // 2. Verify group files can be expanded and viewed
+  await expect(dialog.getByText('Show all 2 files')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Show all 2 files' }).click();
+  await expect(dialog).toContainText('Show_S01E01.mkv');
+  await expect(dialog).toContainText('Show_S01E02.mkv');
+  await dialog.getByRole('button', { name: 'Hide files in this group' }).click();
+
+  // 3. Test "Only Original (JPN/ENG)": MUST select ID 1 (Japanese) and ID 2 (English) and NEVER select ID 3 (French)
+  await dialog.getByRole('button', { name: 'Only Original (JPN/ENG)' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 4' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 5' })).not.toBeChecked();
+
+  // 4. Test "Only ENG": MUST select only ID 2 (English) and NOT ID 3 (French)
+  await dialog.getByRole('button', { name: /Only ENG/i }).click();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
+
+  // Confirm selection
+  await dialog.getByRole('button', { name: 'Confirm selection' }).click();
+  expect(await page.evaluate(() => window.inputResponse)).toEqual(['input-1', '2']);
+});
+
+
 
 
 

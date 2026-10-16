@@ -17,6 +17,11 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import HeadphonesOutlined from '@mui/icons-material/HeadphonesOutlined';
+import SubtitlesOutlined from '@mui/icons-material/SubtitlesOutlined';
+import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
+import InsertDriveFileOutlined from '@mui/icons-material/InsertDriveFileOutlined';
+import AudiotrackOutlined from '@mui/icons-material/AudiotrackOutlined';
 
 const LANG_MAP = {
   it: { codes: ['it', 'ita', 'italian', 'italiano'], label: 'ITA' },
@@ -45,13 +50,26 @@ function getSystemLanguageInfo() {
 
 function trackMatchesLang(track, codes) {
   const props = track.properties || {};
-  const lang = (props.language || '').toLowerCase();
+  const lang = (props.language || '').toLowerCase().trim();
+  const langIetf = (props.language_ietf || '').toLowerCase().trim();
   const name = (props.track_name || '').toLowerCase();
-  return codes.some(
-    (code) =>
-      lang === code ||
-      name.includes(code)
-  );
+
+  return codes.some((code) => {
+    const c = code.toLowerCase();
+    // 1. Exact or prefix match on ISO / IETF language code (e.g. "eng", "en", "en-us")
+    if (lang === c || lang.startsWith(`${c}-`)) return true;
+    if (langIetf === c || langIetf.startsWith(`${c}-`)) return true;
+
+    // 2. Word-boundary regex on track name so "French" never matches "en"
+    const escaped = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordRegex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
+    return wordRegex.test(name);
+  });
+}
+
+function getFileName(filePath) {
+  if (!filePath) return '';
+  return filePath.split(/[\\/]/).pop();
 }
 
 export default function InputDialog({ request, onResolve, onStop, stopping }) {
@@ -62,12 +80,14 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
     allow_empty,
     allow_skip,
     context,
+    files = [],
   } = request;
   const [selected, setSelected] = useState(
     kind === 'multiple' ? tracks.map((t) => t.id) : []
   );
   const [text, setText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFiles, setShowFiles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -93,6 +113,19 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
       return haystack.includes(q);
     });
   }, [tracks, searchQuery]);
+
+  const audioTracks = useMemo(
+    () => filteredTracks.filter((t) => t.type === 'audio'),
+    [filteredTracks]
+  );
+  const subtitleTracks = useMemo(
+    () => filteredTracks.filter((t) => t.type === 'subtitles'),
+    [filteredTracks]
+  );
+  const otherTracks = useMemo(
+    () => filteredTracks.filter((t) => t.type !== 'audio' && t.type !== 'subtitles'),
+    [filteredTracks]
+  );
 
   const resolve = async (value) => {
     if (submitting || stopping) return;
@@ -141,6 +174,26 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
     );
   };
 
+  const selectAllAudio = () => {
+    const audioIds = new Set(audioTracks.map((t) => t.id));
+    setSelected((prev) => Array.from(new Set([...prev, ...audioIds])));
+  };
+
+  const deselectAllAudio = () => {
+    const audioIds = new Set(audioTracks.map((t) => t.id));
+    setSelected((prev) => prev.filter((id) => !audioIds.has(id)));
+  };
+
+  const selectAllSubs = () => {
+    const subIds = new Set(subtitleTracks.map((t) => t.id));
+    setSelected((prev) => Array.from(new Set([...prev, ...subIds])));
+  };
+
+  const deselectAllSubs = () => {
+    const subIds = new Set(subtitleTracks.map((t) => t.id));
+    setSelected((prev) => prev.filter((id) => !subIds.has(id)));
+  };
+
   const confirm = () =>
     resolve(
       kind === 'text'
@@ -154,6 +207,164 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
               : 'n'
     );
 
+  const renderTrackItem = (track, isAudio) => {
+    const properties = track.properties || {};
+    const checked = selected.includes(track.id);
+    const Control = kind === 'multiple' ? Checkbox : Radio;
+    const langCode = (properties.language || 'und').toUpperCase();
+    const trackName =
+      properties.track_name || (isAudio ? 'Audio track' : 'Subtitle track');
+
+    return (
+      <Box
+        component="label"
+        key={track.id}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          p: 1.25,
+          border: '1.5px solid',
+          borderColor: checked
+            ? isAudio
+              ? '#34D399'
+              : '#38BDF8'
+            : 'rgba(148, 163, 184, 0.14)',
+          bgcolor: checked
+            ? isAudio
+              ? 'rgba(52, 211, 153, 0.10)'
+              : 'rgba(56, 189, 248, 0.10)'
+            : '#0B0F18',
+          borderRadius: 2,
+          cursor: 'pointer',
+          minWidth: 0,
+          transition: 'all 0.15s ease',
+          '&:hover': {
+            borderColor: isAudio
+              ? 'rgba(52, 211, 153, 0.6)'
+              : 'rgba(56, 189, 248, 0.6)',
+            bgcolor: checked
+              ? isAudio
+                ? 'rgba(52, 211, 153, 0.14)'
+                : 'rgba(56, 189, 248, 0.14)'
+              : 'rgba(255, 255, 255, 0.03)',
+          },
+        }}
+      >
+        <Control
+          size="small"
+          checked={checked}
+          onChange={() => toggle(track.id)}
+          disabled={submitting || stopping}
+          sx={{
+            color: isAudio
+              ? 'rgba(52, 211, 153, 0.6)'
+              : 'rgba(56, 189, 248, 0.6)',
+            '&.Mui-checked': {
+              color: isAudio ? '#34D399' : '#38BDF8',
+            },
+          }}
+          slotProps={{
+            input: { 'aria-label': `Select track ID ${track.id}` },
+          }}
+        />
+        <Chip
+          label={`ID ${track.id}`}
+          size="small"
+          sx={{
+            fontFamily: 'monospace',
+            fontSize: '0.85rem',
+            fontWeight: 800,
+            minWidth: 64,
+            flexShrink: 0,
+            bgcolor: checked
+              ? isAudio
+                ? 'rgba(52, 211, 153, 0.22)'
+                : 'rgba(56, 189, 248, 0.22)'
+              : 'rgba(99, 102, 241, 0.16)',
+            color: checked
+              ? isAudio
+                ? '#34D399'
+                : '#38BDF8'
+              : '#A5B4FC',
+            border: '1px solid',
+            borderColor: checked
+              ? isAudio
+                ? 'rgba(52, 211, 153, 0.45)'
+                : 'rgba(56, 189, 248, 0.45)'
+              : 'rgba(99, 102, 241, 0.3)',
+          }}
+        />
+        <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography fontWeight={700} fontSize="0.92rem">
+              {trackName}
+            </Typography>
+            <Chip
+              label={isAudio ? 'Audio' : 'Subtitles'}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                bgcolor: isAudio
+                  ? 'rgba(52, 211, 153, 0.12)'
+                  : 'rgba(56, 189, 248, 0.12)',
+                color: isAudio ? '#34D399' : '#38BDF8',
+                border: '1px solid',
+                borderColor: isAudio
+                  ? 'rgba(52, 211, 153, 0.3)'
+                  : 'rgba(56, 189, 248, 0.3)',
+              }}
+            />
+          </Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            fontSize="0.8rem"
+            sx={{ mt: 0.25 }}
+          >
+            {isAudio ? 'Audio' : 'Subtitles'} · {langCode} ·{' '}
+            {track.codec || 'Unknown codec'}
+          </Typography>
+        </Box>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0.5,
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+          }}
+        >
+          {properties.default_track && (
+            <Chip
+              label="Default"
+              size="small"
+              variant="outlined"
+              color="primary"
+              sx={{ height: 20, fontSize: '0.7rem' }}
+            />
+          )}
+          {properties.forced_track && (
+            <Chip
+              label="Forced"
+              size="small"
+              variant="outlined"
+              color="warning"
+              sx={{ height: 20, fontSize: '0.7rem' }}
+            />
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
+  const isOpusConfirm =
+    kind === 'confirm' &&
+    (prompt.toLowerCase().includes('opus') || tracks.length > 0);
+
   return (
     <Dialog
       open
@@ -162,16 +373,103 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
       fullWidth
       aria-labelledby="input-title"
     >
-      <DialogTitle id="input-title" sx={{ pb: 1, fontWeight: 700 }}>
-        {prompt}
-        {context && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5, fontFamily: 'monospace', fontSize: '0.8rem' }}
-          >
-            {context}
-          </Typography>
+      <DialogTitle id="input-title" sx={{ pb: 1.5, fontWeight: 700 }}>
+        <Typography variant="h5" component="div" fontWeight={700}>
+          {prompt}
+        </Typography>
+        {(context || (files && files.length > 0)) && (
+          <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              {context && (
+                <Chip
+                  size="small"
+                  label={context}
+                  color="secondary"
+                  variant="outlined"
+                  sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.76rem' }}
+                />
+              )}
+              {files && files.length > 1 && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setShowFiles((prev) => !prev)}
+                  startIcon={<FolderOpenOutlined fontSize="small" />}
+                  sx={{ fontSize: '0.75rem', py: 0.25, px: 0.75, minHeight: 0 }}
+                >
+                  {showFiles ? 'Hide files in this group' : `Show all ${files.length} files`}
+                </Button>
+              )}
+            </Box>
+            {files && files.length === 1 && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 1.5,
+                  bgcolor: 'rgba(148, 163, 184, 0.08)',
+                  border: '1px solid rgba(148, 163, 184, 0.14)',
+                }}
+              >
+                <InsertDriveFileOutlined sx={{ fontSize: 16, color: '#818CF8', flexShrink: 0 }} />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontFamily: 'monospace',
+                    color: 'text.primary',
+                    fontSize: '0.78rem',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {getFileName(files[0])}
+                </Typography>
+              </Box>
+            )}
+            {files && files.length > 1 && showFiles && (
+              <Box
+                sx={{
+                  maxHeight: 140,
+                  overflowY: 'auto',
+                  p: 1,
+                  borderRadius: 1.5,
+                  bgcolor: 'rgba(148, 163, 184, 0.06)',
+                  border: '1px solid rgba(148, 163, 184, 0.12)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                }}
+              >
+                {files.map((file, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 20 }}>
+                      {idx + 1}.
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontFamily: 'monospace',
+                        color: 'text.primary',
+                        fontSize: '0.75rem',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {getFileName(file)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
         )}
       </DialogTitle>
       <DialogContent dividers sx={{ borderColor: 'rgba(148, 163, 184, 0.12)' }}>
@@ -224,7 +522,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 sx={{
                   display: 'flex',
                   gap: 1,
-                  mb: 1.5,
+                  mb: 2,
                   alignItems: 'center',
                   flexWrap: 'wrap',
                 }}
@@ -281,92 +579,227 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 No tracks of this type. Continue to leave them unchanged.
               </Alert>
             )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {filteredTracks.map((track) => {
-                const properties = track.properties || {};
-                const checked = selected.includes(track.id);
-                const Control = kind === 'multiple' ? Checkbox : Radio;
-                return (
-                  <Box
-                    component="label"
-                    key={track.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      p: 1.25,
-                      border: '1px solid',
-                      borderColor: checked
-                        ? 'primary.main'
-                        : 'rgba(148, 163, 184, 0.14)',
-                      bgcolor: checked
-                        ? 'rgba(99, 102, 241, 0.12)'
-                        : '#0B0F18',
-                      borderRadius: 2,
-                      cursor: 'pointer',
-                      minWidth: 0,
-                      transition: 'all 0.12s ease',
-                    }}
-                  >
-                    <Control
-                      size="small"
-                      checked={checked}
-                      onChange={() => toggle(track.id)}
-                      disabled={submitting || stopping}
-                      slotProps={{
-                        input: { 'aria-label': `Select track ID ${track.id}` },
-                      }}
-                    />
-                    <Chip
-                      label={`ID ${track.id}`}
-                      color="primary"
-                      size="small"
+
+            {/* Audio Tracks Section */}
+            {audioTracks.length > 0 && (
+              <Box sx={{ mb: 2.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 1,
+                    px: 0.5,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <HeadphonesOutlined sx={{ color: '#34D399', fontSize: 19 }} />
+                    <Typography
+                      variant="subtitle2"
                       sx={{
-                        fontFamily: 'monospace',
-                        fontSize: '0.85rem',
-                        fontWeight: 800,
-                        minWidth: 68,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
-                      <Typography fontWeight={700} fontSize="0.92rem">
-                        {properties.track_name ||
-                          (track.type === 'audio'
-                            ? 'Audio track'
-                            : 'Subtitle track')}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
-                        {track.type === 'audio' ? 'Audio' : 'Subtitles'} ·{' '}
-                        {(properties.language || 'und').toUpperCase()} ·{' '}
-                        {track.codec || 'Unknown codec'}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        gap: 0.5,
-                        flexWrap: 'wrap',
-                        justifyContent: 'flex-end',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        color: '#34D399',
+                        textTransform: 'uppercase',
+                        fontSize: '0.78rem',
                       }}
                     >
-                      {properties.default_track && (
-                        <Chip label="Default" size="small" variant="outlined" />
-                      )}
-                      {properties.forced_track && (
-                        <Chip label="Forced" size="small" variant="outlined" />
-                      )}
-                    </Box>
+                      Audio Tracks ({audioTracks.length})
+                    </Typography>
                   </Box>
-                );
-              })}
-            </Box>
+                  {kind === 'multiple' && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Button
+                        size="small"
+                        onClick={selectAllAudio}
+                        sx={{ fontSize: '0.7rem', py: 0.1, px: 0.75, minHeight: 0 }}
+                      >
+                        All Audio
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={deselectAllAudio}
+                        color="inherit"
+                        sx={{ fontSize: '0.7rem', py: 0.1, px: 0.75, minHeight: 0, color: 'text.secondary' }}
+                      >
+                        None
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {audioTracks.map((t) => renderTrackItem(t, true))}
+                </Box>
+              </Box>
+            )}
+
+            {/* Subtitles Section */}
+            {subtitleTracks.length > 0 && (
+              <Box sx={{ mb: 2.5 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 1,
+                    px: 0.5,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SubtitlesOutlined sx={{ color: '#38BDF8', fontSize: 19 }} />
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        color: '#38BDF8',
+                        textTransform: 'uppercase',
+                        fontSize: '0.78rem',
+                      }}
+                    >
+                      Subtitle Tracks ({subtitleTracks.length})
+                    </Typography>
+                  </Box>
+                  {kind === 'multiple' && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Button
+                        size="small"
+                        onClick={selectAllSubs}
+                        sx={{ fontSize: '0.7rem', py: 0.1, px: 0.75, minHeight: 0 }}
+                      >
+                        All Subs
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={deselectAllSubs}
+                        color="inherit"
+                        sx={{ fontSize: '0.7rem', py: 0.1, px: 0.75, minHeight: 0, color: 'text.secondary' }}
+                      >
+                        None
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {subtitleTracks.map((t) => renderTrackItem(t, false))}
+                </Box>
+              </Box>
+            )}
+
+            {/* Other Tracks Section */}
+            {otherTracks.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    fontSize: '0.78rem',
+                    mb: 1,
+                    px: 0.5,
+                  }}
+                >
+                  Other Tracks ({otherTracks.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {otherTracks.map((t) => renderTrackItem(t, false))}
+                </Box>
+              </Box>
+            )}
           </>
         )}
         {kind === 'confirm' && (
-          <Typography color="text.secondary">
-            Choose Yes or No to continue.
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, py: 1 }}>
+            {isOpusConfirm ? (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1.5,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'rgba(99, 102, 241, 0.18)',
+                      color: '#818CF8',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AudiotrackOutlined />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Audio Re-encoding: Opus Stereo 128 kbps
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Re-encodes kept audio tracks with libopus (stereo VBR). Video and subtitles remain 100% untouched and lossless.
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {tracks && tracks.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        color: 'text.secondary',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Audio tracks to be converted ({tracks.length}):
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.75 }}>
+                      {tracks.map((t) => (
+                        <Box
+                          key={t.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            p: 1.25,
+                            borderRadius: 1.5,
+                            bgcolor: 'rgba(15, 20, 31, 0.8)',
+                            border: '1px solid rgba(148, 163, 184, 0.12)',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                            <Chip label={`ID ${t.id}`} size="small" sx={{ fontFamily: 'monospace', fontWeight: 700 }} />
+                            <Typography variant="body2" fontWeight={600} noWrap>
+                              {t.properties?.track_name || 'Audio track'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              ({(t.properties?.language || 'und').toUpperCase()} · {t.codec || 'Unknown'})
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" sx={{ color: '#34D399', fontWeight: 700, flexShrink: 0 }}>
+                            ➔ Opus 128k
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Typography color="text.secondary">
+                Choose Yes or No to continue.
+              </Typography>
+            )}
+          </Box>
         )}
         {kind === 'text' && (
           <TextField

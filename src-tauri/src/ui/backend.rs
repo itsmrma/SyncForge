@@ -275,6 +275,7 @@ impl Api {
             "allow_empty": options.allow_empty,
             "allow_skip": options.allow_skip,
             "context": options.context,
+            "files": options.files,
         });
 
         let result = (|| {

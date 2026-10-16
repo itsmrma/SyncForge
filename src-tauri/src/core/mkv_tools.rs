@@ -231,6 +231,7 @@ pub fn select_track_interactive(
                 allow_empty: false,
                 allow_skip: false,
                 context: Some(group_desc.to_string()),
+                files: Vec::new(),
             },
         )?;
         if let Ok(id) = sel.trim().parse::<i64>() {

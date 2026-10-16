@@ -120,6 +120,21 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
             }
         }
 
+        let pair_names: Vec<String> = pairs_in_group
+            .iter()
+            .map(|(a, b)| {
+                let name_a = Path::new(a)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let name_b = Path::new(b)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                format!("{} ➔ {}", name_a, name_b)
+            })
+            .collect();
+
         let sel_a_audio = ask_user(
             "Choose audio tracks from Folder A",
             AskOptions {
@@ -128,6 +143,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 allow_empty: false,
                 allow_skip: false,
                 context: ctx.clone(),
+                files: pair_names.clone(),
             },
         )?
         .trim()
@@ -141,6 +157,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 allow_empty: false,
                 allow_skip: false,
                 context: ctx.clone(),
+                files: pair_names.clone(),
             },
         )?
         .trim()
@@ -178,6 +195,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 allow_empty: false,
                 allow_skip: false,
                 context: ctx.clone(),
+                files: pair_names.clone(),
             },
         )?
         .trim()
@@ -191,6 +209,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 allow_empty: false,
                 allow_skip: false,
                 context: ctx,
+                files: pair_names,
             },
         )?
         .trim()

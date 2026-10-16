@@ -25,6 +25,46 @@ struct StreamAction {
     audio_tracks_info: Vec<Track>,
 }
 
+fn convert_audio_track_to_opus(
+    clean_vid: &str,
+    audio_idx: usize,
+    track_id: i64,
+    temp_dir: &Path,
+    out_dir: &Path,
+    filename: &str,
+) -> Result<String, TaskError> {
+    let temp_opus = temp_dir
+        .join(format!("temp_audio_{}.opus", track_id))
+        .to_string_lossy()
+        .to_string();
+
+    log_line(&format!(
+        "   🎵 Opus conversion for: {} (Track ID {})",
+        filename, track_id
+    ));
+    let ff_cmd = vec![
+        "ffmpeg".to_string(),
+        "-y".to_string(),
+        "-i".to_string(),
+        clean_vid.to_string(),
+        "-map".to_string(),
+        format!("0:a:{}", audio_idx),
+        "-c:a".to_string(),
+        "libopus".to_string(),
+        "-b:a".to_string(),
+        "128k".to_string(),
+        "-vbr".to_string(),
+        "on".to_string(),
+        "-compression_level".to_string(),
+        "10".to_string(),
+        "-ac".to_string(),
+        "2".to_string(),
+        temp_opus.clone(),
+    ];
+    run_subprocess(&ff_cmd, Some(out_dir))?;
+    Ok(temp_opus)
+}
+
 pub fn run_stream_manager() -> Result<(), TaskError> {
     log_line("\n--- MODE 1: STREAM MANAGER (SMART BATCH) ---");
     let folder = ask_directory("Select Video Folder to process")?;
@@ -141,7 +181,8 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
                 kind: "multiple".to_string(),
                 allow_empty: false,
                 allow_skip: true,
-                context: Some(format!("Group {}/{} / {} files", i, total_groups, files.len())),
+                context: Some(format!("Group {}/{} • {} files", i, total_groups, files.len())),
+                files: files.clone(),
             },
         )?
         .trim()
@@ -158,16 +199,31 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
             Some(parse_track_selection(&sel, &all_selectable)?)
         };
 
+        let kept_audio_tracks: Vec<Track> = match &ids_to_keep {
+            Some(keep_ids) => audio_tracks
+                .iter()
+                .filter(|t| keep_ids.contains(&t.id))
+                .cloned()
+                .collect(),
+            None => audio_tracks.clone(),
+        };
+
         let mut do_opus_conversion = false;
-        if !audio_tracks.is_empty() {
+        if !kept_audio_tracks.is_empty() {
             let conv_ans = ask_user(
                 "Convert kept audio tracks to Opus stereo 128kbps?",
                 AskOptions {
-                    tracks: Vec::new(),
+                    tracks: kept_audio_tracks.clone(),
                     kind: "confirm".to_string(),
                     allow_empty: false,
                     allow_skip: false,
-                    context: None,
+                    context: Some(format!(
+                        "Group {}/{} • {} audio track(s) kept",
+                        i,
+                        total_groups,
+                        kept_audio_tracks.len()
+                    )),
+                    files: files.clone(),
                 },
             )?
             .trim()
@@ -289,37 +345,15 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
                         .iter()
                         .position(|t| t.id == a_track.id)
                         .unwrap_or(0);
-                    let temp_opus = temp_dir
-                        .path()
-                        .join(format!("temp_audio_{}.opus", a_track.id))
-                        .to_string_lossy()
-                        .to_string();
+                    let temp_opus = convert_audio_track_to_opus(
+                        &clean_vid,
+                        idx,
+                        a_track.id,
+                        temp_dir.path(),
+                        out_dir,
+                        &filename,
+                    )?;
                     temp_files.push(temp_opus.clone());
-
-                    log_line(&format!(
-                        "   🎵 Opus conversion for: {} (ID {})",
-                        filename, a_track.id
-                    ));
-                    let ff_cmd = vec![
-                        "ffmpeg".to_string(),
-                        "-y".to_string(),
-                        "-i".to_string(),
-                        clean_vid.clone(),
-                        "-map".to_string(),
-                        format!("0:a:{}", idx),
-                        "-c:a".to_string(),
-                        "libopus".to_string(),
-                        "-b:a".to_string(),
-                        "128k".to_string(),
-                        "-vbr".to_string(),
-                        "on".to_string(),
-                        "-compression_level".to_string(),
-                        "10".to_string(),
-                        "-ac".to_string(),
-                        "2".to_string(),
-                        temp_opus.clone(),
-                    ];
-                    run_subprocess(&ff_cmd, Some(out_dir))?;
 
                     let props = a_track.properties.clone().unwrap_or_default();
                     let lang = props.language.unwrap_or_else(|| "und".to_string());
@@ -488,7 +522,8 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
                 kind: "single".to_string(),
                 allow_empty: true,
                 allow_skip: true,
-                context: Some(format!("Group {}/{}", i, total_groups)),
+                context: Some(format!("Group {}/{} • {} files", i, total_groups, files.len())),
+                files: files.clone(),
             },
         )?
         .trim()
@@ -506,7 +541,8 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
                 kind: "single".to_string(),
                 allow_empty: true,
                 allow_skip: false,
-                context: Some(format!("Group {}/{}", i, total_groups)),
+                context: Some(format!("Group {}/{} • {} files", i, total_groups, files.len())),
+                files: files.clone(),
             },
         )?
         .trim()
@@ -519,7 +555,8 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
                 kind: "single".to_string(),
                 allow_empty: true,
                 allow_skip: false,
-                context: Some(format!("Group {}/{}", i, total_groups)),
+                context: Some(format!("Group {}/{} • {} files", i, total_groups, files.len())),
+                files: files.clone(),
             },
         )?
         .trim()

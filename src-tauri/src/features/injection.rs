@@ -45,6 +45,7 @@ pub fn run_injection() -> Result<(), TaskError> {
         allow_empty: false,
         allow_skip: false,
         context: None,
+        files: Vec::new(),
     };
 
     log_line("\n[TARGET] What do you want to KEEP from the High Quality file (RAW)?");
