@@ -157,7 +157,6 @@ export default function App() {
     runInFlight.current = true;
     setIsRunning(true);
     setIsStopping(false);
-    setShowTerminal(true);
     setNotice(null);
     setProgress({
       active: true,

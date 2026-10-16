@@ -171,6 +171,7 @@ fn get_version(state: State<'_, Api>) -> String {
 }
 
 pub fn run() {
+    crate::core::processes::setup_environment();
     let api = Api::new();
     let api_for_setup = api.clone();
     let api_for_events = api.clone();

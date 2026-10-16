@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -15,34 +15,208 @@ pub struct CompletedProcess {
     pub stderr: String,
 }
 
+/// Returns the search directories for external CLI tools across all platforms.
+pub fn get_search_directories() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+
+    #[cfg(target_os = "macos")]
+    {
+        let macos_known = [
+            "/Applications/MKVToolNix.app/Contents/MacOS",
+            "/opt/homebrew/bin",
+            "/opt/homebrew/sbin",
+            "/usr/local/bin",
+            "/usr/local/sbin",
+            "/opt/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
+        ];
+        for d in &macos_known {
+            let pb = PathBuf::from(d);
+            if pb.is_dir() && !dirs.contains(&pb) {
+                dirs.push(pb);
+            }
+        }
+
+        // Also detect any /Applications/MKVToolNix*.app
+        if let Ok(entries) = std::fs::read_dir("/Applications") {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                let name_str = name.to_string_lossy();
+                if name_str.starts_with("MKVToolNix") && name_str.ends_with(".app") {
+                    let pb = entry.path().join("Contents/MacOS");
+                    if pb.is_dir() && !dirs.contains(&pb) {
+                        dirs.push(pb);
+                    }
+                }
+            }
+        }
+
+        if let Ok(home) = std::env::var("HOME") {
+            let user_known = [
+                format!("{}/Applications/MKVToolNix.app/Contents/MacOS", home),
+                format!("{}/.local/bin", home),
+                format!("{}/.cargo/bin", home),
+                format!("{}/bin", home),
+            ];
+            for d in &user_known {
+                let pb = PathBuf::from(d);
+                if pb.is_dir() && !dirs.contains(&pb) {
+                    dirs.push(pb);
+                }
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        let win_known = [
+            r"C:\Program Files\MKVToolNix",
+            r"C:\Program Files (x86)\MKVToolNix",
+            r"C:\ffmpeg\bin",
+            r"C:\tools\ffmpeg\bin",
+            r"C:\tools\mkvtoolnix",
+            r"C:\ProgramData\chocolatey\bin",
+        ];
+        for d in &win_known {
+            let pb = PathBuf::from(d);
+            if pb.is_dir() && !dirs.contains(&pb) {
+                dirs.push(pb);
+            }
+        }
+        if let Ok(userprofile) = std::env::var("USERPROFILE") {
+            let user_known = [
+                format!(r"{}\.local\bin", userprofile),
+                format!(r"{}\.cargo\bin", userprofile),
+                format!(r"{}\bin", userprofile),
+            ];
+            for d in &user_known {
+                let pb = PathBuf::from(d);
+                if pb.is_dir() && !dirs.contains(&pb) {
+                    dirs.push(pb);
+                }
+            }
+        }
+        if let Ok(localappdata) = std::env::var("LOCALAPPDATA") {
+            let programs = PathBuf::from(&localappdata).join("Programs");
+            if programs.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&programs) {
+                    for entry in entries.flatten() {
+                        let bin = entry.path().join("bin");
+                        if bin.is_dir() && !dirs.contains(&bin) {
+                            dirs.push(bin);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let linux_known = [
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/snap/bin",
+            "/var/lib/flatpak/exports/bin",
+        ];
+        for d in &linux_known {
+            let pb = PathBuf::from(d);
+            if pb.is_dir() && !dirs.contains(&pb) {
+                dirs.push(pb);
+            }
+        }
+        if let Ok(home) = std::env::var("HOME") {
+            let user_known = [
+                format!("{}/.local/bin", home),
+                format!("{}/.cargo/bin", home),
+                format!("{}/bin", home),
+            ];
+            for d in &user_known {
+                let pb = PathBuf::from(d);
+                if pb.is_dir() && !dirs.contains(&pb) {
+                    dirs.push(pb);
+                }
+            }
+        }
+    }
+
+    // Existing PATH
+    if let Ok(path_var) = std::env::var("PATH") {
+        #[cfg(windows)]
+        let sep = ';';
+        #[cfg(not(windows))]
+        let sep = ':';
+        for p in path_var.split(sep) {
+            let pb = PathBuf::from(p);
+            if !p.is_empty() && pb.is_dir() && !dirs.contains(&pb) {
+                dirs.push(pb);
+            }
+        }
+    }
+
+    dirs
+}
+
+/// Resolves an external executable name to its full path if found in search directories.
+pub fn resolve_executable(name: &str) -> String {
+    let p = Path::new(name);
+    if p.is_file() || name.contains('/') || (cfg!(windows) && name.contains('\\')) {
+        return name.to_string();
+    }
+
+    let dirs = get_search_directories();
+    #[cfg(windows)]
+    let extensions = ["", ".exe", ".cmd", ".bat"];
+    #[cfg(not(windows))]
+    let extensions = [""];
+
+    for dir in &dirs {
+        for ext in &extensions {
+            let candidate = dir.join(format!("{}{}", name, ext));
+            if candidate.is_file() {
+                return candidate.to_string_lossy().into_owned();
+            }
+        }
+    }
+
+    name.to_string()
+}
+
+/// Initializes process PATH by prepending all known tool directories.
+pub fn setup_environment() {
+    let dirs = get_search_directories();
+    #[cfg(windows)]
+    let sep = ";";
+    #[cfg(not(windows))]
+    let sep = ":";
+    let combined = dirs
+        .iter()
+        .map(|d| d.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(sep);
+    std::env::set_var("PATH", &combined);
+}
+
 /// Keep bundled library overrides out of system tools' library search path
-/// and ensure standard Homebrew/local binary paths are present on macOS/Linux.
+/// and ensure standard MKVToolNix/Homebrew/local binary paths are present.
 pub fn external_tool_environment() -> HashMap<String, String> {
     let mut env: HashMap<String, String> = std::env::vars().collect();
     external_tool_environment_from(&mut env, cfg!(target_os = "linux"));
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    {
-        let current_path = env.get("PATH").cloned().unwrap_or_default();
-        let mut parts: Vec<String> = if current_path.is_empty() {
-            Vec::new()
-        } else {
-            current_path.split(':').map(|s| s.to_string()).collect()
-        };
-        let mut extra = vec![
-            "/opt/homebrew/bin".to_string(),
-            "/usr/local/bin".to_string(),
-        ];
-        if let Some(home) = env.get("HOME") {
-            extra.push(format!("{}/.local/bin", home));
-            extra.push(format!("{}/.cargo/bin", home));
-        }
-        for dir in extra.into_iter().rev() {
-            if !parts.iter().any(|p| p == &dir) {
-                parts.insert(0, dir);
-            }
-        }
-        env.insert("PATH".to_string(), parts.join(":"));
-    }
+    let dirs = get_search_directories();
+    #[cfg(windows)]
+    let sep = ";";
+    #[cfg(not(windows))]
+    let sep = ":";
+    let combined = dirs
+        .iter()
+        .map(|d| d.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(sep);
+    env.insert("PATH".to_string(), combined);
     env
 }
 
@@ -64,7 +238,8 @@ pub fn start_process(
         return Err(TaskError::Message("Empty command".to_string()));
     }
 
-    let mut command = Command::new(&cmd[0]);
+    let resolved_binary = resolve_executable(&cmd[0]);
+    let mut command = Command::new(&resolved_binary);
     if cmd.len() > 1 {
         command.args(&cmd[1..]);
     }
