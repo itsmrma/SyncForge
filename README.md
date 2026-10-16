@@ -9,6 +9,10 @@ adds drag-and-drop paths, smart TV episode auto-matching, track search & languag
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
 
+<p align="center">
+  <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
+</p>
+
 ## Features
 
 - **Stream Manager:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
