@@ -493,5 +493,59 @@ test('QoL: track search filter, language presets, and terminal log filters', asy
   await expect(page.getByRole('log')).toContainText('Normal output line');
 });
 
+test('QoL: drag-and-drop animation activates visual cue on textboxes and tqdm progress parsing', async ({ page }) => {
+  const videoInput = page.getByRole('textbox', { name: 'Video File or Folder', exact: true });
+
+  // Simulate window dragenter with files
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['dummy'], 'video.mkv', { type: 'video/x-matroska' }));
+    const event = new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt });
+    window.dispatchEvent(event);
+  });
+
+  // Verify textbox indicates drag & drop support via placeholder
+  await expect(videoInput).toHaveAttribute('placeholder', 'Drop file or folder here...');
+
+  // Simulate window dragleave
+  await page.evaluate(() => {
+    const event = new DragEvent('dragleave', { bubbles: true, cancelable: true });
+    window.dispatchEvent(event);
+  });
+
+  await expect(videoInput).not.toHaveAttribute('placeholder', 'Drop file or folder here...');
+
+  // Test tqdm and intermediate progress update parsing via append_terminal
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        run_module: () => new Promise((resolve) => {
+          window._resolveTask = resolve;
+        }),
+      },
+    };
+  });
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  await expect(page.getByTestId('progress-container')).toBeVisible();
+
+  // Test tqdm regex parsing in append_terminal
+  await page.evaluate(() => {
+    window.frontend_api.append_terminal(' 45%|████████▍         | 450/1000 [00:04<00:05, 95.23it/s]\n');
+  });
+  await expect(page.getByTestId('file-progress-label')).toContainText('45%');
+
+  await page.evaluate(() => {
+    window.frontend_api.append_terminal(' 80%|████████████████  | 800/1000 [00:08<00:02, 95.23it/s]\n');
+  });
+  await expect(page.getByTestId('file-progress-label')).toContainText('80%');
+
+  // Clean up
+  await page.evaluate(() => {
+    if (window._resolveTask) window._resolveTask({ status: 'ok', message: 'Done' });
+  });
+  await page.getByRole('button', { name: 'OK', exact: true }).click();
+});
+
+
 
 

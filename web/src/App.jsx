@@ -123,6 +123,8 @@ export default function App() {
   const runInFlight = useRef(false);
   const taskStartRef = useRef(null);
   const hoveredFieldRef = useRef(null);
+  const [isWindowDragging, setIsWindowDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const [paths, setPaths] = useState({
     video: '',
@@ -176,6 +178,44 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const handleDragEnter = (e) => {
+      if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.length > 0) {
+        dragCounterRef.current += 1;
+        setIsWindowDragging(true);
+      }
+    };
+
+    const handleDragLeave = () => {
+      dragCounterRef.current -= 1;
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsWindowDragging(false);
+      }
+    };
+
+    const handleDragOver = (e) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = () => {
+      dragCounterRef.current = 0;
+      setIsWindowDragging(false);
+    };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
+
   const [matcherState, setMatcherState] = useState({
     open: false,
     targets: [],
@@ -189,7 +229,7 @@ export default function App() {
   const append_terminal = (text) => {
     setTerminal((prev) => {
       const next = prev + text;
-      const pMatch = text.match(/Progress:\s*(\d+)%/i);
+      const pMatch = text.match(/Progress:\s*(\d+)%/i) || text.match(/(\d+)%\|/);
       if (pMatch) {
         const pct = parseInt(pMatch[1], 10);
         setProgress((p) => ({ ...p, filePercent: pct }));
@@ -300,8 +340,15 @@ export default function App() {
         .then(({ getCurrentWebviewWindow }) => {
           const win = getCurrentWebviewWindow();
           return win.onDragDropEvent((event) => {
-            if (event.payload.type === 'drop' && event.payload.paths?.length) {
-              assignDroppedPathsRef.current(event.payload.paths);
+            if (event.payload.type === 'enter' || event.payload.type === 'over') {
+              setIsWindowDragging(true);
+            } else if (event.payload.type === 'leave') {
+              setIsWindowDragging(false);
+            } else if (event.payload.type === 'drop') {
+              setIsWindowDragging(false);
+              if (event.payload.paths?.length) {
+                assignDroppedPathsRef.current(event.payload.paths);
+              }
             }
           });
         })
@@ -650,6 +697,7 @@ export default function App() {
                     value={paths.video}
                     mediaType="video"
                     disabled={isRunning}
+                    isWindowDragging={isWindowDragging}
                     onChange={(video) => setPaths((p) => ({ ...p, video }))}
                     onPick={(kind, type) => handlePickPath('video', kind, type)}
                     onShowInFolder={handleShowInFolder}
@@ -666,6 +714,7 @@ export default function App() {
                     mediaType={
                       selectedMod.id === 'sync_subs' ? 'subtitles' : 'video'
                     }
+                    isWindowDragging={isWindowDragging}
                     onChange={(sub) => setPaths((p) => ({ ...p, sub }))}
                     onPick={(kind, type) => handlePickPath('sub', kind, type)}
                     onShowInFolder={handleShowInFolder}
@@ -680,6 +729,7 @@ export default function App() {
                     value={paths.output}
                     disabled={isRunning}
                     placeholder="If not selected, output folder remains the source folder"
+                    isWindowDragging={isWindowDragging}
                     onChange={(output) => setPaths((p) => ({ ...p, output }))}
                     onPick={(kind) => handlePickPath('output', kind)}
                     onShowInFolder={handleShowInFolder}

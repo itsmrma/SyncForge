@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::sync::{Arc, RwLock};
@@ -118,11 +118,32 @@ pub fn reset_file_progress() {
 }
 
 pub fn parse_progress_percent(line: &str) -> Option<f64> {
-    if let Some(pos) = line.find("Progress:") {
-        let slice = line[pos + 9..].trim_start();
+    let lower = line.to_lowercase();
+    if let Some(pos) = lower.find("progress:") {
+        let slice = lower[pos + 9..].trim_start();
         let num_str: String = slice.chars().take_while(|c| c.is_ascii_digit()).collect();
         if let Ok(val) = num_str.parse::<f64>() {
-            return Some(val);
+            return Some(val.clamp(0.0, 100.0));
+        }
+    }
+    // Also support tqdm progress format like " 45%|" or "100%|" from ffsubsync
+    if let Some(pct_pos) = line.find('%') {
+        let before = line[..pct_pos].trim();
+        let digits: String = before
+            .chars()
+            .rev()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
+        if !digits.is_empty() {
+            if let Ok(val) = digits.parse::<f64>() {
+                let after = line[pct_pos + 1..].trim_start();
+                if after.starts_with('|') || lower.contains("sync") {
+                    return Some(val.clamp(0.0, 100.0));
+                }
+            }
         }
     }
     None
@@ -290,6 +311,53 @@ pub fn parse_track_selection(selection: &str, tracks: &[Track]) -> Result<Vec<i6
     Ok(deduped)
 }
 
+/// Helper to stream a child process stdout or stderr chunk by chunk, emitting lines on \r or \n.
+pub fn stream_output<R: Read + Send + 'static>(mut reader: R, tx: mpsc::Sender<Option<String>>) {
+    let mut buf = [0u8; 1024];
+    let mut current = Vec::new();
+    let mut prev_was_cr = false;
+    loop {
+        match reader.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                for &b in &buf[..n] {
+                    if b == b'\r' {
+                        prev_was_cr = true;
+                        if !current.is_empty() {
+                            let s = String::from_utf8_lossy(&current).to_string();
+                            let _ = tx.send(Some(format!("{}\n", s)));
+                            current.clear();
+                        }
+                    } else if b == b'\n' {
+                        if prev_was_cr && current.is_empty() {
+                            prev_was_cr = false;
+                        } else {
+                            prev_was_cr = false;
+                            let s = String::from_utf8_lossy(&current).to_string();
+                            let _ = tx.send(Some(format!("{}\n", s)));
+                            current.clear();
+                        }
+                    } else {
+                        prev_was_cr = false;
+                        current.push(b);
+                        if current.len() >= 4096 {
+                            let s = String::from_utf8_lossy(&current).to_string();
+                            let _ = tx.send(Some(format!("{}\n", s)));
+                            current.clear();
+                        }
+                    }
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    if !current.is_empty() {
+        let s = String::from_utf8_lossy(&current).to_string();
+        let _ = tx.send(Some(format!("{}\n", s)));
+    }
+    let _ = tx.send(None);
+}
+
 /// Runs a subprocess, streams output in real time, stages mkvmerge outputs, and handles cancellation.
 pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskError> {
     if let Some(hook) = SUBPROCESS_HOOK.read().unwrap().clone() {
@@ -353,11 +421,7 @@ pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskErr
     if let Some(stdout) = child.stdout.take() {
         let tx_out = tx.clone();
         thread::spawn(move || {
-            let reader = BufReader::new(stdout);
-            for line in reader.lines().map_while(Result::ok) {
-                let _ = tx_out.send(Some(format!("{}\n", line)));
-            }
-            let _ = tx_out.send(None);
+            stream_output(stdout, tx_out);
         });
     } else {
         let _ = tx.send(None);
@@ -366,12 +430,10 @@ pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskErr
     if let Some(stderr) = child.stderr.take() {
         let tx_err = tx;
         thread::spawn(move || {
-            let reader = BufReader::new(stderr);
-            for line in reader.lines().map_while(Result::ok) {
-                let _ = tx_err.send(Some(format!("{}\n", line)));
-            }
-            let _ = tx_err.send(None);
+            stream_output(stderr, tx_err);
         });
+    } else {
+        let _ = tx.send(None);
     }
 
     let mut closed_streams = 0;
@@ -435,6 +497,8 @@ pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskErr
             )));
         }
 
+        report_file_percent(100.0);
+
         if let (Some(ref staged), Some(ref output)) = (&staged_target, &output_target) {
             if staged.exists() {
                 fs::rename(staged, output).map_err(|e| {
@@ -478,3 +542,59 @@ pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskErr
 
     Ok(returncode)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_parse_progress_percent_mkvmerge() {
+        assert_eq!(parse_progress_percent("Progress: 0%"), Some(0.0));
+        assert_eq!(parse_progress_percent("Progress: 42%"), Some(42.0));
+        assert_eq!(parse_progress_percent("Progress: 100%"), Some(100.0));
+        assert_eq!(parse_progress_percent("# mkvmerge progress: 87%"), Some(87.0));
+    }
+
+    #[test]
+    fn test_parse_progress_percent_tqdm() {
+        assert_eq!(
+            parse_progress_percent(" 45%|████████▍         | 450/1000 [00:04<00:05, 95.23it/s]"),
+            Some(45.0)
+        );
+        assert_eq!(
+            parse_progress_percent("100%|██████████████████| 1000/1000 [00:09<00:00, 105.12it/s]"),
+            Some(100.0)
+        );
+        assert_eq!(parse_progress_percent("Normal log line without percent"), None);
+    }
+
+    #[test]
+    fn test_stream_output_carriage_returns() {
+        let input = b"Progress: 10%\rProgress: 20%\rProgress: 30%\r";
+        let cursor = Cursor::new(input.to_vec());
+        let (tx, rx) = mpsc::channel();
+        stream_output(cursor, tx);
+
+        let mut lines = Vec::new();
+        while let Ok(Some(line)) = rx.recv() {
+            lines.push(line);
+        }
+        assert_eq!(lines, vec!["Progress: 10%\n", "Progress: 20%\n", "Progress: 30%\n"]);
+    }
+
+    #[test]
+    fn test_stream_output_crlf_and_lf() {
+        let input = b"Line 1\r\nLine 2\nLine 3\rLine 4";
+        let cursor = Cursor::new(input.to_vec());
+        let (tx, rx) = mpsc::channel();
+        stream_output(cursor, tx);
+
+        let mut lines = Vec::new();
+        while let Ok(Some(line)) = rx.recv() {
+            lines.push(line);
+        }
+        assert_eq!(lines, vec!["Line 1\n", "Line 2\n", "Line 3\n", "Line 4\n"]);
+    }
+}
+

@@ -11,6 +11,7 @@ import InsertDriveFileOutlined from '@mui/icons-material/InsertDriveFileOutlined
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
 
 export default function PathInput({
   label,
@@ -22,6 +23,7 @@ export default function PathInput({
   mediaType,
   disabled,
   placeholder,
+  isWindowDragging = false,
 }) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -38,6 +40,9 @@ export default function PathInput({
   const handleDragLeave = (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (event.currentTarget.contains(event.relatedTarget)) {
+      return;
+    }
     setDragOver(false);
     onDragHoverChange?.(false);
   };
@@ -73,12 +78,41 @@ export default function PathInput({
         display: 'flex',
         gap: 1,
         alignItems: 'center',
-        borderRadius: 1.5,
-        transition: 'box-shadow 0.15s ease, background-color 0.15s ease',
-        ...(dragOver && {
-          boxShadow: '0 0 0 2px #6366F1',
-          bgcolor: 'rgba(99, 102, 241, 0.08)',
-        }),
+        p: '4px',
+        borderRadius: 2,
+        border: '1.5px dashed',
+        borderColor: dragOver
+          ? '#38BDF8'
+          : isWindowDragging
+            ? 'rgba(99, 102, 241, 0.7)'
+            : 'transparent',
+        bgcolor: dragOver
+          ? 'rgba(56, 189, 248, 0.12)'
+          : isWindowDragging
+            ? 'rgba(99, 102, 241, 0.05)'
+            : 'transparent',
+        transform: dragOver ? 'scale(1.015)' : 'none',
+        boxShadow: dragOver
+          ? '0 0 0 2px rgba(56, 189, 248, 0.4), 0 0 24px rgba(56, 189, 248, 0.35)'
+          : isWindowDragging
+            ? '0 0 14px rgba(99, 102, 241, 0.25)'
+            : 'none',
+        animation: isWindowDragging && !dragOver ? 'dropPulse 1.8s ease-in-out infinite' : 'none',
+        '@keyframes dropPulse': {
+          '0%': {
+            borderColor: 'rgba(99, 102, 241, 0.4)',
+            boxShadow: '0 0 0 1px rgba(99, 102, 241, 0.15), 0 0 8px rgba(99, 102, 241, 0.12)',
+          },
+          '50%': {
+            borderColor: 'rgba(56, 189, 248, 0.85)',
+            boxShadow: '0 0 0 2px rgba(56, 189, 248, 0.35), 0 0 18px rgba(56, 189, 248, 0.28)',
+          },
+          '100%': {
+            borderColor: 'rgba(99, 102, 241, 0.4)',
+            boxShadow: '0 0 0 1px rgba(99, 102, 241, 0.15), 0 0 8px rgba(99, 102, 241, 0.12)',
+          },
+        },
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       <TextField
@@ -88,9 +122,36 @@ export default function PathInput({
         fullWidth
         size="small"
         disabled={disabled}
-        placeholder={placeholder}
+        placeholder={isWindowDragging && !value ? 'Drop file or folder here...' : placeholder}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            transition: 'all 0.2s ease',
+            ...(isWindowDragging && {
+              '& fieldset': {
+                borderColor: dragOver ? '#38BDF8 !important' : 'rgba(99, 102, 241, 0.7)',
+                borderStyle: dragOver ? 'solid' : 'dashed',
+                borderWidth: dragOver ? '2px !important' : '1.5px',
+              },
+            }),
+          },
+        }}
         slotProps={{
           input: {
+            startAdornment: isWindowDragging ? (
+              <InputAdornment position="start" sx={{ mr: 0.5 }}>
+                <FileDownloadOutlined
+                  sx={{
+                    fontSize: 20,
+                    color: dragOver ? '#38BDF8' : '#818CF8',
+                    animation: 'dropBounce 0.8s ease-in-out infinite alternate',
+                    '@keyframes dropBounce': {
+                      '0%': { transform: 'translateY(-2px)' },
+                      '100%': { transform: 'translateY(2px)' },
+                    },
+                  }}
+                />
+              </InputAdornment>
+            ) : null,
             endAdornment: value ? (
               <InputAdornment position="end" sx={{ gap: 0.25 }}>
                 {onShowInFolder && (
