@@ -3,7 +3,8 @@ use std::path::Path;
 
 use tempfile::Builder;
 
-use crate::core::config::VIDEO_EXT;
+use crate::core::audio_sync::convert_audio_track_to_opus;
+use crate::core::config::{get_config, VIDEO_EXT};
 use crate::core::mkv_tools::{format_track_label, get_tracks_info, windows_long_path, Track};
 use crate::core::tasks::TaskError;
 use crate::core::utils::{
@@ -23,46 +24,6 @@ struct StreamAction {
     ids_to_keep: Option<Vec<i64>>,
     do_opus: bool,
     audio_tracks_info: Vec<Track>,
-}
-
-fn convert_audio_track_to_opus(
-    clean_vid: &str,
-    audio_idx: usize,
-    track_id: i64,
-    temp_dir: &Path,
-    out_dir: &Path,
-    filename: &str,
-) -> Result<String, TaskError> {
-    let temp_opus = temp_dir
-        .join(format!("temp_audio_{}.opus", track_id))
-        .to_string_lossy()
-        .to_string();
-
-    log_line(&format!(
-        "   🎵 Opus conversion for: {} (Track ID {})",
-        filename, track_id
-    ));
-    let ff_cmd = vec![
-        "ffmpeg".to_string(),
-        "-y".to_string(),
-        "-i".to_string(),
-        clean_vid.to_string(),
-        "-map".to_string(),
-        format!("0:a:{}", audio_idx),
-        "-c:a".to_string(),
-        "libopus".to_string(),
-        "-b:a".to_string(),
-        "128k".to_string(),
-        "-vbr".to_string(),
-        "on".to_string(),
-        "-compression_level".to_string(),
-        "10".to_string(),
-        "-ac".to_string(),
-        "2".to_string(),
-        temp_opus.clone(),
-    ];
-    run_subprocess(&ff_cmd, Some(out_dir))?;
-    Ok(temp_opus)
 }
 
 pub fn run_stream_manager() -> Result<(), TaskError> {
@@ -208,27 +169,33 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
             None => audio_tracks.clone(),
         };
 
+        let cfg = get_config();
         let mut do_opus_conversion = false;
         if !kept_audio_tracks.is_empty() {
-            let conv_ans = ask_user(
-                "Convert kept audio tracks to Opus stereo 128kbps?",
-                AskOptions {
-                    tracks: kept_audio_tracks.clone(),
-                    kind: "confirm".to_string(),
-                    allow_empty: false,
-                    allow_skip: false,
-                    context: Some(format!(
-                        "Group {}/{} • {} audio track(s) kept",
-                        i,
-                        total_groups,
-                        kept_audio_tracks.len()
-                    )),
-                    files: files.clone(),
-                },
-            )?
-            .trim()
-            .to_lowercase();
-            do_opus_conversion = conv_ans == "y";
+            if cfg.opus_mode == "always" {
+                log_line("   🎵 Opus conversion enabled [from global settings]");
+                do_opus_conversion = true;
+            } else if cfg.opus_mode == "prompt" {
+                let conv_ans = ask_user(
+                    "Convert kept audio tracks to Opus stereo 128kbps?",
+                    AskOptions {
+                        tracks: kept_audio_tracks.clone(),
+                        kind: "confirm".to_string(),
+                        allow_empty: false,
+                        allow_skip: false,
+                        context: Some(format!(
+                            "Group {}/{} • {} audio track(s) kept",
+                            i,
+                            total_groups,
+                            kept_audio_tracks.len()
+                        )),
+                        files: files.clone(),
+                    },
+                )?
+                .trim()
+                .to_lowercase();
+                do_opus_conversion = conv_ans == "y";
+            }
         }
 
         actions_to_execute.push(StreamAction {

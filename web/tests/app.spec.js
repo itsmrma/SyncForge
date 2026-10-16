@@ -138,6 +138,7 @@ test('task outcome is shown and notification preference reaches backend', async 
   });
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByRole('checkbox', { name: 'Notify when task finishes' }).uncheck();
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Launch Module' }).click();
   await expect(page.getByRole('alert')).toContainText('Task completed.');
   expect(await page.evaluate(() => window.lastRun[1].notify_on_finish)).toBe(false);
@@ -173,6 +174,7 @@ test('sidebar collapses, switches modules, and opens settings without losing pre
   const originalWidth = await sidebar.evaluate(element => element.clientWidth);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Notify when task finishes' }).uncheck();
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Collapse sidebar' }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(72);
   await expect(page.getByRole('separator', { name: 'Resize sidebar' })).toHaveCount(0);
@@ -181,6 +183,7 @@ test('sidebar collapses, switches modules, and opens settings without losing pre
   await page.getByRole('button', { name: 'Expand sidebar and show settings' }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
   await expect(page.getByRole('checkbox', { name: 'Notify when task finishes' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Collapse sidebar' }).click();
   await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
@@ -299,7 +302,9 @@ test('module-specific settings are disabled and annotated when not supported by 
   await expect(notify).toBeEnabled();
 
   // Custom Track Merge: auto-sync audio/subs and max offset are disabled
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Custom Track Merge', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeDisabled();
   await expect(autoSubs).toBeDisabled();
   await expect(maxOffset).toBeDisabled();
@@ -307,7 +312,9 @@ test('module-specific settings are disabled and annotated when not supported by 
   await expect(page.getByText('Not used in this module (WaveSync Injection only)')).toBeVisible();
 
   // WaveSync Injection: all settings are enabled
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'WaveSync Injection', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeEnabled();
   await expect(autoSubs).toBeEnabled();
   await expect(maxOffset).toBeEnabled();
@@ -315,11 +322,14 @@ test('module-specific settings are disabled and annotated when not supported by 
   await expect(page.getByText('Not used in this module (WaveSync Injection only)')).not.toBeVisible();
 
   // Sync External Subtitles: auto_subs and maxOffset are enabled, auto_audio is disabled
+  await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Sync External Subtitles', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeDisabled();
   await expect(autoSubs).toBeEnabled();
   await expect(maxOffset).toBeEnabled();
   await expect(notify).toBeEnabled();
+  await page.getByRole('button', { name: 'Done' }).click();
 });
 
 test('tauri v2 invoke bridge dispatches module execution and file pickers natively', async ({ page }) => {
@@ -594,6 +604,42 @@ test('QoL: track selection separates audio/subtitles, displays group files, and 
   await dialog.getByRole('button', { name: 'Confirm selection' }).click();
   expect(await page.evaluate(() => window.inputResponse)).toEqual(['input-1', '2']);
 });
+
+test('Settings window supports Opus audio encoding mode and default output directory with visible helperText', async ({ page }) => {
+  // Verify default helper text on main screen when output folder is blank
+  await expect(page.getByText('If not selected, output folder remains the source folder')).toBeVisible();
+
+  // Open Settings window
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
+
+  // Verify Opus audio conversion select is visible with its options
+  const opusSelect = settingsModal.getByRole('combobox', { name: /Opus Audio Encoding/i });
+  await expect(opusSelect).toBeVisible();
+  await opusSelect.click();
+  await page.getByRole('option', { name: /Always convert/i }).click();
+
+  // Set default output folder
+  const defaultOutInput = settingsModal.getByRole('textbox', { name: 'Default Output Folder' });
+  await defaultOutInput.fill('/media/my_renders');
+
+  // Close Settings dialog
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(settingsModal).not.toBeVisible();
+
+  // Verify main screen output helperText reflects the configured default output folder
+  await expect(page.getByText('Default: /media/my_renders')).toBeVisible();
+
+  // Reopen settings and clear default output folder
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Clear default output folder' }).click();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  // Verify helperText reverts back to source folder indication
+  await expect(page.getByText('If not selected, output folder remains the source folder')).toBeVisible();
+});
+
 
 
 

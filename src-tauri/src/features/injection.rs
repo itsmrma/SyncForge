@@ -3,7 +3,9 @@ use std::path::Path;
 
 use tempfile::Builder;
 
-use crate::core::audio_sync::{extract_audio_segment, find_audio_delay};
+use crate::core::audio_sync::{
+    convert_audio_file_to_opus, extract_audio_segment, find_audio_delay,
+};
 use crate::core::config::{get_config, MAX_AUDIO_DELAY_MS, VIDEO_EXT};
 use crate::core::mkv_tools::{
     get_tracks_info, has_attachments, select_track_interactive, windows_long_path, Track,
@@ -65,12 +67,24 @@ pub fn run_injection() -> Result<(), TaskError> {
     let do_audio =
         ask_user("Import audio from the source?", confirm_opts.clone())?.to_lowercase() == "y";
     let mut do_audio_sync = false;
+    let mut do_opus_audio = false;
     if do_audio {
         do_audio_sync = cfg.auto_sync_audio;
         log_line(&format!(
             "      Apply auto-sync to audio (WaveSync)? {} [from global settings]",
             if do_audio_sync { "y" } else { "n" }
         ));
+        if cfg.opus_mode == "always" {
+            log_line("      Apply Opus conversion to injected audio? y [from global settings]");
+            do_opus_audio = true;
+        } else if cfg.opus_mode == "prompt" {
+            do_opus_audio = ask_user(
+                "Convert injected audio to Opus stereo 128kbps?",
+                confirm_opts.clone(),
+            )?
+            .to_lowercase()
+                == "y";
+        }
     }
 
     let do_subs =
@@ -245,6 +259,19 @@ pub fn run_injection() -> Result<(), TaskError> {
                     log_line("   ℹ️ Audio auto-sync skipped.");
                 }
 
+                let mut final_audio_path = full_audio_path.clone();
+                if do_opus_audio {
+                    match convert_audio_file_to_opus(&full_audio_path, temp_dir.path(), out_dir) {
+                        Ok(opus_path) => {
+                            temp_files.push(opus_path.clone());
+                            final_audio_path = opus_path;
+                        }
+                        Err(e) => {
+                            log_line(&format!("   ⚠️ Opus conversion failed, falling back to original audio: {}", e));
+                        }
+                    }
+                }
+
                 cmd.extend([
                     "--language".to_string(),
                     "0:ita".to_string(),
@@ -252,7 +279,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                     "0:Muxed Audio".to_string(),
                     "--sync".to_string(),
                     format!("0:{}", delay_ms),
-                    full_audio_path,
+                    final_audio_path,
                 ]);
             }
 

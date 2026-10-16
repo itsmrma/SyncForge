@@ -767,11 +767,31 @@ impl Api {
             .and_then(|v| v.as_bool())
             .unwrap_or(true);
 
+        let opus_mode = settings
+            .get("opus_mode")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                if settings.get("convert_opus").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    "always".to_string()
+                } else {
+                    "off".to_string()
+                }
+            });
+
+        let default_output_dir = settings
+            .get("default_output_dir")
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
         set_config(RuntimeConfig {
             max_offset_seconds: max_offset,
             enable_max_offset: enable_offset,
             auto_sync_audio: auto_audio,
             auto_sync_subs: auto_subs,
+            opus_mode,
+            default_output_dir: default_output_dir.clone(),
         });
 
         {
@@ -795,6 +815,14 @@ impl Api {
                     let p_vid = p.video;
                     let p_sub = p.sub;
                     let mut p_out = p.output;
+                    if p_out.is_empty() {
+                        if let Some(ref def_out) = default_output_dir {
+                            let norm_def = normalize_path(Path::new(def_out));
+                            if norm_def.is_dir() {
+                                p_out = norm_def.to_string_lossy().to_string();
+                            }
+                        }
+                    }
                     if p_out.is_empty() && !p_vid.is_empty() {
                         let norm_vid = normalize_path(Path::new(&p_vid));
                         if norm_vid.is_file() {

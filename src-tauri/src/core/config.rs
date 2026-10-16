@@ -10,6 +10,8 @@ pub struct RuntimeConfig {
     pub enable_max_offset: bool,
     pub auto_sync_audio: bool,
     pub auto_sync_subs: bool,
+    pub opus_mode: String,
+    pub default_output_dir: Option<String>,
 }
 
 impl Default for RuntimeConfig {
@@ -19,6 +21,8 @@ impl Default for RuntimeConfig {
             enable_max_offset: false,
             auto_sync_audio: true,
             auto_sync_subs: true,
+            opus_mode: "off".to_string(),
+            default_output_dir: None,
         }
     }
 }
@@ -28,6 +32,8 @@ static CONFIG: RwLock<RuntimeConfig> = RwLock::new(RuntimeConfig {
     enable_max_offset: false,
     auto_sync_audio: true,
     auto_sync_subs: true,
+    opus_mode: String::new(),
+    default_output_dir: None,
 });
 
 pub fn get_config() -> RuntimeConfig {

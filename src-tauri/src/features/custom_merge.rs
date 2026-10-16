@@ -1,6 +1,10 @@
+use std::fs;
 use std::path::Path;
 
-use crate::core::config::VIDEO_EXT;
+use tempfile::Builder;
+
+use crate::core::audio_sync::convert_audio_track_to_opus;
+use crate::core::config::{get_config, VIDEO_EXT};
 use crate::core::mkv_tools::{format_track_label, get_tracks_info, Track};
 use crate::core::tasks::TaskError;
 use crate::core::utils::{
@@ -20,6 +24,9 @@ struct MergeAction {
     keep_a_subs: Vec<i64>,
     keep_b_audio: Vec<i64>,
     keep_b_subs: Vec<i64>,
+    do_opus: bool,
+    tracks_a_audio: Vec<Track>,
+    tracks_b_audio: Vec<Track>,
 }
 
 pub fn run_custom_merge() -> Result<(), TaskError> {
@@ -215,12 +222,56 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
         .trim()
         .to_lowercase();
 
+        let keep_a_audio = parse_track_selection(&sel_a_audio, &audio_a)?;
+        let keep_a_subs = parse_track_selection(&sel_a_subs, &subs_a)?;
+        let keep_b_audio = parse_track_selection(&sel_b_audio, &audio_b)?;
+        let keep_b_subs = parse_track_selection(&sel_b_subs, &subs_b)?;
+
+        let kept_audio_tracks: Vec<Track> = audio_a
+            .iter()
+            .filter(|t| keep_a_audio.contains(&t.id))
+            .chain(audio_b.iter().filter(|t| keep_b_audio.contains(&t.id)))
+            .cloned()
+            .collect();
+
+        let cfg = get_config();
+        let mut do_opus = false;
+        if !kept_audio_tracks.is_empty() {
+            if cfg.opus_mode == "always" {
+                log_line("   🎵 Opus conversion enabled [from global settings]");
+                do_opus = true;
+            } else if cfg.opus_mode == "prompt" {
+                let conv_ans = ask_user(
+                    "Convert merged audio tracks to Opus stereo 128kbps?",
+                    AskOptions {
+                        tracks: kept_audio_tracks.clone(),
+                        kind: "confirm".to_string(),
+                        allow_empty: false,
+                        allow_skip: false,
+                        context: Some(format!(
+                            "Batch {}/{} • {} audio track(s) to merge",
+                            i,
+                            total_groups,
+                            kept_audio_tracks.len()
+                        )),
+                        files: pair_names.clone(),
+                    },
+                )?
+                .trim()
+                .to_lowercase();
+                do_opus = conv_ans == "y";
+            }
+        }
+
         actions_to_execute.push(MergeAction {
             pairs: pairs_in_group,
-            keep_a_audio: parse_track_selection(&sel_a_audio, &audio_a)?,
-            keep_a_subs: parse_track_selection(&sel_a_subs, &subs_a)?,
-            keep_b_audio: parse_track_selection(&sel_b_audio, &audio_b)?,
-            keep_b_subs: parse_track_selection(&sel_b_subs, &subs_b)?,
+            keep_a_audio,
+            keep_a_subs,
+            keep_b_audio,
+            keep_b_subs,
+            do_opus,
+            tracks_a_audio: audio_a,
+            tracks_b_audio: audio_b,
         });
     }
 
@@ -250,13 +301,38 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 normalize_path(&Path::new(&out_folder).join(format!("{}_merged.mkv", base_name)));
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
+            let temp_dir = Builder::new().prefix("syncforge_merge_").tempdir()?;
+            let mut temp_files: Vec<String> = Vec::new();
+
             let mut cmd = vec![
                 "mkvmerge".to_string(),
                 "-o".to_string(),
                 out_file.to_string_lossy().to_string(),
             ];
 
-            if !action.keep_a_audio.is_empty() {
+            let clean_a_str = clean_a_buf.to_string_lossy().to_string();
+            let clean_b_str = clean_b_buf.to_string_lossy().to_string();
+
+            if action.do_opus {
+                // If opus conversion is active, convert audio tracks from A and B to opus
+                for track_id in &action.keep_a_audio {
+                    let idx = action
+                        .tracks_a_audio
+                        .iter()
+                        .position(|t| t.id == *track_id)
+                        .unwrap_or(0);
+                    let opus_file = convert_audio_track_to_opus(
+                        &clean_a_str,
+                        idx,
+                        *track_id,
+                        temp_dir.path(),
+                        out_dir,
+                        &filename,
+                    )?;
+                    temp_files.push(opus_file);
+                }
+                cmd.push("--no-audio".to_string());
+            } else if !action.keep_a_audio.is_empty() {
                 cmd.push("--audio-tracks".to_string());
                 cmd.push(
                     action
@@ -284,12 +360,30 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 cmd.push("--no-subtitles".to_string());
             }
 
-            cmd.push(clean_a_buf.to_string_lossy().to_string());
+            cmd.push(clean_a_str);
 
             cmd.push("--no-video".to_string());
             cmd.push("--no-chapters".to_string());
 
-            if !action.keep_b_audio.is_empty() {
+            if action.do_opus {
+                for track_id in &action.keep_b_audio {
+                    let idx = action
+                        .tracks_b_audio
+                        .iter()
+                        .position(|t| t.id == *track_id)
+                        .unwrap_or(0);
+                    let opus_file = convert_audio_track_to_opus(
+                        &clean_b_str,
+                        idx,
+                        *track_id,
+                        temp_dir.path(),
+                        out_dir,
+                        &filename,
+                    )?;
+                    temp_files.push(opus_file);
+                }
+                cmd.push("--no-audio".to_string());
+            } else if !action.keep_b_audio.is_empty() {
                 cmd.push("--audio-tracks".to_string());
                 cmd.push(
                     action
@@ -317,9 +411,18 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 cmd.push("--no-subtitles".to_string());
             }
 
-            cmd.push(clean_b_buf.to_string_lossy().to_string());
+            cmd.push(clean_b_str);
+
+            // Append any converted opus audio tracks
+            for opus_file in &temp_files {
+                cmd.push(opus_file.clone());
+            }
 
             let returncode = run_subprocess(&cmd, Some(out_dir))?;
+            for t in temp_files {
+                let _ = fs::remove_file(t);
+            }
+
             if returncode != 0 {
                 log_line(&format!("   ❌ Error writing {}", base_name));
             } else {

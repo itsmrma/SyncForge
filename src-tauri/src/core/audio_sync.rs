@@ -1,9 +1,11 @@
+use std::path::Path;
+
 use rustfft::num_complex::Complex;
 use rustfft::FftPlanner;
 
 use crate::core::config::MAX_AUDIO_DELAY_MS;
 use crate::core::tasks::{check_cancelled, TaskError};
-use crate::core::utils::run_subprocess;
+use crate::core::utils::{log_line, run_subprocess};
 
 pub fn extract_audio_segment(
     input_file: &str,
@@ -171,4 +173,75 @@ pub fn find_audio_delay(ref_wav: &str, src_wav: &str) -> Result<i64, TaskError> 
 
     let delay_ms = ((lag as f64 / fs_ref as f64) * 1000.0).trunc() as i64;
     Ok(delay_ms)
+}
+
+pub fn convert_audio_track_to_opus(
+    clean_vid: &str,
+    audio_idx: usize,
+    track_id: i64,
+    temp_dir: &Path,
+    out_dir: &Path,
+    filename: &str,
+) -> Result<String, TaskError> {
+    let temp_opus = temp_dir
+        .join(format!("temp_audio_{}.opus", track_id))
+        .to_string_lossy()
+        .to_string();
+
+    log_line(&format!(
+        "   🎵 Opus conversion for: {} (Track ID {})",
+        filename, track_id
+    ));
+    let ff_cmd = vec![
+        "ffmpeg".to_string(),
+        "-y".to_string(),
+        "-i".to_string(),
+        clean_vid.to_string(),
+        "-map".to_string(),
+        format!("0:a:{}", audio_idx),
+        "-c:a".to_string(),
+        "libopus".to_string(),
+        "-b:a".to_string(),
+        "128k".to_string(),
+        "-vbr".to_string(),
+        "on".to_string(),
+        "-compression_level".to_string(),
+        "10".to_string(),
+        "-ac".to_string(),
+        "2".to_string(),
+        temp_opus.clone(),
+    ];
+    run_subprocess(&ff_cmd, Some(out_dir))?;
+    Ok(temp_opus)
+}
+
+pub fn convert_audio_file_to_opus(
+    input_audio: &str,
+    temp_dir: &Path,
+    out_dir: &Path,
+) -> Result<String, TaskError> {
+    let temp_opus = temp_dir
+        .join("temp_audio_opus.opus")
+        .to_string_lossy()
+        .to_string();
+    log_line("   🎵 Converting audio to Opus stereo 128kbps...");
+    let ff_cmd = vec![
+        "ffmpeg".to_string(),
+        "-y".to_string(),
+        "-i".to_string(),
+        input_audio.to_string(),
+        "-c:a".to_string(),
+        "libopus".to_string(),
+        "-b:a".to_string(),
+        "128k".to_string(),
+        "-vbr".to_string(),
+        "on".to_string(),
+        "-compression_level".to_string(),
+        "10".to_string(),
+        "-ac".to_string(),
+        "2".to_string(),
+        temp_opus.clone(),
+    ];
+    run_subprocess(&ff_cmd, Some(out_dir))?;
+    Ok(temp_opus)
 }

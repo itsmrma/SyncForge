@@ -23,6 +23,7 @@ export default function PathInput({
   mediaType,
   disabled,
   placeholder,
+  helperText,
   isWindowDragging = false,
 }) {
   const [dragOver, setDragOver] = useState(false);
@@ -123,6 +124,7 @@ export default function PathInput({
         size="small"
         disabled={disabled}
         placeholder={isWindowDragging && !value ? 'Drop file or folder here...' : placeholder}
+        helperText={helperText}
         sx={{
           '& .MuiOutlinedInput-root': {
             transition: 'all 0.2s ease',

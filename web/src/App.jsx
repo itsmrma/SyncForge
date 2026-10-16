@@ -34,6 +34,8 @@ const DEFAULT_SETTINGS = {
   enable_max_offset: false,
   auto_audio: true,
   auto_subs: true,
+  opus_mode: 'off',
+  default_output_dir: '',
   notify_on_finish: true,
   sound_on_finish: true,
 };
@@ -729,6 +731,13 @@ export default function App() {
                     value={paths.output}
                     disabled={isRunning}
                     placeholder="If not selected, output folder remains the source folder"
+                    helperText={
+                      !paths.output
+                        ? settings.default_output_dir
+                          ? `Default: ${settings.default_output_dir}`
+                          : 'If not selected, output folder remains the source folder'
+                        : undefined
+                    }
                     isWindowDragging={isWindowDragging}
                     onChange={(output) => setPaths((p) => ({ ...p, output }))}
                     onPick={(kind) => handlePickPath('output', kind)}

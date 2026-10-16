@@ -65,6 +65,8 @@ pub fn send_notification(title: &str, message: &str) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let ps_script = format!(
             "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; \
              $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); \
@@ -74,11 +76,12 @@ pub fn send_notification(title: &str, message: &str) -> Result<(), String> {
              $toast = [Windows.UI.Notifications.ToastNotification]::new($template); \
              [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('SyncForge').Show($toast);"
         );
-        let _ = Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &ps_script])
+        let mut cmd = Command::new("powershell");
+        cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &ps_script])
             .env("SYNCFORGE_NOTIFY_TITLE", title)
             .env("SYNCFORGE_NOTIFY_MSG", message)
-            .output();
+            .creation_flags(CREATE_NO_WINDOW);
+        let _ = cmd.output();
     }
 
     Ok(())

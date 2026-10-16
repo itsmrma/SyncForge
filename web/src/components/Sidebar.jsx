@@ -17,7 +17,7 @@ import Replay from '@mui/icons-material/Replay';
 import Settings from '@mui/icons-material/Settings';
 import GraphicEq from '@mui/icons-material/GraphicEq';
 import modules from '../modules';
-import SettingsPanel from './SettingsPanel';
+import SettingsDialog from './SettingsDialog';
 
 export default function Sidebar({
   selectedMod,
@@ -207,20 +207,51 @@ export default function Sidebar({
                   setCollapsed(false);
                   setSettingsOpen(true);
                 }}
-                sx={{ display: 'flex', mx: 'auto', color: 'text.secondary' }}
+                sx={{
+                  display: 'flex',
+                  mx: 'auto',
+                  color: 'text.secondary',
+                  '&:hover': { color: '#818CF8' },
+                }}
               >
                 <Settings fontSize="small" />
               </IconButton>
             </Tooltip>
           ) : (
-            <SettingsPanel
-              selectedMod={selectedMod}
-              settings={settings}
-              onChange={onSettingsChange}
-              expanded={settingsOpen}
-              onToggle={() => setSettingsOpen((value) => !value)}
-            />
+            <Button
+              aria-label="Settings"
+              variant="outlined"
+              onClick={() => setSettingsOpen(true)}
+              fullWidth
+              startIcon={<Settings fontSize="small" />}
+              sx={{
+                borderRadius: 1.75,
+                fontWeight: 700,
+                minWidth: 0,
+                fontSize: '0.84rem',
+                justifyContent: 'flex-start',
+                px: 1.75,
+                py: 0.9,
+                color: 'text.secondary',
+                borderColor: 'rgba(148, 163, 184, 0.16)',
+                '&:hover': {
+                  borderColor: '#818CF8',
+                  color: '#818CF8',
+                  bgcolor: 'rgba(99, 102, 241, 0.08)',
+                },
+              }}
+            >
+              Settings
+            </Button>
           )}
+
+          <SettingsDialog
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            selectedMod={selectedMod}
+            settings={settings}
+            onChange={onSettingsChange}
+          />
         </Box>
       </Box>
       {!collapsed && (
