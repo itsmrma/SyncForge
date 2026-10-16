@@ -19,6 +19,7 @@ import SubtitlesOutlined from '@mui/icons-material/SubtitlesOutlined';
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import NotificationsActiveOutlined from '@mui/icons-material/NotificationsActiveOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { desktopBridge } from '../bridge';
 
 export default function SettingsDialog({
@@ -448,9 +449,12 @@ export default function SettingsDialog({
             gap: 0.5,
           }}
         >
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#38BDF8' }}>
-            💡 Portable Mode & External Tools
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <InfoOutlined sx={{ color: '#38BDF8', fontSize: 16 }} />
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#38BDF8' }}>
+              Portable Mode & External Tools
+            </Typography>
+          </Box>
           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4 }}>
             SyncForge automatically detects MKVToolNix (<code style={{ color: '#E2E8F0' }}>mkvmerge</code>, <code style={{ color: '#E2E8F0' }}>mkvextract</code>, <code style={{ color: '#E2E8F0' }}>mkvpropedit</code>), FFmpeg (<code style={{ color: '#E2E8F0' }}>ffmpeg</code>), and ffsubsync (<code style={{ color: '#E2E8F0' }}>ffsubsync</code>). You can install them system-wide or simply place their executables directly in the application folder (or a <code style={{ color: '#E2E8F0' }}>tools/</code> or <code style={{ color: '#E2E8F0' }}>bin/</code> subfolder) for full portability without installing anything.
           </Typography>

@@ -78,7 +78,7 @@ export default function PathInput({
       sx={{
         display: 'flex',
         gap: 1,
-        alignItems: 'center',
+        alignItems: 'flex-start',
         p: '4px',
         borderRadius: 2,
         border: '1.5px dashed',
