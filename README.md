@@ -6,6 +6,9 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
 **[3.0.0 — Native Rust & Tauri v2 Rewrite](https://github.com/itsmrma/SyncForge/releases/tag/v3.0.0)**
 brings a complete Rust + Tauri v2 architecture, pure-Rust FFT waveform synchronization, direct `ffsubsync` executable integration, and a modern desktop UI. See [CHANGELOG.md](CHANGELOG.md).
 
+> [!NOTE]
+> **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
+
 ## Features
 
 - **Stream Manager:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
@@ -63,5 +66,16 @@ IPC bridge, and theme. Rust regression, cancellation, and integration tests are 
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for structure, test, and build commands.
 
-Inter fonts are distributed with their
-[SIL Open Font License notice](web/public/Inter-LICENSE.txt), also included in builds.
+## Licenses and Third-Party Credits
+
+SyncForge is licensed under the [MIT License](LICENSE).
+
+### Bundled & Embedded Assets
+- **ffsubsync**: Copyright (c) 2018 Stephen Macke, licensed under the [MIT License](web/public/ffsubsync-LICENSE.txt). Included in builds and distributions.
+- **Inter Font Family**: Copyright (c) 2016 The Inter Project Authors, licensed under the [SIL Open Font License 1.1](web/public/Inter-LICENSE.txt). Included in builds and distributions.
+- **Material Design Icons & MUI**: Copyright (c) Google LLC ([Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)) and Material-UI SAS ([MIT License](https://github.com/mui/material-ui/blob/master/LICENSE)).
+
+### External Tools (System Dependencies)
+SyncForge interfaces with the following open-source CLI media utilities when installed on your system `PATH`:
+- **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`): Copyright (c) Moritz Bunkus, licensed under the [GNU General Public License v2 (GPL-2.0)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
+- **FFmpeg** (`ffmpeg`): Copyright (c) FFmpeg developers, licensed under the [GNU LGPL v2.1+ or GPL v2+](https://ffmpeg.org/legal.html) depending on configuration.
