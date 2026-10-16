@@ -105,6 +105,8 @@ jobs:
         fi
         mkdir -p dist
         if [ "${{ runner.os }}" = "macOS" ]; then
+          # Ad-hoc sign the entire app bundle to seal Info.plist and Resources
+          codesign --force --deep -s - target/release/bundle/macos/SyncForge.app
           # Package .app preserving macOS permissions and resource forks
           ditto -c -k --sequesterRsrc --keepParent target/release/bundle/macos/SyncForge.app "dist/SyncForge-macOS-${VERSION}-app.zip"
           tar -czvf "dist/SyncForge-macOS-${VERSION}.tar.gz" -C target/release/bundle/macos SyncForge.app
