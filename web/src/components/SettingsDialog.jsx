@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   IconButton,
+  InputAdornment,
   Tooltip,
   Divider,
 } from '@mui/material';
@@ -335,7 +336,7 @@ export default function SettingsDialog({
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 0.5 }}>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
               <TextField
                 size="small"
                 fullWidth
@@ -348,6 +349,25 @@ export default function SettingsDialog({
                     ? 'All processed files will default to this folder'
                     : 'If not configured, output files default to the source video folder'
                 }
+                slotProps={{
+                  input: {
+                    endAdornment: settings.default_output_dir ? (
+                      <InputAdornment position="end">
+                        <Tooltip title="Clear default output folder" arrow>
+                          <IconButton
+                            size="small"
+                            aria-label="Clear default output folder"
+                            onClick={handleClearDefaultOutputDir}
+                            edge="end"
+                            sx={{ p: 0.5, color: 'text.secondary' }}
+                          >
+                            <ClearIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ) : null,
+                  },
+                }}
                 sx={{
                   '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
                 }}
@@ -360,17 +380,6 @@ export default function SettingsDialog({
               >
                 Browse
               </Button>
-              {settings.default_output_dir && (
-                <Tooltip title="Clear default output folder">
-                  <IconButton
-                    size="small"
-                    onClick={handleClearDefaultOutputDir}
-                    sx={{ p: 1, color: 'text.secondary' }}
-                  >
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
             </Box>
           </Box>
         </Box>
