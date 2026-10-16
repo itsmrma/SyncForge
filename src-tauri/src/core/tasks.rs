@@ -20,6 +20,24 @@ impl fmt::Display for TaskError {
 
 impl std::error::Error for TaskError {}
 
+impl From<std::io::Error> for TaskError {
+    fn from(err: std::io::Error) -> Self {
+        TaskError::Message(err.to_string())
+    }
+}
+
+impl From<String> for TaskError {
+    fn from(msg: String) -> Self {
+        TaskError::Message(msg)
+    }
+}
+
+impl From<&str> for TaskError {
+    fn from(msg: &str) -> Self {
+        TaskError::Message(msg.to_string())
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct TaskProgress {
     pub outputs: AtomicUsize,

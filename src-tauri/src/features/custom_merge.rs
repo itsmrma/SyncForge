@@ -301,7 +301,9 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 normalize_path(&Path::new(&out_folder).join(format!("{}_merged.mkv", base_name)));
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
-            let temp_dir = Builder::new().prefix("syncforge_merge_").tempdir()?;
+            let temp_dir = Builder::new()
+                .prefix("syncforge_merge_")
+                .tempdir_in(out_dir)?;
             let mut temp_files: Vec<String> = Vec::new();
 
             let mut cmd = vec![

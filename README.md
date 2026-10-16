@@ -35,8 +35,13 @@ write before stopping. Keep backups of media you intend to modify.
 
 Download standalone Windows, Linux, and macOS builds from
 [GitHub Releases](https://github.com/itsmrma/SyncForge/releases).
-Install **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`), **FFmpeg** (`ffmpeg`),
-and **ffsubsync** (`ffsubsync`), and make them available on `PATH`.
+
+SyncForge interfaces with external CLI tools. Make them available on your system `PATH`, or place them directly in the same folder as the `SyncForge` executable (portable mode):
+- **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`) — for MKV remuxing, metadata editing, and track extraction.
+- **FFmpeg** (`ffmpeg`) — for audio waveform extraction and Opus audio encoding.
+- **ffsubsync** (`ffsubsync`) — for speech-to-subtitle synchronization (install via `pip install ffsubsync`, `brew install ffsubsync`, or place the executable in the app folder).
+
+*(Note: Audio delay cross-correlation in WaveSync Injection is computed natively by SyncForge's built-in Rust FFT engine without external dependencies).*
 
 ## Run from source
 
@@ -71,11 +76,11 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for structure, test, and build co
 SyncForge is licensed under the [MIT License](LICENSE).
 
 ### Bundled & Embedded Assets
-- **ffsubsync**: Copyright (c) 2018 Stephen Macke, licensed under the [MIT License](web/public/ffsubsync-LICENSE.txt). Included in builds and distributions.
 - **Inter Font Family**: Copyright (c) 2016 The Inter Project Authors, licensed under the [SIL Open Font License 1.1](web/public/Inter-LICENSE.txt). Included in builds and distributions.
 - **Material Design Icons & MUI**: Copyright (c) Google LLC ([Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)) and Material-UI SAS ([MIT License](https://github.com/mui/material-ui/blob/master/LICENSE)).
 
 ### External Tools (System Dependencies)
-SyncForge interfaces with the following open-source CLI media utilities when installed on your system `PATH`:
+SyncForge interfaces with the following open-source CLI media utilities when installed on your system `PATH` or placed in the application folder:
 - **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`): Copyright (c) Moritz Bunkus, licensed under the [GNU General Public License v2 (GPL-2.0)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
 - **FFmpeg** (`ffmpeg`): Copyright (c) FFmpeg developers, licensed under the [GNU LGPL v2.1+ or GPL v2+](https://ffmpeg.org/legal.html) depending on configuration.
+- **ffsubsync**: Copyright (c) 2018 Stephen Macke, licensed under the [MIT License](web/public/ffsubsync-LICENSE.txt).

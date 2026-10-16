@@ -3,7 +3,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::core::tasks::{check_cancelled, TaskError};
 
@@ -18,6 +18,16 @@ pub struct CompletedProcess {
 /// Returns the search directories for external CLI tools across all platforms.
 pub fn get_search_directories() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
+
+    // Look in the same directory as the SyncForge executable (portable mode)
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            let pb = parent.to_path_buf();
+            if pb.is_dir() && !dirs.contains(&pb) {
+                dirs.push(pb);
+            }
+        }
+    }
 
     #[cfg(target_os = "macos")]
     {
@@ -107,6 +117,32 @@ pub fn get_search_directories() -> Vec<PathBuf> {
                         let bin = entry.path().join("bin");
                         if bin.is_dir() && !dirs.contains(&bin) {
                             dirs.push(bin);
+                        }
+                    }
+                }
+                // Detect Python Scripts installed in %LOCALAPPDATA%\Programs\Python\Python*\Scripts (pip install ffsubsync)
+                let python_dir = programs.join("Python");
+                if python_dir.is_dir() {
+                    if let Ok(entries) = std::fs::read_dir(&python_dir) {
+                        for entry in entries.flatten() {
+                            let scripts = entry.path().join("Scripts");
+                            if scripts.is_dir() && !dirs.contains(&scripts) {
+                                dirs.push(scripts);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            // Detect Python Scripts in %APPDATA%\Python\Python*\Scripts
+            let py_dir = PathBuf::from(&appdata).join("Python");
+            if py_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&py_dir) {
+                    for entry in entries.flatten() {
+                        let scripts = entry.path().join("Scripts");
+                        if scripts.is_dir() && !dirs.contains(&scripts) {
+                            dirs.push(scripts);
                         }
                     }
                 }
