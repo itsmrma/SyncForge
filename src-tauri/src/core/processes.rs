@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::Duration;
+#[cfg(unix)]
+use std::time::Instant;
 
 use crate::core::tasks::{check_cancelled, TaskError};
 
@@ -19,12 +21,60 @@ pub struct CompletedProcess {
 pub fn get_search_directories() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
-    // Look in the same directory as the SyncForge executable (portable mode)
+    // Look in the same directory as the SyncForge executable and portable subdirectories
     if let Ok(exe_path) = std::env::current_exe() {
+        let mut app_dirs = Vec::new();
         if let Some(parent) = exe_path.parent() {
-            let pb = parent.to_path_buf();
-            if pb.is_dir() && !dirs.contains(&pb) {
-                dirs.push(pb);
+            app_dirs.push(parent.to_path_buf());
+
+            #[cfg(target_os = "macos")]
+            {
+                // If running inside SyncForge.app/Contents/MacOS, also inspect the folder containing SyncForge.app
+                let parent_str = parent.to_string_lossy();
+                if parent_str.ends_with("Contents/MacOS") || parent_str.ends_with("Contents/MacOS/") {
+                    if let Some(app_bundle) = parent.parent().and_then(|p| p.parent()) {
+                        if let Some(bundle_dir) = app_bundle.parent() {
+                            app_dirs.push(bundle_dir.to_path_buf());
+                        }
+                    }
+                }
+            }
+        }
+
+        for base in app_dirs {
+            if base.is_dir() && !dirs.contains(&base) {
+                dirs.push(base.clone());
+            }
+
+            // Common subdirectories for portable setups: bin, tools, ffmpeg, mkvtoolnix, ffsubsync
+            let common_subs = [
+                "bin",
+                "tools",
+                "ffmpeg",
+                "ffmpeg/bin",
+                "mkvtoolnix",
+                "MKVToolNix",
+                "ffsubsync",
+            ];
+            for sub in &common_subs {
+                let sub_path = base.join(sub);
+                if sub_path.is_dir() && !dirs.contains(&sub_path) {
+                    dirs.push(sub_path);
+                }
+            }
+
+            // Also check all immediate subdirectories of the application directory (1 level deep)
+            if let Ok(entries) = std::fs::read_dir(&base) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir() && !dirs.contains(&path) {
+                        dirs.push(path.clone());
+                        let sub_bin = path.join("bin");
+                        if sub_bin.is_dir() && !dirs.contains(&sub_bin) {
+                            dirs.push(sub_bin);
+                        }
+                    }
+                }
             }
         }
     }

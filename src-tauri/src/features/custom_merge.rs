@@ -216,7 +216,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 allow_empty: false,
                 allow_skip: false,
                 context: ctx,
-                files: pair_names,
+                files: pair_names.clone(),
             },
         )?
         .trim()

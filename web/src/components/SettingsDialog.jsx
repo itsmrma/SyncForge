@@ -426,6 +426,26 @@ export default function SettingsDialog({
             />
           </Box>
         </Box>
+
+        {/* Portable Mode Note */}
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            bgcolor: 'rgba(56, 189, 248, 0.05)',
+            border: '1px solid rgba(56, 189, 248, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.5,
+          }}
+        >
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#38BDF8' }}>
+            💡 Portable Mode & External Tools
+          </Typography>
+          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4 }}>
+            SyncForge automatically detects MKVToolNix (<code style={{ color: '#E2E8F0' }}>mkvmerge</code>, <code style={{ color: '#E2E8F0' }}>mkvextract</code>, <code style={{ color: '#E2E8F0' }}>mkvpropedit</code>), FFmpeg (<code style={{ color: '#E2E8F0' }}>ffmpeg</code>), and ffsubsync (<code style={{ color: '#E2E8F0' }}>ffsubsync</code>). You can install them system-wide or simply place their executables directly in the application folder (or a <code style={{ color: '#E2E8F0' }}>tools/</code> or <code style={{ color: '#E2E8F0' }}>bin/</code> subfolder) for full portability without installing anything.
+          </Typography>
+        </Box>
       </Box>
 
       {/* Footer / Actions */}

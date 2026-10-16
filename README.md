@@ -36,7 +36,10 @@ write before stopping. Keep backups of media you intend to modify.
 Download standalone Windows, Linux, and macOS builds from
 [GitHub Releases](https://github.com/itsmrma/SyncForge/releases).
 
-SyncForge interfaces with external CLI tools. Make them available on your system `PATH`, or place them directly in the same folder as the `SyncForge` executable (portable mode):
+SyncForge interfaces with external CLI tools. You have two convenient options:
+1. **Portable Mode (No installation required)**: Simply drop the executables (`mkvmerge`, `mkvextract`, `mkvpropedit`, `ffmpeg`, `ffsubsync` or their folders `tools/`, `bin/`) directly in the same folder as the `SyncForge` executable (or next to `SyncForge.app` on macOS).
+2. **System Installation**: Install them via your package manager (`winget`, `choco`, `brew`, `apt`, `pip`) and make them available on `PATH`.
+
 - **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`) — for MKV remuxing, metadata editing, and track extraction.
 - **FFmpeg** (`ffmpeg`) — for audio waveform extraction and Opus audio encoding.
 - **ffsubsync** (`ffsubsync`) — for speech-to-subtitle synchronization (install via `pip install ffsubsync`, `brew install ffsubsync`, or place the executable in the app folder).
