@@ -214,6 +214,7 @@ export default function App() {
   const terminalDragStartYRef = useRef(0);
   const terminalDragStartHeightRef = useRef(230);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('general');
   const [copiedLogs, setCopiedLogs] = useState(false);
   const [notice, setNotice] = useState(null);
   const [toastRemainingMs, setToastRemainingMs] = useState(TOAST_DURATION_MS);
@@ -464,6 +465,7 @@ export default function App() {
       if (matchesShortcut(e, shortcuts.open_settings)) {
         if (!isInputFocused || hasModifier) {
           e.preventDefault();
+          setSettingsTab('general');
           setSettingsOpen((prev) => !prev);
           return;
         }
@@ -976,6 +978,8 @@ export default function App() {
           onSettingsChange={setSettings}
           settingsOpen={settingsOpen}
           onSettingsOpenChange={setSettingsOpen}
+          settingsTab={settingsTab}
+          onSettingsTabChange={setSettingsTab}
           shortcuts={shortcuts}
           onShortcutsChange={setShortcuts}
         />
@@ -1541,7 +1545,10 @@ export default function App() {
                     <Button
                       size="small"
                       aria-label="Configure active profile"
-                      onClick={() => setSettingsOpen(true)}
+                      onClick={() => {
+                        setSettingsTab('general');
+                        setSettingsOpen(true);
+                      }}
                       sx={{
                         fontSize: '0.72rem',
                         py: 0.25,
@@ -1656,20 +1663,40 @@ export default function App() {
                       gap: 1,
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <KeyboardOutlined sx={{ fontSize: 16, color: '#38BDF8' }} />
-                      <Typography
-                        variant="caption"
-                        fontWeight={700}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <KeyboardOutlined sx={{ fontSize: 16, color: '#38BDF8' }} />
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          sx={{
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: 'text.secondary',
+                          }}
+                        >
+                          Quick Shortcuts
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        aria-label="Customize keyboard shortcuts"
+                        onClick={() => {
+                          setSettingsTab('shortcuts');
+                          setSettingsOpen(true);
+                        }}
                         sx={{
                           fontSize: '0.72rem',
-                          letterSpacing: '0.04em',
-                          textTransform: 'uppercase',
+                          py: 0.25,
+                          px: 1,
+                          minWidth: 0,
                           color: 'text.secondary',
+                          '&:hover': { color: 'text.primary' },
                         }}
                       >
-                        Quick Shortcuts
-                      </Typography>
+                        Customize
+                      </Button>
                     </Box>
                     <Box
                       sx={{

@@ -42,12 +42,12 @@ Never assume a setting applies to all modules. The backend only reads specific f
 
 | Module ID | Title | Purpose | Applicable Settings |
 |---|---|---|---|
-| `stream_manager` | Remove & Filter Tracks | Track removal, Opus conversion | `notify_on_finish` |
+| `stream_manager` | Remove & Filter Tracks | Track removal, Opus conversion | `opus_mode`, `notify_on_finish` |
 | `set_default` | Set Default & Forced Flags | Metadata editing with `mkvpropedit` | `notify_on_finish` |
 | `sync_subs` | Sync Subtitle Files to Audio | Align subtitle files with `ffsubsync` | `auto_subs`, `enable_max_offset`, `max_offset`, `notify_on_finish` |
 | `sync_subs_mkv` | Extract & Sync Subs from MKV | Extract + align subtitles from MKV | `auto_subs`, `enable_max_offset`, `max_offset`, `notify_on_finish` |
-| `injection` | Waveform Audio Sync & Merge | Full audio delay sync + subtitle sync | `auto_audio`, `auto_subs`, `enable_max_offset`, `max_offset`, `notify_on_finish` |
-| `custom_merge` | Direct Track Merge (No Sync) | Direct lossless remux of chosen tracks | `notify_on_finish` |
+| `injection` | Waveform Audio Sync & Merge | Full audio delay sync + subtitle sync | `auto_audio`, `auto_subs`, `enable_max_offset`, `max_offset`, `opus_mode`, `notify_on_finish` |
+| `custom_merge` | Direct Track Merge (No Sync) | Direct lossless remux of chosen tracks | `opus_mode`, `notify_on_finish` |
 
 > [!IMPORTANT]
 > **Direct Track Merge vs. Waveform Audio Sync & Merge**:

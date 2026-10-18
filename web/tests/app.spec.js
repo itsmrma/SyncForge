@@ -288,47 +288,43 @@ test('long track lists keep IDs and actions usable in a 1000 by 750 window', asy
   expect(await page.evaluate(() => window.inputResponse)).toEqual(['input-1', '8']);
 });
 
-test('module-specific settings are disabled and annotated when not supported by the active module', async ({ page }) => {
+test('global settings remain enabled and configurable across all modules, and Active Profile Configure opens General tab', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const autoAudio = page.getByRole('checkbox', { name: /Auto-sync Audio/ });
   const autoSubs = page.getByRole('checkbox', { name: /Auto-sync Subs/ });
   const maxOffset = page.getByRole('checkbox', { name: /Enable Max Offset limit/ });
   const notify = page.getByRole('checkbox', { name: 'Notify when task finishes' });
+  const opusSelect = page.getByRole('combobox', { name: /Opus Audio Encoding/i });
 
-  // Remove & Filter Tracks: auto-sync audio/subs and max offset are disabled
-  await expect(autoAudio).toBeDisabled();
-  await expect(autoSubs).toBeDisabled();
-  await expect(maxOffset).toBeDisabled();
+  // In Remove & Filter Tracks: all global settings are enabled
+  await expect(autoAudio).toBeEnabled();
+  await expect(autoSubs).toBeEnabled();
+  await expect(maxOffset).toBeEnabled();
   await expect(notify).toBeEnabled();
+  await expect(opusSelect).toBeEnabled();
 
-  // Direct Track Merge (No Sync): auto-sync audio/subs and max offset are disabled
+  // Switch to Keyboard Shortcuts tab in Settings, then close
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await settingsModal.getByRole('tab', { name: /Keyboard Shortcuts/i }).click();
+  await expect(settingsModal.getByTestId('shortcuts-page')).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(settingsModal).not.toBeVisible();
+
+  // Click Configure on Active Profile -> MUST open on General tab (not shortcuts tab)
+  await page.setViewportSize({ width: 1400, height: 850 });
+  await page.getByRole('button', { name: 'Configure active profile' }).click();
+  await expect(settingsModal).toBeVisible();
+  await expect(settingsModal.getByRole('combobox', { name: /Opus Audio Encoding/i })).toBeVisible();
+
+  // In Direct Track Merge (No Sync): all global settings are still enabled
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Direct Track Merge (No Sync)', exact: true }).click();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(autoAudio).toBeDisabled();
-  await expect(autoSubs).toBeDisabled();
-  await expect(maxOffset).toBeDisabled();
-  await expect(notify).toBeEnabled();
-  await expect(page.getByText('Not used in this module (Waveform Audio Sync & Merge only)')).toBeVisible();
-
-  // Waveform Audio Sync & Merge: all settings are enabled
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Waveform Audio Sync & Merge', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeEnabled();
   await expect(autoSubs).toBeEnabled();
   await expect(maxOffset).toBeEnabled();
   await expect(notify).toBeEnabled();
-  await expect(page.getByText('Not used in this module (Waveform Audio Sync & Merge only)')).not.toBeVisible();
-
-  // Sync Subtitle Files to Audio: auto_subs and maxOffset are enabled, auto_audio is disabled
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Sync Subtitle Files to Audio', exact: true }).click();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(autoAudio).toBeDisabled();
-  await expect(autoSubs).toBeEnabled();
-  await expect(maxOffset).toBeEnabled();
-  await expect(notify).toBeEnabled();
+  await expect(opusSelect).toBeEnabled();
   await page.getByRole('button', { name: 'Done' }).click();
 });
 

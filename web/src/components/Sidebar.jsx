@@ -12,7 +12,6 @@ import {
   Typography,
 } from '@mui/material';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
-import ChevronRight from '@mui/icons-material/ChevronRight';
 import Replay from '@mui/icons-material/Replay';
 import Settings from '@mui/icons-material/Settings';
 import GraphicEq from '@mui/icons-material/GraphicEq';
@@ -30,12 +29,15 @@ export default function Sidebar({
   onSettingsChange,
   settingsOpen: controlledSettingsOpen,
   onSettingsOpenChange,
+  settingsTab = 'general',
+  onSettingsTabChange,
   shortcuts = DEFAULT_SHORTCUTS,
   onShortcutsChange,
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(300);
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
 
   const settingsOpen =
@@ -55,6 +57,7 @@ export default function Sidebar({
     const stop = () => {
       if (!dragging.current) return;
       dragging.current = false;
+      setIsDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -83,6 +86,9 @@ export default function Sidebar({
           display: 'flex',
           flexDirection: 'column',
           userSelect: 'none',
+          overflowX: 'hidden',
+          transition: isDragging ? 'none' : 'width 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: isDragging ? 'auto' : 'width',
         }}
       >
         <Box
@@ -129,7 +135,18 @@ export default function Sidebar({
                 borderRadius: 1.5,
               }}
             >
-              {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                <ChevronLeft fontSize="small" />
+              </Box>
             </IconButton>
           </Tooltip>
         </Box>
@@ -264,6 +281,7 @@ export default function Sidebar({
                 aria-label="Expand sidebar and show settings"
                 onClick={() => {
                   setCollapsed(false);
+                  onSettingsTabChange?.('general');
                   setSettingsOpen(true);
                 }}
                 sx={{
@@ -280,7 +298,10 @@ export default function Sidebar({
             <Button
               aria-label="Settings"
               variant="outlined"
-              onClick={() => setSettingsOpen(true)}
+              onClick={() => {
+                onSettingsTabChange?.('general');
+                setSettingsOpen(true);
+              }}
               fullWidth
               startIcon={<Settings fontSize="small" />}
               sx={{
@@ -326,6 +347,7 @@ export default function Sidebar({
             onChange={onSettingsChange}
             shortcuts={shortcuts}
             onShortcutsChange={onShortcutsChange}
+            initialTab={settingsTab}
           />
         </Box>
       </Box>

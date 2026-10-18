@@ -38,21 +38,26 @@ import {
 export default function SettingsDialog({
   open,
   onClose,
-  selectedMod,
+  _selectedMod,
   settings,
   onChange,
   shortcuts = DEFAULT_SHORTCUTS,
   onShortcutsChange,
+  initialTab = 'general',
 }) {
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(initialTab || 'general');
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
   const [editingShortcut, setEditingShortcut] = useState(null);
   const [conflictState, setConflictState] = useState(null);
 
-  const modId = selectedMod?.id;
-  const isAudioSyncApplicable = modId === 'injection';
-  const isSubSyncApplicable = ['injection', 'sync_subs', 'sync_subs_mkv'].includes(modId);
-  const isMaxOffsetApplicable = ['injection', 'sync_subs', 'sync_subs_mkv'].includes(modId);
-  const isOpusApplicable = ['stream_manager', 'injection', 'custom_merge'].includes(modId);
+  if ((open && !prevOpen) || (initialTab !== prevInitialTab)) {
+    setPrevOpen(open);
+    setPrevInitialTab(initialTab);
+    setActiveTab(initialTab || 'general');
+  } else if (!open && prevOpen) {
+    setPrevOpen(false);
+  }
 
   const updateShortcuts = (next) => {
     if (onShortcutsChange) {
@@ -374,96 +379,57 @@ export default function SettingsDialog({
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 0.5 }}>
-                  <Tooltip
-                    title={
-                      !isOpusApplicable
-                        ? 'Opus conversion only applies to audio muxing modules (Remove & Filter Tracks, Waveform Audio Sync & Merge, Direct Track Merge).'
-                        : ''
-                    }
-                    placement="top-start"
-                    arrow
-                  >
-                    <Box>
-                      <TextField
-                        select
-                        size="small"
-                        fullWidth
-                        disabled={!isOpusApplicable}
-                        label="Opus Audio Encoding (128 kbps stereo)"
-                        value={settings.opus_mode || 'off'}
-                        onChange={(e) => onChange({ ...settings, opus_mode: e.target.value })}
-                        helperText={
-                          !isOpusApplicable
-                            ? 'Not used in this module (Remove & Filter Tracks, Waveform Sync, and Direct Merge only)'
-                            : 'Re-encode kept and merged audio tracks to stereo Opus 128k to save space'
-                        }
-                        sx={{
-                          '& .MuiFormHelperText-root': {
-                            color: !isOpusApplicable ? 'text.disabled' : 'text.secondary',
-                            fontSize: '0.70rem',
-                          },
-                        }}
-                      >
-                        <MenuItem value="off">Disabled (Keep original audio lossless)</MenuItem>
-                        <MenuItem value="prompt">Ask per batch (Interactive prompt with preview)</MenuItem>
-                        <MenuItem value="always">Always convert (Opus 128k stereo)</MenuItem>
-                      </TextField>
-                    </Box>
-                  </Tooltip>
+                  <Box>
+                    <TextField
+                      select
+                      size="small"
+                      fullWidth
+                      label="Opus Audio Encoding (128 kbps stereo)"
+                      value={settings.opus_mode || 'off'}
+                      onChange={(e) => onChange({ ...settings, opus_mode: e.target.value })}
+                      helperText="Re-encode kept and merged audio tracks to stereo Opus 128k to save space (applied to audio muxing modes)"
+                      sx={{
+                        '& .MuiFormHelperText-root': {
+                          color: 'text.secondary',
+                          fontSize: '0.70rem',
+                        },
+                      }}
+                    >
+                      <MenuItem value="off">Disabled (Keep original audio lossless)</MenuItem>
+                      <MenuItem value="prompt">Ask per batch (Interactive prompt with preview)</MenuItem>
+                      <MenuItem value="always">Always convert (Opus 128k stereo)</MenuItem>
+                    </TextField>
+                  </Box>
 
-                  <Tooltip
-                    title={
-                      !isAudioSyncApplicable
-                        ? 'Auto-sync Audio is only supported in Waveform Audio Sync & Merge.'
-                        : ''
-                    }
-                    placement="top-start"
-                    arrow
-                  >
-                    <Box component="span" sx={{ display: 'block' }}>
-                      <FormControlLabel
-                        disabled={!isAudioSyncApplicable}
-                        control={
-                          <Checkbox
-                            size="small"
-                            checked={Boolean(settings.auto_audio ?? true)}
-                            onChange={(e) =>
-                              onChange({ ...settings, auto_audio: e.target.checked })
-                            }
-                          />
-                        }
-                        label={
-                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography fontSize="0.82rem">Auto-sync Audio</Typography>
-                            {!isAudioSyncApplicable ? (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'text.disabled',
-                                  fontSize: '0.70rem',
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                Not used in this module (Waveform Audio Sync & Merge only)
-                              </Typography>
-                            ) : (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'text.secondary',
-                                  fontSize: '0.70rem',
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                Waveform cross-correlation delay calculation
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                        sx={{ width: '100%', mr: 0 }}
-                      />
-                    </Box>
-                  </Tooltip>
+                  <Box component="span" sx={{ display: 'block' }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={Boolean(settings.auto_audio ?? true)}
+                          onChange={(e) =>
+                            onChange({ ...settings, auto_audio: e.target.checked })
+                          }
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Typography fontSize="0.82rem">Auto-sync Audio</Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'text.secondary',
+                              fontSize: '0.70rem',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            Waveform cross-correlation delay calculation (applied when merging audio)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: '100%', mr: 0 }}
+                    />
+                  </Box>
                 </Box>
               </Box>
 
@@ -488,98 +454,72 @@ export default function SettingsDialog({
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, pl: 0.5 }}>
-                  <Tooltip
-                    title={
-                      !isSubSyncApplicable
-                        ? 'Auto-sync Subs only applies to subtitle synchronization modules.'
-                        : ''
-                    }
-                    placement="top-start"
-                    arrow
-                  >
-                    <Box component="span" sx={{ display: 'block' }}>
-                      <FormControlLabel
-                        disabled={!isSubSyncApplicable}
-                        control={
-                          <Checkbox
-                            size="small"
-                            checked={Boolean(settings.auto_subs ?? true)}
-                            onChange={(e) =>
-                              onChange({ ...settings, auto_subs: e.target.checked })
-                            }
-                          />
-                        }
-                        label={
-                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography fontSize="0.82rem">Auto-sync Subs</Typography>
-                            {!isSubSyncApplicable && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'text.disabled',
-                                  fontSize: '0.70rem',
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                Not used in this module (Subtitle sync only)
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                        sx={{ width: '100%', mr: 0 }}
-                      />
-                    </Box>
-                  </Tooltip>
+                  <Box component="span" sx={{ display: 'block' }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={Boolean(settings.auto_subs ?? true)}
+                          onChange={(e) =>
+                            onChange({ ...settings, auto_subs: e.target.checked })
+                          }
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Typography fontSize="0.82rem">Auto-sync Subs</Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'text.secondary',
+                              fontSize: '0.70rem',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            Align subtitles to audio speech with FFsubsync (applied to subtitle modes)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: '100%', mr: 0 }}
+                    />
+                  </Box>
 
-                  <Tooltip
-                    title={
-                      !isMaxOffsetApplicable
-                        ? 'Max Offset limit only applies to subtitle synchronization modules (FFsubsync).'
-                        : ''
-                    }
-                    placement="top-start"
-                    arrow
-                  >
-                    <Box component="span" sx={{ display: 'block' }}>
-                      <FormControlLabel
-                        disabled={!isMaxOffsetApplicable}
-                        control={
-                          <Checkbox
-                            size="small"
-                            checked={Boolean(settings.enable_max_offset)}
-                            onChange={(e) =>
-                              onChange({ ...settings, enable_max_offset: e.target.checked })
-                            }
-                          />
-                        }
-                        label={
-                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography fontSize="0.82rem">Enable Max Offset limit</Typography>
-                            {!isMaxOffsetApplicable && (
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  color: 'text.disabled',
-                                  fontSize: '0.70rem',
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                Not used in this module (Subtitle sync only)
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                        sx={{ width: '100%', mr: 0 }}
-                      />
-                    </Box>
-                  </Tooltip>
+                  <Box component="span" sx={{ display: 'block' }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={Boolean(settings.enable_max_offset)}
+                          onChange={(e) =>
+                            onChange({ ...settings, enable_max_offset: e.target.checked })
+                          }
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Typography fontSize="0.82rem">Enable Max Offset limit</Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'text.secondary',
+                              fontSize: '0.70rem',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            Cap maximum alignment search window in seconds (applied to subtitle modes)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: '100%', mr: 0 }}
+                    />
+                  </Box>
 
                   <TextField
                     label="FFsubsync Max Offset (seconds)"
                     type="number"
                     size="small"
                     fullWidth
-                    disabled={!isMaxOffsetApplicable || !settings.enable_max_offset}
+                    disabled={!settings.enable_max_offset}
                     value={settings.max_offset}
                     onChange={(e) => onChange({ ...settings, max_offset: e.target.value })}
                     helperText="Restricts ffsubsync alignment search to this maximum number of seconds"
