@@ -2,10 +2,11 @@
   "name": "syncforge",
   "private": true,
   "scripts": {
-    "dev": "npm --prefix web run tauri dev",
-    "tauri": "npm --prefix web run tauri",
+    "dev": "npx --prefix web tauri dev",
+    "tauri": "npx --prefix web tauri",
+    "build": "npx --prefix web tauri build",
     "web:dev": "npm --prefix web run dev",
-    "build": "npm --prefix web run tauri build",
+    "web:build": "npm --prefix web run build",
     "test": "npm --prefix web test",
     "lint": "npm --prefix web run lint"
   }
