@@ -68,8 +68,9 @@ cd ..
 
 ### Running the App Locally (Tauri v2)
 ```sh
-cd web
-npx tauri dev
+# From the project root (SyncForge/):
+npm run tauri -- dev
+# or: npx --prefix web tauri dev
 ```
 
 ### Frontend Checks
