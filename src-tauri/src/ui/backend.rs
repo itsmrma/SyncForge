@@ -781,12 +781,12 @@ impl Api {
         reset_file_progress();
 
         let valid_modules = [
-            ("stream_manager", "Stream Manager"),
-            ("set_default", "Set Default & Forced"),
-            ("sync_subs", "Sync External Subtitles"),
-            ("sync_subs_mkv", "Sync Subs from MKV"),
-            ("injection", "WaveSync Injection"),
-            ("custom_merge", "Custom Track Merge"),
+            ("stream_manager", "Remove & Filter Tracks"),
+            ("set_default", "Set Default & Forced Flags"),
+            ("sync_subs", "Sync Subtitle Files to Audio"),
+            ("sync_subs_mkv", "Extract & Sync Subs from MKV"),
+            ("injection", "Waveform Audio Sync & Merge"),
+            ("custom_merge", "Direct Track Merge (No Sync)"),
         ];
 
         let mut module_name = requested_module.to_string();

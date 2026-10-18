@@ -15,12 +15,12 @@ adds a live media inspector badge, recent paths history dropdown, batch matcher 
 
 ## Features
 
-- **Stream Manager:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
-- **Default and forced flags:** edit MKV metadata in-place without remuxing.
-- **External subtitles:** align subtitle files to video audio using the `ffsubsync` executable.
-- **Subtitles from MKV:** extract, synchronize, and inject subtitles from another video.
-- **WaveSync Injection:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
-- **Custom Track Merge:** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
+- **Remove & Filter Tracks:** remove unwanted audio/subtitle tracks and optionally convert audio to Opus.
+- **Set Default & Forced Flags:** edit MKV metadata in-place without remuxing.
+- **Sync Subtitle Files to Audio:** align external subtitle files (.srt, .ass) to video speech/audio using the `ffsubsync` executable.
+- **Extract & Sync Subs from MKV:** extract, synchronize, and inject subtitles from another video.
+- **Waveform Audio Sync & Merge:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
+- **Direct Track Merge (No Sync):** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
 
 Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
 collapses to an icon rail and restores its width when expanded. Use **File** or

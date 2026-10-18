@@ -11,12 +11,12 @@ async function append(page, text) {
 }
 
 for (const [title, id, targetLabel, sourceLabel, sourceType] of [
-  ['Stream Manager', 'stream_manager', 'Video File or Folder'],
-  ['Set Default & Forced', 'set_default', 'Video File or Folder'],
-  ['Sync External Subtitles', 'sync_subs', 'Video File or Folder', 'Subtitle File or Folder', 'subtitles'],
-  ['Sync Subs from MKV', 'sync_subs_mkv', 'Target Video File or Folder', 'Source Video File or Folder', 'video'],
-  ['WaveSync Injection', 'injection', 'Target File or Folder (High Quality)', 'Source File or Folder (Audio/Subs)', 'video'],
-  ['Custom Track Merge', 'custom_merge', 'File or Folder A (Base Video)', 'File or Folder B (Additional Audio/Subs)', 'video'],
+  ['Remove & Filter Tracks', 'stream_manager', 'Video File or Folder'],
+  ['Set Default & Forced Flags', 'set_default', 'Video File or Folder'],
+  ['Sync Subtitle Files to Audio', 'sync_subs', 'Video File or Folder', 'Subtitle File or Folder', 'subtitles'],
+  ['Extract & Sync Subs from MKV', 'sync_subs_mkv', 'Target Video File or Folder', 'Source Video File or Folder', 'video'],
+  ['Waveform Audio Sync & Merge', 'injection', 'Target File or Folder (High Quality)', 'Source File or Folder (Audio/Subs)', 'video'],
+  ['Direct Track Merge (No Sync)', 'custom_merge', 'File or Folder A (Base Video)', 'File or Folder B (Additional Audio/Subs)', 'video'],
 ]) {
   test(`${title} accepts individual files through native pickers`, async ({ page }) => {
     await page.setViewportSize({ width: 1000, height: 750 });
@@ -178,8 +178,8 @@ test('sidebar collapses, switches modules, and opens settings without losing pre
   await page.getByRole('button', { name: 'Collapse sidebar' }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(72);
   await expect(page.getByRole('separator', { name: 'Resize sidebar' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Custom Track Merge', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Custom Track Merge', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Direct Track Merge (No Sync)', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Direct Track Merge (No Sync)', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Expand sidebar and show settings' }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
   await expect(page.getByRole('checkbox', { name: 'Notify when task finishes' })).not.toBeChecked();
@@ -295,35 +295,35 @@ test('module-specific settings are disabled and annotated when not supported by 
   const maxOffset = page.getByRole('checkbox', { name: /Enable Max Offset limit/ });
   const notify = page.getByRole('checkbox', { name: 'Notify when task finishes' });
 
-  // Stream Manager: auto-sync audio/subs and max offset are disabled
+  // Remove & Filter Tracks: auto-sync audio/subs and max offset are disabled
   await expect(autoAudio).toBeDisabled();
   await expect(autoSubs).toBeDisabled();
   await expect(maxOffset).toBeDisabled();
   await expect(notify).toBeEnabled();
 
-  // Custom Track Merge: auto-sync audio/subs and max offset are disabled
+  // Direct Track Merge (No Sync): auto-sync audio/subs and max offset are disabled
   await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Custom Track Merge', exact: true }).click();
+  await page.getByRole('button', { name: 'Direct Track Merge (No Sync)', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeDisabled();
   await expect(autoSubs).toBeDisabled();
   await expect(maxOffset).toBeDisabled();
   await expect(notify).toBeEnabled();
-  await expect(page.getByText('Not used in this module (WaveSync Injection only)')).toBeVisible();
+  await expect(page.getByText('Not used in this module (Waveform Audio Sync & Merge only)')).toBeVisible();
 
-  // WaveSync Injection: all settings are enabled
+  // Waveform Audio Sync & Merge: all settings are enabled
   await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'WaveSync Injection', exact: true }).click();
+  await page.getByRole('button', { name: 'Waveform Audio Sync & Merge', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeEnabled();
   await expect(autoSubs).toBeEnabled();
   await expect(maxOffset).toBeEnabled();
   await expect(notify).toBeEnabled();
-  await expect(page.getByText('Not used in this module (WaveSync Injection only)')).not.toBeVisible();
+  await expect(page.getByText('Not used in this module (Waveform Audio Sync & Merge only)')).not.toBeVisible();
 
-  // Sync External Subtitles: auto_subs and maxOffset are enabled, auto_audio is disabled
+  // Sync Subtitle Files to Audio: auto_subs and maxOffset are enabled, auto_audio is disabled
   await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Sync External Subtitles', exact: true }).click();
+  await page.getByRole('button', { name: 'Sync Subtitle Files to Audio', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(autoAudio).toBeDisabled();
   await expect(autoSubs).toBeEnabled();
@@ -431,12 +431,12 @@ test('QoL: output folder placeholder, clear button, show in folder, and localSto
   await expect(videoInput).toHaveValue('');
 
   // Persistence of selected module and settings across reload
-  await page.getByRole('button', { name: 'WaveSync Injection', exact: true }).click();
+  await page.getByRole('button', { name: 'Waveform Audio Sync & Merge', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Play sound on completion' }).uncheck();
   await page.reload();
   await page.waitForFunction(() => Boolean(window.frontend_api));
-  await expect(page.getByRole('heading', { name: 'WaveSync Injection', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Waveform Audio Sync & Merge', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Play sound on completion' })).not.toBeChecked();
 });
@@ -666,9 +666,9 @@ test('v3.2 QoL: Settings Keyboard Shortcuts tab and global shortcuts work', asyn
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(settingsModal).not.toBeVisible();
 
-  // Ctrl+2 switches to module 2 (Set Default & Forced)
+  // Ctrl+2 switches to module 2 (Set Default & Forced Flags)
   await page.keyboard.press('Control+2');
-  await expect(page.getByRole('heading', { name: 'Set Default & Forced' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Set Default & Forced Flags' })).toBeVisible();
 
   // Ctrl+L toggles Developer Console
   await page.keyboard.press('Control+l');
@@ -839,4 +839,67 @@ test('v3.2 QoL: Terminal search, match counter, expand toggle, Clear Logs, Recen
   await expect(page.getByRole('log')).toHaveText('');
 });
 
+test('v3.2 QoL: Shortcut remapping, conflict resolution dialog, edited pencil indicator, single/all reset, and wide layout', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 950 });
+  await expect(page.getByTestId('workspace-overview-card')).toBeVisible();
 
+  // Open Settings -> Keyboard Shortcuts
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await settingsModal.getByRole('tab', { name: /Keyboard Shortcuts/i }).click();
+
+  // 1. Click "Open / Close Settings" row to open Change Shortcut capture dialog
+  const openSettingsRow = settingsModal.getByTestId('shortcut-row-open_settings');
+  await openSettingsRow.click();
+  const captureDialog = page.getByTestId('shortcut-capture-dialog');
+  await expect(captureDialog).toBeVisible();
+
+  // Press an unused shortcut (Ctrl+K)
+  await page.keyboard.press('Control+k');
+  await expect(captureDialog).not.toBeVisible();
+
+  // Verify edited indicator (pencil badge) and per-row reset button appear
+  await expect(settingsModal.getByTestId('shortcut-modified-open_settings')).toBeVisible();
+  await expect(settingsModal.getByTestId('reset-shortcut-open_settings')).toBeVisible();
+  await expect(openSettingsRow).toContainText('K');
+
+  // 2. Click "Toggle Developer Terminal" and press Ctrl+K (already mapped to Open / Close Settings)
+  const toggleTerminalRow = settingsModal.getByTestId('shortcut-row-toggle_terminal');
+  await toggleTerminalRow.click();
+  await expect(captureDialog).toBeVisible();
+  await page.keyboard.press('Control+k');
+
+  // Conflict dialog must appear
+  const conflictDialog = page.getByTestId('shortcut-conflict-dialog');
+  await expect(conflictDialog).toBeVisible();
+  await expect(conflictDialog).toContainText('Open / Close Settings');
+
+  // Click Cancel in conflict dialog -> keeps Open / Close Settings as Ctrl+K and Toggle Developer Terminal as Ctrl+L
+  await conflictDialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(conflictDialog).not.toBeVisible();
+  await expect(toggleTerminalRow).toContainText('L');
+
+  // 3. Trigger conflict again and choose Reassign Shortcut
+  await toggleTerminalRow.click();
+  await page.keyboard.press('Control+k');
+  await expect(conflictDialog).toBeVisible();
+  await conflictDialog.getByRole('button', { name: 'Reassign Shortcut' }).click();
+  await expect(conflictDialog).not.toBeVisible();
+
+  // Toggle Developer Terminal now has Ctrl+K (modified), and Open / Close Settings is Unassigned (modified)
+  await expect(toggleTerminalRow).toContainText('K');
+  await expect(settingsModal.getByTestId('shortcut-modified-toggle_terminal')).toBeVisible();
+  await expect(openSettingsRow).toContainText('Unassigned');
+
+  // 4. Test single shortcut reset on Toggle Developer Terminal
+  await settingsModal.getByTestId('reset-shortcut-toggle_terminal').click();
+  await expect(settingsModal.getByTestId('shortcut-modified-toggle_terminal')).not.toBeVisible();
+  await expect(toggleTerminalRow).toContainText('L');
+
+  // 5. Test Reset All shortcuts button
+  await settingsModal.getByRole('button', { name: 'Reset all shortcuts' }).click();
+  await expect(settingsModal.getByTestId('shortcut-modified-open_settings')).not.toBeVisible();
+  await expect(openSettingsRow).toContainText(',');
+
+  await settingsModal.getByRole('button', { name: 'Done' }).click();
+});

@@ -18,6 +18,7 @@ import Settings from '@mui/icons-material/Settings';
 import GraphicEq from '@mui/icons-material/GraphicEq';
 import modules from '../modules';
 import SettingsDialog from './SettingsDialog';
+import { DEFAULT_SHORTCUTS, formatCompactShortcut } from '../shortcuts';
 
 export default function Sidebar({
   selectedMod,
@@ -29,6 +30,8 @@ export default function Sidebar({
   onSettingsChange,
   settingsOpen: controlledSettingsOpen,
   onSettingsOpenChange,
+  shortcuts = DEFAULT_SHORTCUTS,
+  onShortcutsChange,
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(300);
@@ -63,6 +66,9 @@ export default function Sidebar({
       document.removeEventListener('mouseup', stop);
     };
   }, []);
+
+  const repeatCombo = shortcuts?.repeat_last ?? DEFAULT_SHORTCUTS.repeat_last;
+  const settingsCombo = shortcuts?.open_settings ?? DEFAULT_SHORTCUTS.open_settings;
 
   return (
     <>
@@ -131,9 +137,20 @@ export default function Sidebar({
         <List sx={{ flex: 1, overflowY: 'auto', px: collapsed ? 1 : 1.5, pt: 1.5 }}>
           {modules.map((module, index) => {
             const active = selectedMod.id === module.id;
+            const modCombo = shortcuts?.[`module_${index + 1}`] ?? DEFAULT_SHORTCUTS[`module_${index + 1}`];
+            const compactHint = formatCompactShortcut(modCombo);
             return (
               <ListItem disablePadding key={module.id}>
-                <Tooltip title={collapsed ? `${module.title} (Ctrl+${index + 1})` : ''} placement="right">
+                <Tooltip
+                  title={
+                    collapsed
+                      ? modCombo
+                        ? `${module.title} (${modCombo})`
+                        : module.title
+                      : ''
+                  }
+                  placement="right"
+                >
                   <ListItemButton
                     aria-label={module.title}
                     selected={active}
@@ -176,19 +193,21 @@ export default function Sidebar({
                             noWrap: true,
                           }}
                         />
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            ml: 1,
-                            fontFamily: 'monospace',
-                            fontSize: '0.66rem',
-                            color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
-                            fontWeight: 600,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {`^${index + 1}`}
-                        </Typography>
+                        {compactHint && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              ml: 1,
+                              fontFamily: 'monospace',
+                              fontSize: '0.66rem',
+                              color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {compactHint}
+                          </Typography>
+                        )}
                       </>
                     )}
                   </ListItemButton>
@@ -206,7 +225,16 @@ export default function Sidebar({
             borderTop: '1px solid rgba(148, 163, 184, 0.08)',
           }}
         >
-          <Tooltip title={collapsed ? 'Repeat Last (Ctrl+Shift+R)' : 'Ctrl+Shift+R'} placement="right">
+          <Tooltip
+            title={
+              collapsed
+                ? repeatCombo
+                  ? `Repeat Last (${repeatCombo})`
+                  : 'Repeat Last'
+                : repeatCombo || ''
+            }
+            placement="right"
+          >
             <span>
               <Button
                 aria-label="Repeat Last"
@@ -228,7 +256,10 @@ export default function Sidebar({
             </span>
           </Tooltip>
           {collapsed ? (
-            <Tooltip title="Settings (Ctrl+,)" placement="right">
+            <Tooltip
+              title={settingsCombo ? `Settings (${settingsCombo})` : 'Settings'}
+              placement="right"
+            >
               <IconButton
                 aria-label="Expand sidebar and show settings"
                 onClick={() => {
@@ -257,7 +288,7 @@ export default function Sidebar({
                 fontWeight: 700,
                 minWidth: 0,
                 fontSize: '0.84rem',
-                justifyContent: 'flex-start',
+                justifyContent: 'space-between',
                 px: 1.75,
                 py: 0.9,
                 color: 'text.secondary',
@@ -269,7 +300,21 @@ export default function Sidebar({
                 },
               }}
             >
-              Settings
+              <span>Settings</span>
+              {settingsCombo && (
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.66rem',
+                    color: 'rgba(148, 163, 184, 0.55)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {formatCompactShortcut(settingsCombo)}
+                </Typography>
+              )}
             </Button>
           )}
 
@@ -279,6 +324,8 @@ export default function Sidebar({
             selectedMod={selectedMod}
             settings={settings}
             onChange={onSettingsChange}
+            shortcuts={shortcuts}
+            onShortcutsChange={onShortcutsChange}
           />
         </Box>
       </Box>
