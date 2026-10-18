@@ -99,6 +99,7 @@ cargo test --workspace
   5. `README.md` (top release badge and link)
 - **Changelog Convention**: `CHANGELOG.md` maintains notes for the **current release only** under `## <version> - <Title>`.
 - **Git Tags**: Tags follow `vX.Y.Z` (e.g., `v3.0.0`).
+- **Cancel Outdated CI Workflows**: If a new user modification or commit is introduced while GitHub Actions is still building or releasing an older commit, immediately cancel that in-progress/queued workflow run (via `gh run cancel <run_id>`) to prevent wasted runner resources and superseded artifact publishing.
 
 ---
 

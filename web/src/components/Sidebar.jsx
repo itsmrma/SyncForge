@@ -93,35 +93,33 @@ export default function Sidebar({
       >
         <Box
           sx={{
-            p: 2,
+            p: collapsed ? 1.5 : 2,
             pb: 1.5,
             display: 'flex',
+            flexDirection: collapsed ? 'column' : 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: collapsed ? 1 : 0,
             borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
-            height: 60,
             boxSizing: 'border-box',
           }}
         >
           <Box
+            onClick={collapsed ? () => setCollapsed(false) : undefined}
             sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 1.25,
-              minWidth: 150,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              opacity: collapsed ? 0 : 1,
-              transition: isDragging ? 'none' : 'opacity 140ms ease',
-              pointerEvents: collapsed ? 'none' : 'auto',
+              cursor: collapsed ? 'pointer' : 'default',
+              minWidth: 0,
             }}
           >
             <Box
               sx={{
-                width: 30,
-                height: 30,
+                width: 32,
+                height: 32,
                 borderRadius: 1.5,
                 background: 'linear-gradient(135deg, #38BDF8 0%, #6366F1 60%, #A855F7 100%)',
                 display: 'flex',
@@ -134,9 +132,21 @@ export default function Sidebar({
             >
               <GraphicEq fontSize="small" />
             </Box>
-            <Typography variant="h5" fontWeight="800" noWrap>
-              SyncForge
-            </Typography>
+            {!collapsed && (
+              <Box
+                sx={{
+                  minWidth: 120,
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  opacity: collapsed ? 0 : 1,
+                  transition: isDragging ? 'none' : 'opacity 140ms ease',
+                }}
+              >
+                <Typography variant="h5" fontWeight="800" noWrap>
+                  SyncForge
+                </Typography>
+              </Box>
+            )}
           </Box>
           <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             <IconButton
@@ -148,8 +158,6 @@ export default function Sidebar({
                 border: '1px solid rgba(148, 163, 184, 0.12)',
                 borderRadius: 1.5,
                 flexShrink: 0,
-                ml: collapsed ? 'auto' : 0,
-                mr: collapsed ? 'auto' : 0,
               }}
             >
               <Box
