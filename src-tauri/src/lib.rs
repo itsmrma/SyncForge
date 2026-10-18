@@ -237,6 +237,14 @@ fn get_version(state: State<'_, Api>) -> String {
     state.get_version()
 }
 
+#[tauri::command]
+async fn inspect_media(state: State<'_, Api>, path: String) -> Result<Value, String> {
+    let api = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || api.inspect_media(&path))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 pub fn run() {
     crate::core::processes::setup_environment();
     let api = Api::new();
@@ -265,7 +273,8 @@ pub fn run() {
             pick_folder,
             pick_file,
             show_in_folder,
-            get_version
+            get_version,
+            inspect_media
         ])
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");

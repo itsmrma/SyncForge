@@ -19,6 +19,12 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import Download from '@mui/icons-material/Download';
 import ContentCopy from '@mui/icons-material/ContentCopy';
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
+import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
+import UnfoldMore from '@mui/icons-material/UnfoldMore';
+import UnfoldLess from '@mui/icons-material/UnfoldLess';
+import MovieOutlined from '@mui/icons-material/MovieOutlined';
+import HeadphonesOutlined from '@mui/icons-material/HeadphonesOutlined';
+import SubtitlesOutlined from '@mui/icons-material/SubtitlesOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import Terminal from './components/Terminal';
 import InputDialog from './components/InputDialog';
@@ -28,6 +34,8 @@ import PathInput from './components/PathInput';
 import darkTheme from './theme';
 import modules from './modules';
 import { desktopBridge } from './bridge';
+
+const TOAST_DURATION_MS = 5000;
 
 const DEFAULT_SETTINGS = {
   max_offset: 1,
@@ -63,6 +71,70 @@ function loadInitialModule() {
     // ignore storage errors
   }
   return modules[0];
+}
+
+function loadInitialRecentPaths() {
+  try {
+    const raw = localStorage.getItem('syncforge_recent_paths');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 8);
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return [];
+}
+
+function buildQuickMediaSummary(videoPath, backendData) {
+  const trimmed = (videoPath || '').trim();
+  if (!trimmed) return null;
+  const baseName = trimmed.split(/[\\/]/).filter(Boolean).pop() || trimmed;
+  const extMatch = baseName.match(/\.([a-z0-9]{2,4})$/i);
+  const ext = extMatch ? extMatch[1].toUpperCase() : '';
+  const isKnownMedia = ['MKV', 'MP4', 'AVI', 'MOV'].includes(ext);
+
+  const kind = backendData?.kind || (isKnownMedia ? 'file' : 'folder');
+  const badge =
+    kind === 'folder'
+      ? 'Folder'
+      : backendData?.container || ext || 'FILE';
+  const name = backendData?.name || baseName;
+  const tracks = Array.isArray(backendData?.tracks) ? backendData.tracks : [];
+  const videoTrack = tracks.find((t) => t.type === 'video');
+  const audioTracks = tracks.filter((t) => t.type === 'audio');
+  const subTracks = tracks.filter((t) => t.type === 'subtitles');
+
+  const audioSummary = audioTracks.length
+    ? audioTracks
+        .map((t) => (t.properties?.language || t.language || 'und').toUpperCase())
+        .join(', ')
+    : null;
+
+  const subSummary = subTracks.length
+    ? subTracks
+        .map((t) => {
+          const lang = (t.properties?.language || t.language || 'und').toUpperCase();
+          if (t.properties?.forced_track ?? t.forced_track) return `${lang} [Forced]`;
+          if (t.properties?.default_track ?? t.default_track) return `${lang} [Default]`;
+          return lang;
+        })
+        .join(', ')
+    : null;
+
+  return {
+    kind,
+    badge,
+    name,
+    videoCodec: videoTrack?.codec || null,
+    audioCount: audioTracks.length,
+    audioSummary,
+    subCount:
+      kind === 'folder' ? backendData?.sub_count : subTracks.length,
+    subSummary,
+    videoCount: kind === 'folder' ? backendData?.video_count : undefined,
+    hasAttachments: Boolean(backendData?.has_attachments),
+  };
 }
 
 function formatDuration(totalSeconds) {
@@ -130,8 +202,19 @@ export default function App() {
   });
   const [reorderSources, setReorderSources] = useState([]);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(230);
+  const [isTerminalDragging, setIsTerminalDragging] = useState(false);
+  const terminalDraggingRef = useRef(false);
+  const terminalDragStartYRef = useRef(0);
+  const terminalDragStartHeightRef = useRef(230);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [copiedLogs, setCopiedLogs] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [toastRemainingMs, setToastRemainingMs] = useState(TOAST_DURATION_MS);
+  const [isWindowFocused, setIsWindowFocused] = useState(() =>
+    typeof document !== 'undefined' ? document.hasFocus() && !document.hidden : true
+  );
+  const [isToastHovered, setIsToastHovered] = useState(false);
   const [hasRun, setHasRun] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [progress, setProgress] = useState({
@@ -156,8 +239,33 @@ export default function App() {
     sub: '',
     output: '',
   });
+  const [recentPaths, setRecentPaths] = useState(loadInitialRecentPaths);
+  const [mediaBackendData, setMediaBackendData] = useState(null);
 
   const [settings, setSettings] = useState(loadInitialSettings);
+
+  const addRecentPath = (rawPath) => {
+    const trimmed = (rawPath || '').trim();
+    if (!trimmed) return;
+    setRecentPaths((prev) => {
+      const next = [trimmed, ...prev.filter((item) => item !== trimmed)].slice(0, 8);
+      try {
+        localStorage.setItem('syncforge_recent_paths', JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  const clearRecentPaths = () => {
+    setRecentPaths([]);
+    try {
+      localStorage.removeItem('syncforge_recent_paths');
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   useEffect(() => {
     try {
@@ -174,6 +282,96 @@ export default function App() {
       // ignore storage errors
     }
   }, [selectedMod]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const videoPath = (paths.video || '').trim();
+    if (!videoPath || !desktopBridge.isConnected()) {
+      return;
+    }
+    desktopBridge
+      .inspectMedia(videoPath)
+      .then((res) => {
+        if (!cancelled) {
+          setMediaBackendData(res ? { ...res, _forPath: videoPath } : null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMediaBackendData(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [paths.video]);
+
+  useEffect(() => {
+    const onFocus = () => setIsWindowFocused(true);
+    const onBlur = () => setIsWindowFocused(false);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        setIsWindowFocused(false);
+      } else if (document.hasFocus()) {
+        setIsWindowFocused(true);
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (notice?.severity !== 'success' || !isWindowFocused || isToastHovered) {
+      return;
+    }
+    let lastTime = Date.now();
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const delta = now - lastTime;
+      lastTime = now;
+      setToastRemainingMs((prev) => {
+        const next = prev - delta;
+        if (next <= 0) {
+          setNotice(null);
+          return 0;
+        }
+        return next;
+      });
+    }, 50);
+    return () => clearInterval(timer);
+  }, [notice, isWindowFocused, isToastHovered]);
+
+  useEffect(() => {
+    const move = (e) => {
+      if (!terminalDraggingRef.current) return;
+      const dy = terminalDragStartYRef.current - e.clientY;
+      const nextHeight = Math.min(
+        520,
+        Math.max(140, terminalDragStartHeightRef.current + dy)
+      );
+      setTerminalHeight(nextHeight);
+    };
+    const stop = () => {
+      if (!terminalDraggingRef.current) return;
+      terminalDraggingRef.current = false;
+      setIsTerminalDragging(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', stop);
+    return () => {
+      stop();
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', stop);
+    };
+  }, []);
 
   const updateEta = (overall) => {
     if (!processingStartRef.current || overall < 3 || overall >= 99) {
@@ -223,6 +421,8 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isRunning, inputRequest, matcherState.open]);
 
+  const handleRunRef = useRef(null);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (
@@ -231,11 +431,51 @@ export default function App() {
         (e.metaKey && e.altKey && ['I', 'i', 'J', 'j'].includes(e.key))
       ) {
         e.preventDefault();
+        return;
+      }
+
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key === 'Enter') {
+        if (!runInFlight.current && !inputRequest && !matcherState.open && !settingsOpen) {
+          e.preventDefault();
+          handleRunRef.current?.(false);
+        }
+        return;
+      }
+      if (isMod && e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+        if (!runInFlight.current && hasRun && !inputRequest && !matcherState.open && !settingsOpen) {
+          e.preventDefault();
+          handleRunRef.current?.(true);
+        }
+        return;
+      }
+      if (isMod && !e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+        e.preventDefault();
+        setShowTerminal((prev) => !prev);
+        return;
+      }
+      if (isMod && e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen((prev) => !prev);
+        return;
+      }
+      if (isMod && !e.shiftKey && ['1', '2', '3', '4', '5', '6'].includes(e.key)) {
+        if (!runInFlight.current && !inputRequest && !matcherState.open) {
+          e.preventDefault();
+          const idx = parseInt(e.key, 10) - 1;
+          if (modules[idx]) {
+            setSelectedMod(modules[idx]);
+          }
+        }
+        return;
+      }
+      if (e.key === 'Escape' && notice && !inputRequest && !matcherState.open && !settingsOpen) {
+        setNotice(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [hasRun, inputRequest, matcherState.open, settingsOpen, notice]);
 
   useEffect(() => {
     const handleDragEnter = (e) => {
@@ -322,6 +562,9 @@ export default function App() {
 
   const assignDroppedPaths = (droppedList) => {
     if (!droppedList || !droppedList.length || runInFlight.current) return;
+    for (const item of droppedList) {
+      addRecentPath(item);
+    }
     const hovered = hoveredFieldRef.current;
     if (hovered && selectedMod.needs.includes(hovered)) {
       setPaths((prev) => ({ ...prev, [hovered]: droppedList[0] }));
@@ -445,13 +688,14 @@ export default function App() {
     const limit = Math.min(matcherState.targets.length, reorderSources.length);
     const pairs = [];
     for (let i = 0; i < limit; i++) {
-      if (!excludedSet.has(i)) {
-        pairs.push([matcherState.targets[i], reorderSources[i].path]);
+      const src = reorderSources[i];
+      if (!excludedSet.has(i) && src && !src.isGap && src.path) {
+        pairs.push([matcherState.targets[i], src.path]);
       }
     }
     matcherState.resolve(
       pairs,
-      reorderSources.map((source) => source.path)
+      reorderSources.filter((s) => s && !s.isGap && s.path).map((source) => source.path)
     );
     setMatcherState({ open: false, targets: [], sources: [], resolve: null });
   };
@@ -463,6 +707,9 @@ export default function App() {
 
   const handleRun = async (repeat = false) => {
     if (runInFlight.current) return;
+    if (paths.video) addRecentPath(paths.video);
+    if (paths.sub) addRecentPath(paths.sub);
+    if (paths.output) addRecentPath(paths.output);
     runInFlight.current = true;
     setIsRunning(true);
     setIsStopping(false);
@@ -499,6 +746,10 @@ export default function App() {
           paths.output ||
           settings.default_output_dir ||
           (paths.video ? getParentFolder(paths.video) : '');
+        if (severity === 'success') {
+          setToastRemainingMs(TOAST_DURATION_MS);
+          setIsToastHovered(false);
+        }
         setNotice({
           severity,
           message:
@@ -539,6 +790,10 @@ export default function App() {
       cancel_requests();
     }
   };
+
+  useEffect(() => {
+    handleRunRef.current = handleRun;
+  });
 
   const handleStop = async () => {
     if (isStopping) return;
@@ -600,7 +855,10 @@ export default function App() {
           kind === 'file'
             ? await desktopBridge.pickFile(mediaType, defaultHint)
             : await desktopBridge.pickFolder(defaultHint);
-        if (path) setPaths((prev) => ({ ...prev, [key]: path }));
+        if (path) {
+          addRecentPath(path);
+          setPaths((prev) => ({ ...prev, [key]: path }));
+        }
       } catch (error) {
         setNotice({
           severity: 'error',
@@ -609,6 +867,13 @@ export default function App() {
       }
     }
   };
+
+  const currentVideoTrimmed = (paths.video || '').trim();
+  const activeBackendData =
+    mediaBackendData && mediaBackendData._forPath === currentVideoTrimmed
+      ? mediaBackendData
+      : null;
+  const mediaSummary = buildQuickMediaSummary(paths.video, activeBackendData);
 
   const ActiveIcon = selectedMod.icon;
 
@@ -666,6 +931,8 @@ export default function App() {
           onRepeat={() => handleRun(true)}
           settings={settings}
           onSettingsChange={setSettings}
+          settingsOpen={settingsOpen}
+          onSettingsOpenChange={setSettingsOpen}
         />
 
         <Box
@@ -775,19 +1042,126 @@ export default function App() {
                 }}
               >
                 {selectedMod.needs.includes('video') && (
-                  <PathInput
-                    label={selectedMod.labels[0]}
-                    value={paths.video}
-                    mediaType="video"
-                    disabled={isRunning}
-                    isWindowDragging={isWindowDragging}
-                    onChange={(video) => setPaths((p) => ({ ...p, video }))}
-                    onPick={(kind, type) => handlePickPath('video', kind, type)}
-                    onShowInFolder={handleShowInFolder}
-                    onDragHoverChange={(hovered) => {
-                      hoveredFieldRef.current = hovered ? 'video' : null;
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <PathInput
+                      label={selectedMod.labels[0]}
+                      value={paths.video}
+                      mediaType="video"
+                      disabled={isRunning}
+                      isWindowDragging={isWindowDragging}
+                      dropZoneLabel="Drop Video Here"
+                      recentPaths={recentPaths}
+                      onClearRecentPaths={clearRecentPaths}
+                      onChange={(video) => setPaths((p) => ({ ...p, video }))}
+                      onPick={(kind, type) => handlePickPath('video', kind, type)}
+                      onShowInFolder={handleShowInFolder}
+                      onDragHoverChange={(hovered) => {
+                        hoveredFieldRef.current = hovered ? 'video' : null;
+                      }}
+                    />
+                    {mediaSummary && (
+                      <Box
+                        data-testid="media-inspector"
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 0.75,
+                          px: 1.25,
+                          py: 0.65,
+                          borderRadius: 1.5,
+                          bgcolor: 'rgba(11, 15, 24, 0.75)',
+                          border: '1px solid rgba(148, 163, 184, 0.14)',
+                        }}
+                      >
+                        <Chip
+                          size="small"
+                          icon={
+                            mediaSummary.kind === 'folder' ? (
+                              <FolderOpenOutlined sx={{ fontSize: 13 }} />
+                            ) : (
+                              <MovieOutlined sx={{ fontSize: 13 }} />
+                            )
+                          }
+                          label={mediaSummary.badge}
+                          sx={{
+                            height: 20,
+                            fontSize: '0.68rem',
+                            fontFamily: 'monospace',
+                            fontWeight: 800,
+                            bgcolor: 'rgba(99, 102, 241, 0.18)',
+                            color: '#A5B4FC',
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          noWrap
+                          sx={{
+                            fontFamily: 'monospace',
+                            color: 'text.secondary',
+                            fontSize: '0.74rem',
+                            maxWidth: 220,
+                          }}
+                        >
+                          {mediaSummary.name}
+                        </Typography>
+                        {mediaSummary.videoCount !== undefined && (
+                          <Chip
+                            size="small"
+                            label={`${mediaSummary.videoCount} video(s)`}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontFamily: 'monospace',
+                              bgcolor: 'rgba(56, 189, 248, 0.12)',
+                              color: '#38BDF8',
+                            }}
+                          />
+                        )}
+                        {mediaSummary.videoCodec && (
+                          <Chip
+                            size="small"
+                            label={`Video: ${mediaSummary.videoCodec}`}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontFamily: 'monospace',
+                              bgcolor: 'rgba(148, 163, 184, 0.12)',
+                              color: 'text.primary',
+                            }}
+                          />
+                        )}
+                        {mediaSummary.audioSummary && (
+                          <Chip
+                            size="small"
+                            icon={<HeadphonesOutlined sx={{ fontSize: 13, color: '#34D399 !important' }} />}
+                            label={`Audio (${mediaSummary.audioCount}): ${mediaSummary.audioSummary}`}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontFamily: 'monospace',
+                              bgcolor: 'rgba(52, 211, 153, 0.12)',
+                              color: '#34D399',
+                            }}
+                          />
+                        )}
+                        {mediaSummary.subSummary && (
+                          <Chip
+                            size="small"
+                            icon={<SubtitlesOutlined sx={{ fontSize: 13, color: '#38BDF8 !important' }} />}
+                            label={`Subs (${mediaSummary.subCount}): ${mediaSummary.subSummary}`}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.68rem',
+                              fontFamily: 'monospace',
+                              bgcolor: 'rgba(56, 189, 248, 0.12)',
+                              color: '#38BDF8',
+                            }}
+                          />
+                        )}
+                      </Box>
+                    )}
+                  </Box>
                 )}
                 {selectedMod.needs.includes('sub') && (
                   <PathInput
@@ -798,6 +1172,13 @@ export default function App() {
                       selectedMod.id === 'sync_subs' ? 'subtitles' : 'video'
                     }
                     isWindowDragging={isWindowDragging}
+                    dropZoneLabel={
+                      selectedMod.id === 'sync_subs'
+                        ? 'Drop Subtitles Here'
+                        : 'Drop Source Video Here'
+                    }
+                    recentPaths={recentPaths}
+                    onClearRecentPaths={clearRecentPaths}
                     onChange={(sub) => setPaths((p) => ({ ...p, sub }))}
                     onPick={(kind, type) => handlePickPath('sub', kind, type)}
                     onShowInFolder={handleShowInFolder}
@@ -820,6 +1201,9 @@ export default function App() {
                         : undefined
                     }
                     isWindowDragging={isWindowDragging}
+                    dropZoneLabel="Drop Output Folder Here"
+                    recentPaths={recentPaths}
+                    onClearRecentPaths={clearRecentPaths}
                     onChange={(output) => setPaths((p) => ({ ...p, output }))}
                     onPick={(kind) => handlePickPath('output', kind)}
                     onShowInFolder={handleShowInFolder}
@@ -847,6 +1231,21 @@ export default function App() {
                 >
                   {isRunning ? 'Running...' : 'Launch Module'}
                 </Button>
+                {!isRunning && (
+                  <Chip
+                    size="small"
+                    data-testid="launch-shortcut-hint"
+                    label="Ctrl+Enter"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.70rem',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                      bgcolor: 'rgba(148, 163, 184, 0.08)',
+                      border: '1px solid rgba(148, 163, 184, 0.18)',
+                    }}
+                  />
+                )}
                 {isRunning && (
                   <Button
                     variant="outlined"
@@ -1028,12 +1427,38 @@ export default function App() {
           </AnimatePresence>
 
           {/* Developer Console Drawer */}
+          {showTerminal && (
+            <Box
+              role="separator"
+              aria-label="Resize terminal"
+              aria-orientation="horizontal"
+              onMouseDown={(e) => {
+                terminalDraggingRef.current = true;
+                setIsTerminalDragging(true);
+                terminalDragStartYRef.current = e.clientY;
+                terminalDragStartHeightRef.current = terminalHeight;
+                document.body.style.cursor = 'row-resize';
+                document.body.style.userSelect = 'none';
+              }}
+              sx={{
+                height: 6,
+                mt: 1.5,
+                cursor: 'row-resize',
+                borderRadius: 1,
+                bgcolor: 'rgba(148, 163, 184, 0.12)',
+                transition: 'background-color 0.15s ease',
+                '&:hover': { bgcolor: 'primary.main' },
+              }}
+            />
+          )}
           <Box
             sx={{
-              height: showTerminal ? 230 : 0,
-              transition: 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              height: showTerminal ? terminalHeight : 0,
+              transition: isTerminalDragging
+                ? 'none'
+                : 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
               overflow: 'hidden',
-              mt: 2,
+              mt: showTerminal ? 0.5 : 2,
               display: 'flex',
               flexDirection: 'column',
             }}
@@ -1056,6 +1481,7 @@ export default function App() {
               borderTop: '1px solid rgba(148, 163, 184, 0.08)',
               alignSelf: 'stretch',
               alignItems: 'center',
+              flexWrap: 'wrap',
             }}
           >
             <Button
@@ -1066,6 +1492,25 @@ export default function App() {
             >
               {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
             </Button>
+            {showTerminal && (
+              <Button
+                size="small"
+                aria-label="Toggle expanded terminal"
+                startIcon={
+                  terminalHeight > 280 ? (
+                    <UnfoldLess fontSize="small" />
+                  ) : (
+                    <UnfoldMore fontSize="small" />
+                  )
+                }
+                onClick={() =>
+                  setTerminalHeight((h) => (h > 280 ? 230 : 400))
+                }
+                sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+              >
+                {terminalHeight > 280 ? 'Compact Terminal' : 'Expand Terminal'}
+              </Button>
+            )}
             {terminal && (
               <>
                 <Button
@@ -1083,6 +1528,14 @@ export default function App() {
                   sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
                 >
                   Download Logs
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<DeleteSweepOutlined fontSize="small" />}
+                  onClick={() => setTerminal('')}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                >
+                  Clear Logs
                 </Button>
               </>
             )}
@@ -1109,20 +1562,137 @@ export default function App() {
         onStop={handleStop}
         stopping={isStopping}
       />
+
+      {/* Non-blocking Foreground-Aware Toast for Successful Task Completion */}
+      <AnimatePresence>
+        {notice?.severity === 'success' && (
+          <motion.div
+            key="completion-toast"
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{
+              position: 'fixed',
+              right: 24,
+              bottom: 24,
+              zIndex: 1400,
+              width: 'min(440px, calc(100vw - 48px))',
+            }}
+          >
+            <Box
+              data-testid="completion-toast"
+              onMouseEnter={() => setIsToastHovered(true)}
+              onMouseLeave={() => setIsToastHovered(false)}
+              sx={{
+                bgcolor: '#0E1422',
+                border: '1px solid rgba(52, 211, 153, 0.45)',
+                borderRadius: 2.5,
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.75)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Box
+                sx={{
+                  px: 2,
+                  pt: 1.5,
+                  pb: 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#34D399' }}>
+                  Task completed
+                </Typography>
+                <Typography
+                  variant="caption"
+                  data-testid="toast-timer-status"
+                  sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: '0.72rem' }}
+                >
+                  {!isWindowFocused || isToastHovered
+                    ? `Paused (${(toastRemainingMs / 1000).toFixed(1)}s)`
+                    : `${(toastRemainingMs / 1000).toFixed(1)}s`}
+                </Typography>
+              </Box>
+              <Box sx={{ px: 2, py: 1 }}>
+                <Alert severity="success" sx={{ borderRadius: 1.5 }}>
+                  {notice.message}
+                </Alert>
+              </Box>
+              <Box
+                sx={{
+                  px: 2,
+                  pb: 1.5,
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 1,
+                }}
+              >
+                {Boolean(
+                  notice.outputDir ||
+                    paths.output ||
+                    settings.default_output_dir ||
+                    paths.video
+                ) && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<FolderOpenOutlined fontSize="small" />}
+                    onClick={() =>
+                      handleShowInFolder(
+                        notice.outputDir ||
+                          paths.output ||
+                          settings.default_output_dir ||
+                          getParentFolder(paths.video)
+                      )
+                    }
+                  >
+                    Show in Folder
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => setNotice(null)}
+                >
+                  OK
+                </Button>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(100, Math.max(0, (toastRemainingMs / TOAST_DURATION_MS) * 100))}
+                aria-label="Toast auto-dismiss countdown"
+                data-testid="toast-countdown-bar"
+                sx={{
+                  height: 5,
+                  bgcolor: 'rgba(52, 211, 153, 0.14)',
+                  '& .MuiLinearProgress-bar': {
+                    transition: 'none',
+                    background: 'linear-gradient(90deg, #34D399 0%, #38BDF8 100%)',
+                  },
+                }}
+              />
+            </Box>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Dialog for Warnings, Errors, and Task Cancellation */}
       <Dialog
-        open={Boolean(notice)}
+        open={Boolean(notice && notice.severity !== 'success')}
         onClose={() => setNotice(null)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700 }}>
-          {notice?.severity === 'success'
-            ? 'Task completed'
-            : notice?.severity === 'warning'
-              ? 'Task completed with warnings'
-              : notice?.severity === 'info'
-                ? 'Task stopped'
-                : 'Task failed'}
+          {notice?.severity === 'warning'
+            ? 'Task completed with warnings'
+            : notice?.severity === 'info'
+              ? 'Task stopped'
+              : 'Task failed'}
         </DialogTitle>
         <DialogContent>
           <Alert severity={notice?.severity || 'info'} sx={{ borderRadius: 2 }}>
@@ -1130,7 +1700,7 @@ export default function App() {
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          {(notice?.severity === 'success' || notice?.severity === 'warning') &&
+          {notice?.severity === 'warning' &&
             Boolean(notice?.outputDir || paths.output || settings.default_output_dir || paths.video) && (
               <Button
                 variant="outlined"

@@ -27,11 +27,23 @@ export default function Sidebar({
   onRepeat,
   settings,
   onSettingsChange,
+  settingsOpen: controlledSettingsOpen,
+  onSettingsOpenChange,
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(300);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const dragging = useRef(false);
+
+  const settingsOpen =
+    controlledSettingsOpen !== undefined
+      ? controlledSettingsOpen
+      : internalSettingsOpen;
+  const setSettingsOpen = (next) => {
+    const val = typeof next === 'function' ? next(settingsOpen) : next;
+    setInternalSettingsOpen(val);
+    onSettingsOpenChange?.(val);
+  };
 
   useEffect(() => {
     const move = (event) => {
@@ -117,11 +129,11 @@ export default function Sidebar({
         </Box>
 
         <List sx={{ flex: 1, overflowY: 'auto', px: collapsed ? 1 : 1.5, pt: 1.5 }}>
-          {modules.map((module) => {
+          {modules.map((module, index) => {
             const active = selectedMod.id === module.id;
             return (
               <ListItem disablePadding key={module.id}>
-                <Tooltip title={collapsed ? module.title : ''} placement="right">
+                <Tooltip title={collapsed ? `${module.title} (Ctrl+${index + 1})` : ''} placement="right">
                   <ListItemButton
                     aria-label={module.title}
                     selected={active}
@@ -154,14 +166,30 @@ export default function Sidebar({
                       <module.icon fontSize="small" />
                     </ListItemIcon>
                     {!collapsed && (
-                      <ListItemText
-                        primary={module.title}
-                        primaryTypographyProps={{
-                          fontWeight: active ? 700 : 500,
-                          fontSize: '0.88rem',
-                          color: active ? 'text.primary' : 'text.secondary',
-                        }}
-                      />
+                      <>
+                        <ListItemText
+                          primary={module.title}
+                          primaryTypographyProps={{
+                            fontWeight: active ? 700 : 500,
+                            fontSize: '0.88rem',
+                            color: active ? 'text.primary' : 'text.secondary',
+                            noWrap: true,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            ml: 1,
+                            fontFamily: 'monospace',
+                            fontSize: '0.66rem',
+                            color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {`^${index + 1}`}
+                        </Typography>
+                      </>
                     )}
                   </ListItemButton>
                 </Tooltip>
@@ -178,7 +206,7 @@ export default function Sidebar({
             borderTop: '1px solid rgba(148, 163, 184, 0.08)',
           }}
         >
-          <Tooltip title={collapsed ? 'Repeat Last' : ''} placement="right">
+          <Tooltip title={collapsed ? 'Repeat Last (Ctrl+Shift+R)' : 'Ctrl+Shift+R'} placement="right">
             <span>
               <Button
                 aria-label="Repeat Last"
@@ -200,7 +228,7 @@ export default function Sidebar({
             </span>
           </Tooltip>
           {collapsed ? (
-            <Tooltip title="Settings" placement="right">
+            <Tooltip title="Settings (Ctrl+,)" placement="right">
               <IconButton
                 aria-label="Expand sidebar and show settings"
                 onClick={() => {

@@ -22,6 +22,10 @@ import SubtitlesOutlined from '@mui/icons-material/SubtitlesOutlined';
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import InsertDriveFileOutlined from '@mui/icons-material/InsertDriveFileOutlined';
 import AudiotrackOutlined from '@mui/icons-material/AudiotrackOutlined';
+import StarBorder from '@mui/icons-material/StarBorder';
+import PushPinOutlined from '@mui/icons-material/PushPinOutlined';
+import SwapHoriz from '@mui/icons-material/SwapHoriz';
+import ArrowForward from '@mui/icons-material/ArrowForward';
 
 const LANG_MAP = {
   it: { codes: ['it', 'ita', 'italian', 'italiano'], label: 'ITA' },
@@ -201,6 +205,44 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
     );
   };
 
+  const invertSelection = () => {
+    setSelected((prev) => {
+      const current = new Set(prev);
+      return tracks.filter((t) => !current.has(t.id)).map((t) => t.id);
+    });
+  };
+
+  const selectSystemPlusOriginal = () => {
+    const firstAudio =
+      tracks.find((t) => t.type === 'audio' && t.properties?.default_track) ||
+      tracks.find((t) => t.type === 'audio') ||
+      tracks[0];
+    const origLang = (
+      firstAudio?.properties?.language_ietf ||
+      firstAudio?.properties?.language ||
+      ''
+    )
+      .toLowerCase()
+      .trim();
+    const origEntry = Object.values(LANG_MAP).find((item) =>
+      item.codes.some((c) => origLang === c || origLang.startsWith(`${c}-`))
+    );
+    const origCodes = origEntry
+      ? origEntry.codes
+      : origLang && origLang !== 'und'
+        ? [origLang]
+        : ['jpn', 'ja', 'eng', 'en'];
+    const combinedCodes = Array.from(new Set([...sysLang.codes, ...origCodes]));
+    const matching = tracks
+      .filter(
+        (t) =>
+          trackMatchesLang(t, combinedCodes) ||
+          (firstAudio && t.id === firstAudio.id)
+      )
+      .map((t) => t.id);
+    setSelected(matching);
+  };
+
   const selectAllAudio = () => {
     const audioIds = new Set(audioTracks.map((t) => t.id));
     setSelected((prev) => Array.from(new Set([...prev, ...audioIds])));
@@ -360,27 +402,39 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
         <Box
           sx={{
             display: 'flex',
-            gap: 0.5,
+            gap: 0.75,
             flexWrap: 'wrap',
             justifyContent: 'flex-end',
           }}
         >
           {properties.default_track && (
             <Chip
+              icon={<StarBorder sx={{ fontSize: 14, color: '#A5B4FC !important' }} />}
               label="Default"
               size="small"
-              variant="outlined"
-              color="primary"
-              sx={{ height: 20, fontSize: '0.7rem' }}
+              sx={{
+                height: 22,
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                bgcolor: 'rgba(99, 102, 241, 0.20)',
+                color: '#A5B4FC',
+                border: '1px solid rgba(99, 102, 241, 0.55)',
+              }}
             />
           )}
           {properties.forced_track && (
             <Chip
+              icon={<PushPinOutlined sx={{ fontSize: 14, color: '#FBBF24 !important' }} />}
               label="Forced"
               size="small"
-              variant="outlined"
-              color="warning"
-              sx={{ height: 20, fontSize: '0.7rem' }}
+              sx={{
+                height: 22,
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                bgcolor: 'rgba(245, 158, 11, 0.20)',
+                color: '#FBBF24',
+                border: '1px solid rgba(245, 158, 11, 0.55)',
+              }}
             />
           )}
         </Box>
@@ -570,6 +624,15 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 >
                   Select none
                 </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<SwapHoriz fontSize="small" />}
+                  onClick={invertSelection}
+                  disabled={submitting || stopping}
+                >
+                  Invert selection
+                </Button>
                 {hasDefaultTracks && (
                   <Button
                     size="small"
@@ -578,6 +641,16 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     disabled={submitting || stopping}
                   >
                     Only Default
+                  </Button>
+                )}
+                {detectedLanguages.length > 1 && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={selectSystemPlusOriginal}
+                    disabled={submitting || stopping}
+                  >
+                    System + Original
                   </Button>
                 )}
                 {detectedLanguages.length > 0 ? (
@@ -828,8 +901,19 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                               ({(t.properties?.language || 'und').toUpperCase()} · {t.codec || 'Unknown'})
                             </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ color: '#34D399', fontWeight: 700, flexShrink: 0 }}>
-                            ➔ Opus 128k
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: '#34D399',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                            }}
+                          >
+                            <ArrowForward sx={{ fontSize: 13 }} />
+                            Opus 128k
                           </Typography>
                         </Box>
                       ))}

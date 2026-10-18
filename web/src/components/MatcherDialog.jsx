@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -8,6 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   List,
   ListItem,
   Paper,
@@ -18,11 +19,15 @@ import DragHandle from '@mui/icons-material/DragHandle';
 import AutoFixHigh from '@mui/icons-material/AutoFixHigh';
 import SwapVert from '@mui/icons-material/SwapVert';
 import RestartAlt from '@mui/icons-material/RestartAlt';
+import MoveDown from '@mui/icons-material/MoveDown';
+import Close from '@mui/icons-material/Close';
+import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
 import { Reorder } from 'framer-motion';
 
-const formatPath = (path) => path.split(/[\\/]/).at(-1);
+const formatPath = (path) => (path ? path.split(/[\\/]/).at(-1) : '');
 
 function extractEpisodeKey(filePath) {
+  if (!filePath) return null;
   const base = formatPath(filePath).replace(/\.[^.]+$/, '');
   const cleaned = base
     .replace(/\[[0-9A-Fa-f]{8}\]/g, ' ')
@@ -85,7 +90,7 @@ export default function MatcherDialog({
   };
 
   const handleAutoMatch = () => {
-    const remaining = [...sources];
+    const remaining = [...sources.filter((s) => !s.isGap && s.path)];
     const matched = new Array(state.targets.length).fill(null);
 
     state.targets.forEach((targetPath, tIdx) => {
@@ -135,11 +140,74 @@ export default function MatcherDialog({
     setExcludedTargets([]);
   };
 
-  const activePairsCount =
-    Math.min(state.targets.length, sources.length) -
-    excludedTargets.filter(
-      (idx) => idx < Math.min(state.targets.length, sources.length)
-    ).length;
+  const handleInsertGap = (idx) => {
+    const next = [...sources];
+    next.splice(idx, 0, {
+      id: `gap-${idx}-${sources.length}`,
+      path: '',
+      isGap: true,
+    });
+    onReorder(next);
+  };
+
+  const handleRemoveGap = (gapId) => {
+    onReorder(sources.filter((s) => s.id !== gapId));
+  };
+
+  const diagnostics = useMemo(() => {
+    const sourceEpCounts = new Map();
+    for (const s of sources) {
+      if (s.isGap || !s.path) continue;
+      const key = extractEpisodeKey(s.path);
+      if (key) {
+        sourceEpCounts.set(key.episode, (sourceEpCounts.get(key.episode) || 0) + 1);
+      }
+    }
+
+    const duplicateEpisodes = [];
+    for (const [ep, count] of sourceEpCounts.entries()) {
+      if (count > 1) {
+        duplicateEpisodes.push(`E${String(ep).padStart(2, '0')}`);
+      }
+    }
+
+    const missingEpisodes = [];
+    const mismatchedRows = new Set();
+
+    state.targets.forEach((t, idx) => {
+      if (excludedTargets.includes(idx)) return;
+      const tKey = extractEpisodeKey(t);
+      const sItem = sources[idx];
+      const sKey = sItem && !sItem.isGap && sItem.path ? extractEpisodeKey(sItem.path) : null;
+
+      if (tKey) {
+        if (!sourceEpCounts.has(tKey.episode)) {
+          const label = `E${String(tKey.episode).padStart(2, '0')}`;
+          if (!missingEpisodes.includes(label)) {
+            missingEpisodes.push(label);
+          }
+        }
+        if (sKey && (tKey.episode !== sKey.episode || (tKey.season !== null && sKey.season !== null && tKey.season !== sKey.season))) {
+          mismatchedRows.add(idx);
+        }
+      }
+    });
+
+    return {
+      duplicateEpisodes,
+      missingEpisodes,
+      mismatchedRows,
+      sourceEpCounts,
+    };
+  }, [state.targets, sources, excludedTargets]);
+
+  const limit = Math.min(state.targets.length, sources.length);
+  let activePairsCount = 0;
+  for (let i = 0; i < limit; i++) {
+    if (!excludedTargets.includes(i) && sources[i] && !sources[i].isGap && sources[i].path) {
+      activePairsCount += 1;
+    }
+  }
 
   return (
     <Dialog open={state.open} onClose={onCancel} maxWidth="xl" fullWidth>
@@ -193,13 +261,45 @@ export default function MatcherDialog({
           }}
         >
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Drag the source files on the right to match the correct target files on the left, or uncheck rows to skip specific episodes.
+            Drag the source files on the right to match the correct target files on the left, insert gaps to shift misaligned episodes down, or uncheck rows to skip specific episodes.
           </Typography>
-          <Chip
-            size="small"
-            label={`${Math.max(0, activePairsCount)} pair(s) active`}
-            sx={{ fontFamily: 'monospace', fontWeight: 600 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            {diagnostics.duplicateEpisodes.length > 0 && (
+              <Chip
+                size="small"
+                icon={<WarningAmberOutlined sx={{ fontSize: 15 }} />}
+                label={`Duplicate: ${diagnostics.duplicateEpisodes.join(', ')}`}
+                color="warning"
+                variant="outlined"
+                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+              />
+            )}
+            {diagnostics.missingEpisodes.length > 0 && (
+              <Chip
+                size="small"
+                icon={<WarningAmberOutlined sx={{ fontSize: 15 }} />}
+                label={`Missing: ${diagnostics.missingEpisodes.join(', ')}`}
+                color="warning"
+                variant="outlined"
+                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+              />
+            )}
+            {diagnostics.mismatchedRows.size > 0 && (
+              <Chip
+                size="small"
+                icon={<WarningAmberOutlined sx={{ fontSize: 15 }} />}
+                label={`${diagnostics.mismatchedRows.size} mismatch(es)`}
+                color="error"
+                variant="outlined"
+                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+              />
+            )}
+            <Chip
+              size="small"
+              label={`${Math.max(0, activePairsCount)} pair(s) active`}
+              sx={{ fontFamily: 'monospace', fontWeight: 600 }}
+            />
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -210,12 +310,16 @@ export default function MatcherDialog({
               {state.targets.map((t, idx) => {
                 const isExcluded = excludedTargets.includes(idx);
                 const epInfo = extractEpisodeKey(t);
+                const isMismatch = diagnostics.mismatchedRows.has(idx);
                 return (
                   <ListItem
                     key={idx}
                     sx={{
                       bgcolor: '#0B0F18',
-                      border: '1px solid rgba(148, 163, 184, 0.14)',
+                      border: '1px solid',
+                      borderColor: isMismatch
+                        ? 'rgba(245, 158, 11, 0.5)'
+                        : 'rgba(148, 163, 184, 0.14)',
                       mb: 1,
                       borderRadius: 1.5,
                       height: 46,
@@ -267,6 +371,8 @@ export default function MatcherDialog({
                         variant="body2"
                         noWrap
                         sx={{
+                          flex: 1,
+                          minWidth: 0,
                           fontFamily: 'monospace',
                           textDecoration: isExcluded ? 'line-through' : 'none',
                         }}
@@ -274,6 +380,20 @@ export default function MatcherDialog({
                         {formatPath(t)}
                       </Typography>
                     </Tooltip>
+                    {isMismatch && !isExcluded && (
+                      <Chip
+                        size="small"
+                        label="Mismatch"
+                        color="warning"
+                        variant="outlined"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
                   </ListItem>
                 );
               })}
@@ -291,7 +411,10 @@ export default function MatcherDialog({
             >
               {sources.map((s, idx) => {
                 const isExcluded = excludedTargets.includes(idx);
-                const epInfo = extractEpisodeKey(s.path);
+                const isGap = Boolean(s.isGap || !s.path);
+                const epInfo = isGap ? null : extractEpisodeKey(s.path);
+                const isDuplicate =
+                  epInfo && (diagnostics.sourceEpCounts.get(epInfo.episode) || 0) > 1;
                 return (
                   <Reorder.Item
                     key={s.id}
@@ -304,8 +427,12 @@ export default function MatcherDialog({
                         display: 'flex',
                         alignItems: 'center',
                         p: 1.25,
-                        bgcolor: 'rgba(99, 102, 241, 0.16)',
-                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                        bgcolor: isGap
+                          ? 'rgba(148, 163, 184, 0.04)'
+                          : 'rgba(99, 102, 241, 0.16)',
+                        border: isGap
+                          ? '1.5px dashed rgba(148, 163, 184, 0.28)'
+                          : '1px solid rgba(99, 102, 241, 0.4)',
                         color: 'text.primary',
                         height: '100%',
                         borderRadius: 1.5,
@@ -318,42 +445,104 @@ export default function MatcherDialog({
                           mr: 1,
                           opacity: 0.7,
                           flexShrink: 0,
-                          color: '#818CF8',
+                          color: isGap ? 'text.secondary' : '#818CF8',
                         }}
                       />
-                      {epInfo && (
-                        <Chip
-                          size="small"
-                          label={
-                            epInfo.season !== null
-                              ? `S${String(epInfo.season).padStart(2, '0')}E${String(epInfo.episode).padStart(2, '0')}`
-                              : `E${String(epInfo.episode).padStart(2, '0')}`
-                          }
-                          sx={{
-                            mr: 0.75,
-                            height: 20,
-                            fontSize: '0.68rem',
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            bgcolor: 'rgba(99, 102, 241, 0.25)',
-                            color: '#A5B4FC',
-                            flexShrink: 0,
-                          }}
-                        />
+                      {isGap ? (
+                        <>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{
+                              flex: 1,
+                              minWidth: 0,
+                              fontFamily: 'monospace',
+                              fontStyle: 'italic',
+                              color: 'text.secondary',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            Empty Slot (Skipped)
+                          </Typography>
+                          <Tooltip title="Remove gap and shift up" arrow>
+                            <IconButton
+                              size="small"
+                              aria-label={`Remove gap at row ${idx + 1}`}
+                              onClick={() => handleRemoveGap(s.id)}
+                              sx={{ p: 0.4, color: 'text.secondary' }}
+                            >
+                              <Close sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          {epInfo && (
+                            <Chip
+                              size="small"
+                              label={
+                                epInfo.season !== null
+                                  ? `S${String(epInfo.season).padStart(2, '0')}E${String(epInfo.episode).padStart(2, '0')}`
+                                  : `E${String(epInfo.episode).padStart(2, '0')}`
+                              }
+                              sx={{
+                                mr: 0.75,
+                                height: 20,
+                                fontSize: '0.68rem',
+                                fontFamily: 'monospace',
+                                fontWeight: 700,
+                                bgcolor: 'rgba(99, 102, 241, 0.25)',
+                                color: '#A5B4FC',
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Tooltip title={formatPath(s.path)} placement="right" arrow>
+                            <Typography
+                              variant="body2"
+                              noWrap
+                              sx={{
+                                flex: 1,
+                                minWidth: 0,
+                                fontFamily: 'monospace',
+                                textDecoration: isExcluded ? 'line-through' : 'none',
+                              }}
+                            >
+                              {formatPath(s.path)}
+                            </Typography>
+                          </Tooltip>
+                          {isDuplicate && (
+                            <Chip
+                              size="small"
+                              label="Duplicate"
+                              color="warning"
+                              variant="outlined"
+                              sx={{
+                                ml: 0.75,
+                                height: 20,
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Tooltip title="Insert gap here & shift subsequent sources down" arrow>
+                            <IconButton
+                              size="small"
+                              aria-label={`Shift down from row ${idx + 1}`}
+                              onClick={() => handleInsertGap(idx)}
+                              sx={{
+                                ml: 0.5,
+                                p: 0.4,
+                                color: 'text.secondary',
+                                '&:hover': { color: '#38BDF8' },
+                              }}
+                            >
+                              <MoveDown sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </>
                       )}
-                      <Tooltip title={formatPath(s.path)} placement="right" arrow>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{
-                            minWidth: 0,
-                            fontFamily: 'monospace',
-                            textDecoration: isExcluded ? 'line-through' : 'none',
-                          }}
-                        >
-                          {formatPath(s.path)}
-                        </Typography>
-                      </Tooltip>
                     </Paper>
                   </Reorder.Item>
                 );

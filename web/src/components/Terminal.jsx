@@ -1,28 +1,52 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Chip, Paper } from '@mui/material';
+import {
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TextField,
+} from '@mui/material';
 import ArrowDownward from '@mui/icons-material/ArrowDownward';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 
 export default function Terminal({ text, visible, onFollowChange }) {
   const containerRef = useRef(null);
   const followingRef = useRef(true);
   const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const displayedText = useMemo(() => {
-    if (filter === 'all' || !text) return text;
-    const lines = text.split('\n');
+  const { displayedText, matchCount } = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (filter === 'all' && !q) {
+      return { displayedText: text, matchCount: 0 };
+    }
+    if (!text) {
+      return { displayedText: '', matchCount: 0 };
+    }
+    let lines = text.split('\n');
     if (filter === 'errors') {
-      return lines
-        .filter((l) => /\b(error|failed|fatal|exception)\b|\[error\]/i.test(l))
-        .join('\n');
+      lines = lines.filter((l) =>
+        /\b(error|failed|fatal|exception)\b|\[error\]/i.test(l)
+      );
+    } else if (filter === 'warnings') {
+      lines = lines.filter((l) => /\b(warn|warning)\b|\[warn/i.test(l));
     }
-    if (filter === 'warnings') {
-      return lines
-        .filter((l) => /\b(warn|warning)\b|\[warn/i.test(l))
-        .join('\n');
+    if (q) {
+      const matched = lines.filter((l) => l.toLowerCase().includes(q));
+      return {
+        displayedText: matched.join('\n'),
+        matchCount: matched.length,
+      };
     }
-    return text;
-  }, [text, filter]);
+    return {
+      displayedText: lines.join('\n'),
+      matchCount: 0,
+    };
+  }, [text, filter, searchQuery]);
 
   useLayoutEffect(() => {
     if (visible && followingRef.current && containerRef.current) {
@@ -80,15 +104,75 @@ export default function Terminal({ text, visible, onFollowChange }) {
             top: 8,
             right: 16,
             display: 'flex',
-            gap: 0.5,
+            alignItems: 'center',
+            gap: 0.75,
             zIndex: 2,
-            bgcolor: 'rgba(7, 10, 16, 0.85)',
-            px: 0.75,
-            py: 0.25,
+            bgcolor: 'rgba(7, 10, 16, 0.88)',
+            px: 1,
+            py: 0.4,
             borderRadius: 1.5,
-            border: '1px solid rgba(148, 163, 184, 0.15)',
+            border: '1px solid rgba(148, 163, 184, 0.18)',
           }}
         >
+          <TextField
+            size="small"
+            placeholder="Search logs..."
+            aria-label="Search terminal logs"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              width: 155,
+              '& .MuiOutlinedInput-root': {
+                height: 22,
+                fontSize: '0.70rem',
+                fontFamily: 'monospace',
+                bgcolor: 'rgba(15, 20, 31, 0.9)',
+                '& input': {
+                  py: 0,
+                  px: 0.5,
+                },
+              },
+            }}
+            slotProps={{
+              htmlInput: {
+                'aria-label': 'Search terminal logs',
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ mr: 0.25 }}>
+                    <SearchIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      aria-label="Clear log search"
+                      onClick={() => setSearchQuery('')}
+                      edge="end"
+                      sx={{ p: 0.15 }}
+                    >
+                      <ClearIcon sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
+            }}
+          />
+          {searchQuery.trim() && (
+            <Chip
+              size="small"
+              label={`${matchCount} match${matchCount === 1 ? '' : 'es'}`}
+              sx={{
+                height: 20,
+                fontSize: '0.66rem',
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                bgcolor: 'rgba(56, 189, 248, 0.16)',
+                color: '#38BDF8',
+              }}
+            />
+          )}
           {[
             { id: 'all', label: 'All' },
             { id: 'errors', label: 'Errors' },

@@ -2,8 +2,14 @@ import { useState } from 'react';
 import {
   Box,
   Button,
+  Chip,
+  Divider,
   IconButton,
   InputAdornment,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   TextField,
   Tooltip,
 } from '@mui/material';
@@ -12,6 +18,8 @@ import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
+import HistoryIcon from '@mui/icons-material/History';
+import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
 
 export default function PathInput({
   label,
@@ -25,8 +33,12 @@ export default function PathInput({
   placeholder,
   helperText,
   isWindowDragging = false,
+  dropZoneLabel,
+  recentPaths = [],
+  onClearRecentPaths,
 }) {
   const [dragOver, setDragOver] = useState(false);
+  const [historyAnchor, setHistoryAnchor] = useState(null);
 
   const handleDragOver = (event) => {
     if (disabled) return;
@@ -70,12 +82,15 @@ export default function PathInput({
     }
   };
 
+  const showEndAdornment = Boolean(value || (recentPaths.length > 0 && !disabled));
+
   return (
     <Box
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       sx={{
+        position: 'relative',
         display: 'flex',
         gap: 1,
         alignItems: 'flex-start',
@@ -140,7 +155,7 @@ export default function PathInput({
         slotProps={{
           input: {
             startAdornment: isWindowDragging ? (
-              <InputAdornment position="start" sx={{ mr: 0.5 }}>
+              <InputAdornment position="start" sx={{ mr: 0.75, gap: 0.75 }}>
                 <FileDownloadOutlined
                   sx={{
                     fontSize: 20,
@@ -152,11 +167,42 @@ export default function PathInput({
                     },
                   }}
                 />
+                <Chip
+                  size="small"
+                  label={dragOver ? 'Release to Drop' : dropZoneLabel || 'Drop Here'}
+                  sx={{
+                    height: 20,
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.03em',
+                    bgcolor: dragOver
+                      ? 'rgba(56, 189, 248, 0.25)'
+                      : 'rgba(99, 102, 241, 0.22)',
+                    color: dragOver ? '#38BDF8' : '#A5B4FC',
+                    border: '1px solid',
+                    borderColor: dragOver
+                      ? 'rgba(56, 189, 248, 0.5)'
+                      : 'rgba(99, 102, 241, 0.45)',
+                  }}
+                />
               </InputAdornment>
             ) : null,
-            endAdornment: value ? (
+            endAdornment: showEndAdornment ? (
               <InputAdornment position="end" sx={{ gap: 0.25 }}>
-                {onShowInFolder && (
+                {recentPaths.length > 0 && !disabled && (
+                  <Tooltip title="Recent paths" arrow>
+                    <IconButton
+                      size="small"
+                      aria-label={`Recent paths for ${label}`}
+                      onClick={(e) => setHistoryAnchor(e.currentTarget)}
+                      edge="end"
+                      sx={{ p: 0.5, color: 'text.secondary' }}
+                    >
+                      <HistoryIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {value && onShowInFolder && (
                   <Tooltip title="Show in Explorer / Finder" arrow>
                     <span>
                       <IconButton
@@ -171,7 +217,7 @@ export default function PathInput({
                     </span>
                   </Tooltip>
                 )}
-                {!disabled && (
+                {value && !disabled && (
                   <Tooltip title="Clear path" arrow>
                     <IconButton
                       size="small"
@@ -189,6 +235,70 @@ export default function PathInput({
           },
         }}
       />
+      <Menu
+        anchorEl={historyAnchor}
+        open={Boolean(historyAnchor)}
+        onClose={() => setHistoryAnchor(null)}
+        slotProps={{
+          paper: {
+            sx: {
+              maxWidth: 440,
+              bgcolor: '#0E131F',
+              border: '1px solid rgba(148, 163, 184, 0.18)',
+            },
+          },
+        }}
+      >
+        {recentPaths.map((recent) => {
+          const isFile = /\.[a-z0-9]{2,4}$/i.test(recent);
+          return (
+            <MenuItem
+              key={recent}
+              onClick={() => {
+                onChange(recent);
+                setHistoryAnchor(null);
+              }}
+              sx={{ py: 0.75 }}
+            >
+              <ListItemIcon sx={{ minWidth: 28, color: '#818CF8' }}>
+                {isFile ? (
+                  <InsertDriveFileOutlined fontSize="small" />
+                ) : (
+                  <FolderOpenOutlined fontSize="small" />
+                )}
+              </ListItemIcon>
+              <ListItemText
+                primary={recent}
+                primaryTypographyProps={{
+                  noWrap: true,
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                }}
+              />
+            </MenuItem>
+          );
+        })}
+        {onClearRecentPaths && (
+          <>
+            <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.12)' }} />
+            <MenuItem
+              onClick={() => {
+                onClearRecentPaths();
+                setHistoryAnchor(null);
+              }}
+              sx={{ py: 0.6, color: 'text.secondary' }}
+            >
+              <ListItemIcon sx={{ minWidth: 28, color: 'text.secondary' }}>
+                <DeleteSweepOutlined fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Clear recent paths"
+                primaryTypographyProps={{ fontSize: '0.78rem' }}
+              />
+            </MenuItem>
+          </>
+        )}
+      </Menu>
       {mediaType && (
         <Button
           variant="outlined"

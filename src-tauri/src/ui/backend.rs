@@ -650,6 +650,72 @@ impl Api {
         VERSION.to_string()
     }
 
+    pub fn inspect_media(&self, path: &str) -> Result<Value, String> {
+        let trimmed = path.trim();
+        if trimmed.is_empty() {
+            return Ok(json!(null));
+        }
+        let target = Path::new(trimmed);
+        if !target.exists() {
+            return Ok(json!(null));
+        }
+        if target.is_dir() {
+            let videos = crate::core::utils::get_files_recursive(trimmed, VIDEO_EXT)
+                .unwrap_or_default();
+            let subs = crate::core::utils::get_files_recursive(trimmed, SUB_EXT)
+                .unwrap_or_default();
+            let sample_tracks = if let Some(first_mkv) = videos
+                .iter()
+                .find(|f| f.to_lowercase().ends_with(".mkv"))
+            {
+                crate::core::mkv_tools::get_tracks_info(first_mkv).unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+            let folder_name = target
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| trimmed.to_string());
+            return Ok(json!({
+                "kind": "folder",
+                "name": folder_name,
+                "video_count": videos.len(),
+                "sub_count": subs.len(),
+                "tracks": sample_tracks,
+            }));
+        }
+        if target.is_file() {
+            let file_name = target
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| trimmed.to_string());
+            let ext = target
+                .extension()
+                .map(|e| e.to_string_lossy().to_uppercase())
+                .unwrap_or_default();
+            let size_bytes = fs::metadata(target).map(|m| m.len()).unwrap_or(0);
+            let tracks = if ext == "MKV" {
+                crate::core::mkv_tools::get_tracks_info(trimmed).unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+            let has_attach = if ext == "MKV" {
+                crate::core::mkv_tools::has_attachments(trimmed).unwrap_or(false)
+            } else {
+                false
+            };
+            return Ok(json!({
+                "kind": "file",
+                "name": file_name,
+                "container": ext,
+                "size_bytes": size_bytes,
+                "tracks": tracks,
+                "has_attachments": has_attach,
+            }));
+        }
+        Ok(json!(null))
+    }
+
     pub fn run_module(
         &self,
         module_name: &str,

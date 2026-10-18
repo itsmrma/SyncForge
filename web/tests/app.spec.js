@@ -646,8 +646,197 @@ test('Settings window supports Opus audio encoding mode and default output direc
   await expect(page.getByText('If not selected, output folder remains the source folder')).toBeVisible();
 });
 
+test('v3.2 QoL: Settings Keyboard Shortcuts tab and global shortcuts work', async ({ page }) => {
+  // Ctrl+, opens Settings modal
+  await page.keyboard.press('Control+,');
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
 
+  // Switch to Keyboard Shortcuts tab
+  await settingsModal.getByRole('tab', { name: /Keyboard Shortcuts/i }).click();
+  const shortcutsPage = settingsModal.getByTestId('shortcuts-page');
+  await expect(shortcutsPage).toBeVisible();
+  await expect(shortcutsPage).toContainText('Launch Active Module');
+  await expect(shortcutsPage).toContainText('Repeat Last Run');
+  await expect(shortcutsPage).toContainText('Toggle Developer Terminal');
 
+  // Switch back to General tab and close
+  await settingsModal.getByRole('tab', { name: /General/i }).click();
+  await expect(settingsModal.getByRole('combobox', { name: /Opus Audio Encoding/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(settingsModal).not.toBeVisible();
 
+  // Ctrl+2 switches to module 2 (Set Default & Forced)
+  await page.keyboard.press('Control+2');
+  await expect(page.getByRole('heading', { name: 'Set Default & Forced' })).toBeVisible();
+
+  // Ctrl+L toggles Developer Console
+  await page.keyboard.press('Control+l');
+  await expect(page.getByRole('textbox', { name: 'Search terminal logs' })).toBeVisible();
+});
+
+test('v3.2 QoL: Non-blocking completion toast shows countdown bar and pauses when window loses focus', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        run_module: async () => ({ status: 'ok', message: 'Batch finished!' }),
+      },
+    };
+  });
+
+  const targetInput = page.getByRole('textbox', { name: 'Video File or Folder', exact: true });
+  await targetInput.fill('/media/show');
+
+  // Trigger a fast module completion
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+
+  const toast = page.getByTestId('completion-toast');
+  await expect(toast).toBeVisible();
+  await expect(toast.getByTestId('toast-countdown-bar')).toBeVisible();
+
+  // Simulate window blur (backgrounded): timer must pause and show 'Paused'
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('blur'));
+  });
+  await expect(toast.getByTestId('toast-timer-status')).toContainText('Paused');
+
+  // Record current progress bar value while blurred and verify it does NOT decrease after 250ms
+  const valWhileBlurred1 = await toast.getByTestId('toast-countdown-bar').getAttribute('aria-valuenow');
+  await page.waitForTimeout(250);
+  const valWhileBlurred2 = await toast.getByTestId('toast-countdown-bar').getAttribute('aria-valuenow');
+  expect(Number(valWhileBlurred2)).toBe(Number(valWhileBlurred1));
+
+  // Simulate window focus (foregrounded): timer resumes ticking down
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('focus'));
+  });
+  await expect(toast.getByTestId('toast-timer-status')).not.toContainText('Paused');
+
+  // Dismiss toast via OK
+  await toast.getByRole('button', { name: 'OK', exact: true }).click();
+  await expect(toast).not.toBeVisible();
+});
+
+test('v3.2 QoL: Batch Matcher supports slot gap insertion/removal and episode diagnostics', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        resolve_matcher: async (...args) => {
+          window.matchResponse = args;
+        },
+      },
+    };
+    window.frontend_api.ask_matcher(
+      ['Show_S01E01.mkv', 'Show_S01E02.mkv', 'Show_S01E03.mkv'],
+      ['Source_S01E01.mkv', 'Source_S01E01_alt.mkv', 'Source_S01E03.mkv'],
+      'pair-v32'
+    );
+  });
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  // Verify duplicate & missing diagnostics chips appear
+  await expect(dialog.getByText('Duplicate: E01')).toBeVisible();
+  await expect(dialog.getByText('Missing: E02')).toBeVisible();
+  await expect(dialog.getByText('Mismatch').first()).toBeVisible();
+
+  // Shift down at row 2 to insert an Empty Slot (Skipped)
+  await dialog.getByRole('button', { name: 'Shift down from row 2' }).click();
+  await expect(dialog.getByText('Empty Slot (Skipped)')).toBeVisible();
+
+  // Remove gap at row 2
+  await dialog.getByRole('button', { name: 'Remove gap at row 2' }).click();
+  await expect(dialog.getByText('Empty Slot (Skipped)')).not.toBeVisible();
+
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+});
+
+test('v3.2 QoL: Track selection supports Invert selection and System + Original presets', async ({ page }) => {
+  const testTracks = [
+    { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese', default_track: true, forced_track: false } },
+    { id: 2, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'eng', track_name: 'English', default_track: false, forced_track: true } },
+    { id: 3, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'spa', track_name: 'Spanish', default_track: false, forced_track: false } },
+  ];
+
+  await showInput(page, {
+    prompt: 'Choose the audio and subtitle tracks to keep',
+    kind: 'multiple',
+    tracks: testTracks,
+  });
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('Default', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Forced', { exact: true })).toBeVisible();
+
+  // Select Only Default (selects ID 1), then Invert selection (selects ID 2 and 3)
+  await dialog.getByRole('button', { name: 'Only Default' }).click();
+  await dialog.getByRole('button', { name: 'Invert selection' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).toBeChecked();
+
+  // System + Original preset
+  await dialog.getByRole('button', { name: 'System + Original' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).toBeChecked();
+
+  await dialog.getByRole('button', { name: 'Confirm selection' }).click();
+});
+
+test('v3.2 QoL: Terminal search, match counter, expand toggle, Clear Logs, Recent paths, and Media Inspector', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = {
+      api: {
+        run_module: async () => ({ status: 'ok', message: 'Completed!' }),
+        inspect_media: async (path) => ({
+          exists: true,
+          is_dir: false,
+          name: path.split('/').pop(),
+          container: 'Matroska',
+          has_attachments: true,
+          tracks: [
+            { id: 0, type: 'video', codec: 'HEVC', language: 'jpn', name: '', default_track: true, forced_track: false },
+            { id: 1, type: 'audio', codec: 'AAC', language: 'jpn', name: 'Japanese', default_track: true, forced_track: false },
+            { id: 2, type: 'audio', codec: 'AAC', language: 'eng', name: 'English', default_track: false, forced_track: false },
+          ],
+        }),
+      },
+    };
+  });
+
+  // Fill target path with an MKV file to trigger Media Inspector and save recent path on run
+  const targetInput = page.getByRole('textbox', { name: 'Video File or Folder', exact: true });
+  await targetInput.fill('/media/Episode_01.mkv');
+
+  const inspector = page.getByTestId('media-inspector');
+  await expect(inspector).toBeVisible();
+  await expect(inspector).toContainText('Video: HEVC');
+  await expect(inspector).toContainText('Audio (2): JPN, ENG');
+
+  // Run module so '/media/Episode_01.mkv' is recorded in recent paths
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  await page.getByTestId('completion-toast').getByRole('button', { name: 'OK', exact: true }).click();
+
+  // Open Recent paths dropdown
+  const recentBtn = page.getByRole('button', { name: 'Recent paths for Video File or Folder' });
+  await expect(recentBtn).toBeVisible();
+  await recentBtn.click();
+  await expect(page.getByRole('menuitem', { name: '/media/Episode_01.mkv' })).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Clear recent paths' }).click();
+
+  // Open terminal and test search + expand + clear logs
+  await append(page, '[INFO] Syncing Episode_01.mkv\n[WARN] Slight drift detected\n');
+  await page.getByRole('button', { name: 'Show Terminal' }).click();
+
+  const searchInput = page.getByRole('textbox', { name: 'Search terminal logs' });
+  await searchInput.fill('drift');
+  await expect(page.getByText('1 match')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clear log search' }).click();
+  await page.getByRole('button', { name: 'Toggle expanded terminal' }).click();
+  await page.getByRole('button', { name: 'Clear Logs' }).click();
+  await expect(page.getByRole('log')).toHaveText('');
+});
 
 

@@ -106,4 +106,15 @@ export const desktopBridge = {
       return await invoke('show_in_folder', { path });
     }
   },
+
+  async inspectMedia(path) {
+    const mock = getMockApi();
+    if (mock && mock.inspect_media) {
+      return await mock.inspect_media(path);
+    }
+    if (hasTauri() && typeof window.__TAURI_INTERNALS__?.transformCallback === 'function') {
+      return await invoke('inspect_media', { path });
+    }
+    return null;
+  },
 };

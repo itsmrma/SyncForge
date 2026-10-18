@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Typography,
   FormControlLabel,
@@ -20,7 +20,41 @@ import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
 import NotificationsActiveOutlined from '@mui/icons-material/NotificationsActiveOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import TuneOutlined from '@mui/icons-material/TuneOutlined';
+import KeyboardOutlined from '@mui/icons-material/KeyboardOutlined';
 import { desktopBridge } from '../bridge';
+
+const SHORTCUT_GROUPS = [
+  {
+    category: 'Execution & Task Control',
+    color: '#34D399',
+    items: [
+      { label: 'Launch Active Module', keys: ['Ctrl', 'Enter'] },
+      { label: 'Repeat Last Run', keys: ['Ctrl', 'Shift', 'R'] },
+      { label: 'Close Active Dialog / Cancel Prompt', keys: ['Esc'] },
+    ],
+  },
+  {
+    category: 'Workspace & Diagnostics',
+    color: '#38BDF8',
+    items: [
+      { label: 'Toggle Developer Terminal', keys: ['Ctrl', 'L'] },
+      { label: 'Open / Close Settings', keys: ['Ctrl', ','] },
+    ],
+  },
+  {
+    category: 'Quick Module Switching',
+    color: '#818CF8',
+    items: [
+      { label: 'Stream Manager', keys: ['Ctrl', '1'] },
+      { label: 'Set Default & Forced', keys: ['Ctrl', '2'] },
+      { label: 'Sync External Subtitles', keys: ['Ctrl', '3'] },
+      { label: 'Sync Subs from MKV', keys: ['Ctrl', '4'] },
+      { label: 'WaveSync Injection', keys: ['Ctrl', '5'] },
+      { label: 'Custom Track Merge', keys: ['Ctrl', '6'] },
+    ],
+  },
+];
 
 export default function SettingsDialog({
   open,
@@ -29,6 +63,7 @@ export default function SettingsDialog({
   settings,
   onChange,
 }) {
+  const [activeTab, setActiveTab] = useState('general');
   const modId = selectedMod?.id;
   const isAudioSyncApplicable = modId === 'injection';
   const isSubSyncApplicable = ['injection', 'sync_subs', 'sync_subs_mkv'].includes(modId);
@@ -38,7 +73,10 @@ export default function SettingsDialog({
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        setActiveTab('general');
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -137,7 +175,7 @@ export default function SettingsDialog({
                 Settings
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-                Global preferences and module transcoding rules
+                Global preferences, module transcoding rules, and keyboard shortcuts
               </Typography>
             </Box>
           </Box>
@@ -151,8 +189,59 @@ export default function SettingsDialog({
           </IconButton>
         </Box>
 
+        {/* Page Navigation Bar */}
+        <Box
+          role="tablist"
+          aria-label="Settings pages"
+          sx={{
+            display: 'flex',
+            gap: 1,
+            px: 3,
+            py: 1.25,
+            borderBottom: '1px solid rgba(148, 163, 184, 0.10)',
+            bgcolor: 'rgba(7, 10, 16, 0.45)',
+          }}
+        >
+          <Button
+            role="tab"
+            aria-selected={activeTab === 'general'}
+            size="small"
+            variant={activeTab === 'general' ? 'contained' : 'outlined'}
+            startIcon={<TuneOutlined fontSize="small" />}
+            onClick={() => setActiveTab('general')}
+            sx={{
+              borderRadius: 1.75,
+              px: 2,
+              py: 0.6,
+              fontSize: '0.8rem',
+              fontWeight: 700,
+            }}
+          >
+            General
+          </Button>
+          <Button
+            role="tab"
+            aria-selected={activeTab === 'shortcuts'}
+            size="small"
+            variant={activeTab === 'shortcuts' ? 'contained' : 'outlined'}
+            startIcon={<KeyboardOutlined fontSize="small" />}
+            onClick={() => setActiveTab('shortcuts')}
+            sx={{
+              borderRadius: 1.75,
+              px: 2,
+              py: 0.6,
+              fontSize: '0.8rem',
+              fontWeight: 700,
+            }}
+          >
+            Keyboard Shortcuts
+          </Button>
+        </Box>
+
         {/* Content */}
         <Box sx={{ p: 3, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {activeTab === 'general' ? (
+          <>
         {/* Section 1: Audio & Transcoding */}
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -459,6 +548,101 @@ export default function SettingsDialog({
             SyncForge automatically detects MKVToolNix (<code style={{ color: '#E2E8F0' }}>mkvmerge</code>, <code style={{ color: '#E2E8F0' }}>mkvextract</code>, <code style={{ color: '#E2E8F0' }}>mkvpropedit</code>), FFmpeg (<code style={{ color: '#E2E8F0' }}>ffmpeg</code>), and ffsubsync (<code style={{ color: '#E2E8F0' }}>ffsubsync</code>). You can install them system-wide or simply place their executables directly in the application folder (or a <code style={{ color: '#E2E8F0' }}>tools/</code> or <code style={{ color: '#E2E8F0' }}>bin/</code> subfolder) for full portability without installing anything.
           </Typography>
         </Box>
+          </>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }} data-testid="shortcuts-page">
+            {SHORTCUT_GROUPS.map((group) => (
+              <Box key={group.category}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+                  <KeyboardOutlined sx={{ color: group.color, fontSize: 18 }} />
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={700}
+                    sx={{
+                      color: group.color,
+                      fontSize: '0.80rem',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {group.category}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.75,
+                    bgcolor: 'rgba(11, 15, 24, 0.7)',
+                    border: '1px solid rgba(148, 163, 184, 0.12)',
+                    borderRadius: 2,
+                    p: 1.25,
+                  }}
+                >
+                  {group.items.map((item) => (
+                    <Box
+                      key={item.label}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        py: 0.6,
+                        px: 1,
+                        borderRadius: 1.25,
+                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.025)' },
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '0.84rem', color: 'text.primary', fontWeight: 500 }}>
+                        {item.label}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                        {item.keys.map((key, kIdx) => (
+                          <Box
+                            component="kbd"
+                            key={kIdx}
+                            sx={{
+                              px: 1,
+                              py: 0.3,
+                              minWidth: 28,
+                              textAlign: 'center',
+                              fontFamily: 'monospace',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              color: '#E2E8F0',
+                              bgcolor: '#161E2E',
+                              border: '1px solid rgba(148, 163, 184, 0.28)',
+                              borderBottomWidth: '2px',
+                              borderRadius: 1,
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                            }}
+                          >
+                            {key}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            ))}
+            <Box
+              sx={{
+                p: 1.25,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(99, 102, 241, 0.06)',
+                border: '1px solid rgba(99, 102, 241, 0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <InfoOutlined sx={{ color: '#818CF8', fontSize: 16, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '0.73rem', color: 'text.secondary' }}>
+                On macOS, you can use <code style={{ color: '#E2E8F0' }}>Cmd</code> in place of <code style={{ color: '#E2E8F0' }}>Ctrl</code> for all global shortcuts.
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {/* Footer / Actions */}
