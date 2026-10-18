@@ -39,8 +39,8 @@ dist/
 *.spec
 *.zip
 
-# Graphify cache / temp files
-graphify-out/cache/
+# Graphify
+graphify-out/
 .graphify_*
 
 # Local editor and operating-system files
