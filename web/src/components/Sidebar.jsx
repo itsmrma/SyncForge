@@ -39,6 +39,7 @@ export default function Sidebar({
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
+  const rafId = useRef(null);
 
   const settingsOpen =
     controlledSettingsOpen !== undefined
@@ -52,12 +53,17 @@ export default function Sidebar({
 
   useEffect(() => {
     const move = (event) => {
-      if (dragging.current) setWidth(Math.min(Math.max(event.clientX, 250), 600));
+      if (!dragging.current) return;
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(() => {
+        setWidth(Math.min(Math.max(event.clientX, 240), 600));
+      });
     };
     const stop = () => {
       if (!dragging.current) return;
       dragging.current = false;
       setIsDragging(false);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -85,9 +91,9 @@ export default function Sidebar({
           boxShadow: collapsed ? 'inset -1px 0 0 rgba(148, 163, 184, 0.10)' : 'none',
           display: 'flex',
           flexDirection: 'column',
-          userSelect: 'none',
+          userSelect: isDragging ? 'none' : 'auto',
           overflowX: 'hidden',
-          transition: isDragging ? 'none' : 'width 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: isDragging ? 'none !important' : 'width 180ms cubic-bezier(0.4, 0, 0.2, 1)',
           willChange: isDragging ? 'auto' : 'width',
         }}
       >
@@ -135,11 +141,15 @@ export default function Sidebar({
             {!collapsed && (
               <Box
                 sx={{
-                  minWidth: 120,
+                  minWidth: 0,
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                   opacity: collapsed ? 0 : 1,
-                  transition: isDragging ? 'none' : 'opacity 140ms ease',
+                  transition: isDragging
+                    ? 'none'
+                    : collapsed
+                    ? 'opacity 60ms ease'
+                    : 'opacity 120ms ease 120ms',
                 }}
               >
                 <Typography variant="h5" fontWeight="800" noWrap>
@@ -233,11 +243,15 @@ export default function Sidebar({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         flex: 1,
-                        minWidth: 210,
+                        minWidth: 0,
                         overflow: 'hidden',
                         whiteSpace: 'nowrap',
                         opacity: collapsed ? 0 : 1,
-                        transition: isDragging ? 'none' : 'opacity 140ms ease',
+                        transition: isDragging
+                          ? 'none'
+                          : collapsed
+                          ? 'opacity 60ms ease'
+                          : 'opacity 120ms ease 120ms',
                         pointerEvents: collapsed ? 'none' : 'auto',
                       }}
                     >
@@ -249,13 +263,18 @@ export default function Sidebar({
                           color: active ? 'text.primary' : 'text.secondary',
                           noWrap: true,
                         }}
-                        sx={{ my: 0 }}
+                        sx={{
+                          my: 0,
+                          minWidth: 0,
+                          flex: '1 1 auto',
+                          overflow: 'hidden',
+                        }}
                       />
                       {compactHint && (
                         <Typography
                           variant="caption"
                           sx={{
-                            ml: 1,
+                            ml: 1.5,
                             fontFamily: 'monospace',
                             fontSize: '0.66rem',
                             color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
@@ -317,9 +336,13 @@ export default function Sidebar({
                 <Box
                   component="span"
                   sx={{
-                    minWidth: 90,
+                    minWidth: 0,
                     opacity: collapsed ? 0 : 1,
-                    transition: isDragging ? 'none' : 'opacity 140ms ease',
+                    transition: isDragging
+                      ? 'none'
+                      : collapsed
+                      ? 'opacity 60ms ease'
+                      : 'opacity 120ms ease 120ms',
                     display: collapsed ? 'none' : 'inline-block',
                     overflow: 'hidden',
                     whiteSpace: 'nowrap',
@@ -388,11 +411,15 @@ export default function Sidebar({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flex: 1,
-                  minWidth: 170,
+                  minWidth: 0,
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                   opacity: collapsed ? 0 : 1,
-                  transition: isDragging ? 'none' : 'opacity 140ms ease',
+                  transition: isDragging
+                    ? 'none'
+                    : collapsed
+                    ? 'opacity 60ms ease'
+                    : 'opacity 120ms ease 120ms',
                 }}
               >
                 <span>Settings</span>
@@ -401,10 +428,12 @@ export default function Sidebar({
                     component="span"
                     variant="caption"
                     sx={{
+                      ml: 1.5,
                       fontFamily: 'monospace',
                       fontSize: '0.66rem',
                       color: 'rgba(148, 163, 184, 0.55)',
                       fontWeight: 700,
+                      flexShrink: 0,
                     }}
                   >
                     {formatCompactShortcut(settingsCombo)}
@@ -433,6 +462,7 @@ export default function Sidebar({
           aria-orientation="vertical"
           onMouseDown={() => {
             dragging.current = true;
+            setIsDragging(true);
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
           }}
@@ -440,8 +470,8 @@ export default function Sidebar({
             width: 4,
             flexShrink: 0,
             cursor: 'col-resize',
-            bgcolor: 'rgba(148, 163, 184, 0.08)',
-            transition: 'background-color 0.15s ease',
+            bgcolor: isDragging ? 'primary.main' : 'rgba(148, 163, 184, 0.08)',
+            transition: isDragging ? 'none' : 'background-color 0.15s ease',
             '&:hover': { bgcolor: 'primary.main' },
             zIndex: 10,
           }}
