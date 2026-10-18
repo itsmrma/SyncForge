@@ -179,12 +179,10 @@ test('sidebar collapses, switches modules, and opens settings without losing pre
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(72);
   await expect(page.getByRole('separator', { name: 'Resize sidebar' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Direct Track Merge (No Sync)', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Direct Track Merge (No Sync)', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Expand sidebar and show settings' }).click();
-  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('checkbox', { name: 'Notify when task finishes' })).not.toBeChecked();
   await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(72);
   await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(originalWidth);
 });

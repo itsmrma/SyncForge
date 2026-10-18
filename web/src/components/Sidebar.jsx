@@ -35,7 +35,7 @@ export default function Sidebar({
   onShortcutsChange,
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [width, setWidth] = useState(300);
+  const [width, setWidth] = useState(320);
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
@@ -230,7 +230,7 @@ export default function Sidebar({
                   >
                     <ListItemIcon
                       sx={{
-                        minWidth: 36,
+                        minWidth: 32,
                         flexShrink: 0,
                         color: active ? '#818CF8' : 'text.secondary',
                       }}
@@ -259,7 +259,7 @@ export default function Sidebar({
                         primary={module.title}
                         primaryTypographyProps={{
                           fontWeight: active ? 700 : 500,
-                          fontSize: '0.88rem',
+                          fontSize: '0.84rem',
                           color: active ? 'text.primary' : 'text.secondary',
                           noWrap: true,
                         }}
@@ -299,8 +299,10 @@ export default function Sidebar({
             pt: 1.5,
             pb: 2,
             borderTop: '1px solid rgba(148, 163, 184, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.25,
             overflow: 'hidden',
-            whiteSpace: 'nowrap',
           }}
         >
           <Tooltip
@@ -313,7 +315,7 @@ export default function Sidebar({
             }
             placement="right"
           >
-            <span>
+            <Box sx={{ width: '100%' }}>
               <Button
                 aria-label="Repeat Last"
                 variant="outlined"
@@ -321,7 +323,6 @@ export default function Sidebar({
                 disabled={running || !hasRun}
                 fullWidth
                 sx={{
-                  mb: 1.5,
                   borderRadius: 1.75,
                   fontWeight: 700,
                   minWidth: 0,
@@ -351,7 +352,7 @@ export default function Sidebar({
                   Repeat Last
                 </Box>
               </Button>
-            </span>
+            </Box>
           </Tooltip>
           {collapsed ? (
             <Tooltip
@@ -359,9 +360,8 @@ export default function Sidebar({
               placement="right"
             >
               <IconButton
-                aria-label="Expand sidebar and show settings"
+                aria-label="Settings"
                 onClick={() => {
-                  setCollapsed(false);
                   onSettingsTabChange?.('general');
                   setSettingsOpen(true);
                 }}
