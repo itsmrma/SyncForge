@@ -218,13 +218,21 @@ function SettingToggleRow({
       sx={(theme) => ({
         borderBottom: divider ? '1px solid' : 'none',
         borderColor: 'divider',
-        transition: 'background-color 0.12s ease',
+        transition: 'background-color 0.1s ease',
+        userSelect: 'none',
         '&:hover': {
           bgcolor: disabled
             ? 'transparent'
             : theme.palette.mode === 'light'
-            ? 'rgba(15, 23, 42, 0.02)'
-            : 'rgba(255, 255, 255, 0.02)',
+            ? 'rgba(15, 23, 42, 0.03)'
+            : 'rgba(255, 255, 255, 0.03)',
+        },
+        '&:active': {
+          bgcolor: disabled
+            ? 'transparent'
+            : theme.palette.mode === 'light'
+            ? 'rgba(15, 23, 42, 0.06)'
+            : 'rgba(255, 255, 255, 0.06)',
         },
       })}
     >
@@ -234,17 +242,16 @@ function SettingToggleRow({
         control={
           <Checkbox
             size="small"
-            disableRipple
             checked={Boolean(checked)}
-            onChange={(e) => onChange(e.target.checked)}
+            onChange={(e) => {
+              if (!disabled && onChange) {
+                onChange(e.target.checked);
+              }
+            }}
             disabled={disabled}
             sx={{
               p: 0.75,
               color: 'text.secondary',
-              transition: 'none !important',
-              '& .MuiSvgIcon-root': {
-                transition: 'none !important',
-              },
               '&.Mui-checked': {
                 color: 'primary.main',
               },
@@ -289,6 +296,7 @@ function SettingToggleRow({
           px: 2.25,
           py: 1.25,
           cursor: disabled ? 'default' : 'pointer',
+          userSelect: 'none',
         }}
       />
     </Box>
@@ -974,26 +982,20 @@ export default function SettingsDialog({
                       })}
                     >
                       <FormControlLabel
+                        disabled={settings.opus_mode === 'off'}
                         control={
                           <Checkbox
                             size="small"
-                            disableRipple
                             checked={settings.opus_downmix !== false}
                             onChange={(e) =>
                               onChange({ ...settings, opus_downmix: e.target.checked })
                             }
                             disabled={settings.opus_mode === 'off'}
-                            sx={{
-                              transition: 'none !important',
-                              '& .MuiSvgIcon-root': {
-                                transition: 'none !important',
-                              },
-                            }}
                           />
                         }
                         label={
-                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, userSelect: 'none' }}>
                               Downmix to stereo (2.0)
                             </Typography>
                             <Typography
