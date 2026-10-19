@@ -39,6 +39,7 @@ import { desktopBridge } from './bridge';
 import {
   loadInitialShortcuts,
   matchesShortcut,
+  formatShortcutDisplay,
 } from './shortcuts';
 
 const TOAST_DURATION_MS = 5000;
@@ -49,6 +50,8 @@ const DEFAULT_SETTINGS = {
   auto_audio: true,
   auto_subs: true,
   opus_mode: 'off',
+  opus_bitrate: 128,
+  opus_downmix: true,
   default_output_dir: '',
   notify_on_finish: true,
   sound_on_finish: true,
@@ -1306,7 +1309,7 @@ export default function App() {
                       <Chip
                         size="small"
                         data-testid="launch-shortcut-hint"
-                        label={shortcuts.launch_module}
+                        label={formatShortcutDisplay(shortcuts.launch_module)}
                         sx={{
                           fontFamily: 'monospace',
                           fontSize: '0.70rem',
@@ -1570,9 +1573,9 @@ export default function App() {
                         size="small"
                         label={`Opus: ${
                           settings.opus_mode === 'always'
-                            ? 'Always'
+                            ? `Always (${settings.opus_bitrate || 128}k${settings.opus_downmix === false ? ' multi' : ' 2.0'})`
                             : settings.opus_mode === 'prompt'
-                              ? 'Prompt'
+                              ? `Prompt (${settings.opus_bitrate || 128}k${settings.opus_downmix === false ? ' multi' : ' 2.0'})`
                               : 'Off'
                         }`}
                         sx={{
@@ -1739,7 +1742,7 @@ export default function App() {
                               color: sc.combo ? '#E2E8F0' : 'text.disabled',
                             }}
                           >
-                            {sc.combo || '—'}
+                            {formatShortcutDisplay(sc.combo) || '—'}
                           </Typography>
                         </Box>
                       ))}

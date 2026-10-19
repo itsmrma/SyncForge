@@ -101,15 +101,34 @@ export function matchesShortcut(e, comboStr) {
   return pressed.toLowerCase() === comboStr.toLowerCase();
 }
 
+export const isMac =
+  (typeof navigator !== 'undefined' &&
+    (/Macintosh|Mac OS X|MacPPC|MacIntel/.test(navigator.userAgent) ||
+      Boolean(navigator.platform && navigator.platform.includes('Mac')))) ||
+  (typeof process !== 'undefined' && process.platform === 'darwin');
+
 export function splitShortcutKeys(comboStr) {
   if (!comboStr) return [];
-  return comboStr.split('+').filter(Boolean);
+  const keys = comboStr.split('+').filter(Boolean);
+  if (isMac) {
+    return keys.map((k) => (k.toLowerCase() === 'ctrl' ? '⌘' : k));
+  }
+  return keys;
 }
 
 export function formatCompactShortcut(comboStr) {
   if (!comboStr) return '';
+  const ctrlSymbol = isMac ? '⌘' : '^';
   return comboStr
-    .replace(/^Ctrl\+/i, '^')
+    .replace(/^Ctrl\+/i, ctrlSymbol)
     .replace(/Shift\+/i, '⇧')
     .replace(/Alt\+/i, '⌥');
+}
+
+export function formatShortcutDisplay(comboStr) {
+  if (!comboStr) return '';
+  if (isMac) {
+    return comboStr.replace(/\bCtrl\b/gi, '⌘');
+  }
+  return comboStr;
 }

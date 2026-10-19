@@ -852,6 +852,19 @@ impl Api {
                 }
             });
 
+        let opus_bitrate = settings
+            .get("opus_bitrate")
+            .and_then(|v| {
+                v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse::<u64>().ok()))
+            })
+            .map(|v| v as u32)
+            .unwrap_or(128);
+
+        let opus_downmix = settings
+            .get("opus_downmix")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
         let default_output_dir = settings
             .get("default_output_dir")
             .and_then(|v| v.as_str())
@@ -864,6 +877,8 @@ impl Api {
             auto_sync_audio: auto_audio,
             auto_sync_subs: auto_subs,
             opus_mode,
+            opus_bitrate,
+            opus_downmix,
             default_output_dir: default_output_dir.clone(),
         });
 

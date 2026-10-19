@@ -857,10 +857,10 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                   </Box>
                   <Box>
                     <Typography variant="subtitle1" fontWeight={700}>
-                      Audio Re-encoding: Opus Stereo 128 kbps
+                      Audio Re-encoding: Opus
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Re-encodes kept audio tracks with libopus (stereo VBR). Video and subtitles remain 100% untouched and lossless.
+                      Re-encodes kept audio tracks with libopus (VBR). Video and subtitles remain 100% untouched and lossless.
                     </Typography>
                   </Box>
                 </Box>

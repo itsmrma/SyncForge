@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { formatCompactShortcut, formatShortcutDisplay, splitShortcutKeys } from '../src/shortcuts.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -897,3 +898,61 @@ test('v3.2 QoL: Shortcut remapping, conflict resolution dialog, edited pencil in
 
   await settingsModal.getByRole('button', { name: 'Done' }).click();
 });
+
+test('Opus bitrate, downmix settings, and Mac shortcut formatting', async ({ page }) => {
+  await page.goto('/');
+
+  // 1. Open Settings modal and verify Opus controls
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
+
+  // Opus encoding dropdown
+  const opusSelect = settingsModal.getByRole('combobox', { name: /Opus Audio Encoding/i });
+  await expect(opusSelect).toBeVisible();
+  await opusSelect.click();
+  await page.getByRole('option', { name: /Always convert to Opus/i }).click();
+
+  // Opus bitrate input
+  const bitrateInput = settingsModal.getByRole('spinbutton', { name: /Opus Bitrate/i });
+  await expect(bitrateInput).toBeVisible();
+  await bitrateInput.fill('256');
+
+  // Opus downmix checkbox
+  const downmixCheckbox = settingsModal.getByRole('checkbox', { name: /Downmix to stereo/i });
+  await expect(downmixCheckbox).toBeVisible();
+  await expect(downmixCheckbox).toBeChecked();
+  await downmixCheckbox.uncheck();
+  await expect(downmixCheckbox).not.toBeChecked();
+
+  // Close Settings modal
+  await settingsModal.getByRole('button', { name: 'Done' }).click();
+  await expect(settingsModal).not.toBeVisible();
+
+  // 2. Verify footer chip reflects updated bitrate and downmix mode
+  const footerOpusChip = page.getByText(/Opus: Always \(256k multi\)/i);
+  await expect(footerOpusChip).toBeVisible();
+
+  // 3. Test Mac shortcut formatting helper
+  const isMac = process.platform === 'darwin';
+  const compact = formatCompactShortcut('Ctrl+1');
+  const display = formatShortcutDisplay('Ctrl+Enter');
+  const split = splitShortcutKeys('Ctrl+Shift+R');
+
+  if (isMac) {
+    expect(compact).toBe('⌘1');
+    expect(display).toBe('⌘+Enter');
+    expect(split).toContain('⌘');
+  } else {
+    expect(compact).toBe('^1');
+  }
+
+  // 4. Test Sidebar responsive typography
+  const sidebar = page.getByRole('complementary', { name: 'Modules and settings' });
+  await expect(sidebar).toBeVisible();
+  const moduleText = sidebar.getByText('Waveform Audio Sync & Merge');
+  await expect(moduleText).toBeVisible();
+  const fontSize = await moduleText.evaluate((el) => window.getComputedStyle(el).fontSize);
+  expect(parseFloat(fontSize)).toBeGreaterThan(0);
+});
+

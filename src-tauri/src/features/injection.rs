@@ -78,8 +78,17 @@ pub fn run_injection() -> Result<(), TaskError> {
             log_line("      Apply Opus conversion to injected audio? y [from global settings]");
             do_opus_audio = true;
         } else if cfg.opus_mode == "prompt" {
+            let prompt_text = format!(
+                "Convert injected audio to Opus ({}k, {})?",
+                cfg.opus_bitrate,
+                if cfg.opus_downmix {
+                    "stereo downmix"
+                } else {
+                    "preserve channels"
+                }
+            );
             do_opus_audio = ask_user(
-                "Convert injected audio to Opus stereo 128kbps?",
+                &prompt_text,
                 confirm_opts.clone(),
             )?
             .to_lowercase()

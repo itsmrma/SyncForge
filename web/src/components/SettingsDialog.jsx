@@ -33,6 +33,7 @@ import {
   ALL_SHORTCUT_ITEMS,
   formatEventToShortcut,
   splitShortcutKeys,
+  formatShortcutDisplay,
 } from '../shortcuts';
 
 export default function SettingsDialog({
@@ -384,10 +385,10 @@ export default function SettingsDialog({
                       select
                       size="small"
                       fullWidth
-                      label="Opus Audio Encoding (128 kbps stereo)"
+                      label="Opus Audio Encoding"
                       value={settings.opus_mode || 'off'}
                       onChange={(e) => onChange({ ...settings, opus_mode: e.target.value })}
-                      helperText="Re-encode kept and merged audio tracks to stereo Opus 128k to save space (applied to audio muxing modes)"
+                      helperText="Re-encode kept and merged audio tracks to Opus to save space (applied to audio muxing modes)"
                       sx={{
                         '& .MuiFormHelperText-root': {
                           color: 'text.secondary',
@@ -397,8 +398,60 @@ export default function SettingsDialog({
                     >
                       <MenuItem value="off">Disabled (Keep original audio lossless)</MenuItem>
                       <MenuItem value="prompt">Ask per batch (Interactive prompt with preview)</MenuItem>
-                      <MenuItem value="always">Always convert (Opus 128k stereo)</MenuItem>
+                      <MenuItem value="always">Always convert to Opus</MenuItem>
                     </TextField>
+                  </Box>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                    <TextField
+                      type="number"
+                      size="small"
+                      label="Opus Bitrate (kbps)"
+                      value={settings.opus_bitrate ?? 128}
+                      onChange={(e) => {
+                        const val = Math.max(32, Math.min(512, Number(e.target.value) || 128));
+                        onChange({ ...settings, opus_bitrate: val });
+                      }}
+                      inputProps={{ min: 32, max: 512, step: 16 }}
+                      helperText="e.g. 128k for stereo, 192k–320k for 5.1 surround"
+                      disabled={settings.opus_mode === 'off'}
+                      sx={{
+                        '& .MuiFormHelperText-root': {
+                          color: 'text.secondary',
+                          fontSize: '0.70rem',
+                        },
+                      }}
+                    />
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={settings.opus_downmix !== false}
+                            onChange={(e) =>
+                              onChange({ ...settings, opus_downmix: e.target.checked })
+                            }
+                            disabled={settings.opus_mode === 'off'}
+                          />
+                        }
+                        label={
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography fontSize="0.82rem">Downmix to stereo (2.0)</Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.70rem',
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              Uncheck to preserve original channels (e.g. 5.1 / 7.1)
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ width: '100%', mr: 0 }}
+                      />
+                    </Box>
                   </Box>
 
                   <Box component="span" sx={{ display: 'block' }}>
@@ -838,7 +891,7 @@ export default function SettingsDialog({
                             </Typography>
                             {isModified && (
                               <Tooltip
-                                title={`Modified (Default: ${DEFAULT_SHORTCUTS[item.id]})`}
+                                title={`Modified (Default: ${formatShortcutDisplay(DEFAULT_SHORTCUTS[item.id])})`}
                                 arrow
                               >
                                 <Box
@@ -957,7 +1010,7 @@ export default function SettingsDialog({
               >
                 <InfoOutlined sx={{ color: '#818CF8', fontSize: 16, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.73rem', color: 'text.secondary' }}>
-                  On macOS, you can use <code style={{ color: '#E2E8F0' }}>Cmd</code> in place of{' '}
+                  On macOS, you can use <code style={{ color: '#E2E8F0' }}>Cmd (⌘)</code> in place of{' '}
                   <code style={{ color: '#E2E8F0' }}>Ctrl</code> for all global shortcuts.
                 </Typography>
               </Box>

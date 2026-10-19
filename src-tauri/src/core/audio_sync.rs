@@ -188,11 +188,19 @@ pub fn convert_audio_track_to_opus(
         .to_string_lossy()
         .to_string();
 
+    let cfg = crate::core::config::get_config();
+    let bitrate_str = format!("{}k", cfg.opus_bitrate);
+    let downmix_label = if cfg.opus_downmix {
+        "stereo downmix"
+    } else {
+        "preserve channels"
+    };
+
     log_line(&format!(
-        "   🎵 Opus conversion for: {} (Track ID {})",
-        filename, track_id
+        "   🎵 Opus conversion for: {} (Track ID {}, {}k, {})",
+        filename, track_id, cfg.opus_bitrate, downmix_label
     ));
-    let ff_cmd = vec![
+    let mut ff_cmd = vec![
         "ffmpeg".to_string(),
         "-y".to_string(),
         "-i".to_string(),
@@ -202,15 +210,17 @@ pub fn convert_audio_track_to_opus(
         "-c:a".to_string(),
         "libopus".to_string(),
         "-b:a".to_string(),
-        "128k".to_string(),
+        bitrate_str,
         "-vbr".to_string(),
         "on".to_string(),
         "-compression_level".to_string(),
         "10".to_string(),
-        "-ac".to_string(),
-        "2".to_string(),
-        temp_opus.clone(),
     ];
+    if cfg.opus_downmix {
+        ff_cmd.push("-ac".to_string());
+        ff_cmd.push("2".to_string());
+    }
+    ff_cmd.push(temp_opus.clone());
     run_subprocess(&ff_cmd, Some(out_dir))?;
     Ok(temp_opus)
 }
@@ -224,8 +234,20 @@ pub fn convert_audio_file_to_opus(
         .join("temp_audio_opus.opus")
         .to_string_lossy()
         .to_string();
-    log_line("   🎵 Converting audio to Opus stereo 128kbps...");
-    let ff_cmd = vec![
+
+    let cfg = crate::core::config::get_config();
+    let bitrate_str = format!("{}k", cfg.opus_bitrate);
+    let downmix_label = if cfg.opus_downmix {
+        "stereo downmix"
+    } else {
+        "preserve channels"
+    };
+
+    log_line(&format!(
+        "   🎵 Converting audio to Opus ({}k, {})...",
+        cfg.opus_bitrate, downmix_label
+    ));
+    let mut ff_cmd = vec![
         "ffmpeg".to_string(),
         "-y".to_string(),
         "-i".to_string(),
@@ -233,15 +255,17 @@ pub fn convert_audio_file_to_opus(
         "-c:a".to_string(),
         "libopus".to_string(),
         "-b:a".to_string(),
-        "128k".to_string(),
+        bitrate_str,
         "-vbr".to_string(),
         "on".to_string(),
         "-compression_level".to_string(),
         "10".to_string(),
-        "-ac".to_string(),
-        "2".to_string(),
-        temp_opus.clone(),
     ];
+    if cfg.opus_downmix {
+        ff_cmd.push("-ac".to_string());
+        ff_cmd.push("2".to_string());
+    }
+    ff_cmd.push(temp_opus.clone());
     run_subprocess(&ff_cmd, Some(out_dir))?;
     Ok(temp_opus)
 }

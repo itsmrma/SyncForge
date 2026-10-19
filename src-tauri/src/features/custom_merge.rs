@@ -241,8 +241,17 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 log_line("   🎵 Opus conversion enabled [from global settings]");
                 do_opus = true;
             } else if cfg.opus_mode == "prompt" {
+                let prompt_text = format!(
+                    "Convert merged audio tracks to Opus ({}k, {})?",
+                    cfg.opus_bitrate,
+                    if cfg.opus_downmix {
+                        "stereo downmix"
+                    } else {
+                        "preserve channels"
+                    }
+                );
                 let conv_ans = ask_user(
-                    "Convert merged audio tracks to Opus stereo 128kbps?",
+                    &prompt_text,
                     AskOptions {
                         tracks: kept_audio_tracks.clone(),
                         kind: "confirm".to_string(),

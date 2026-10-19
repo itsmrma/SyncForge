@@ -11,6 +11,8 @@ pub struct RuntimeConfig {
     pub auto_sync_audio: bool,
     pub auto_sync_subs: bool,
     pub opus_mode: String,
+    pub opus_bitrate: u32,
+    pub opus_downmix: bool,
     pub default_output_dir: Option<String>,
 }
 
@@ -22,6 +24,8 @@ impl Default for RuntimeConfig {
             auto_sync_audio: true,
             auto_sync_subs: true,
             opus_mode: "off".to_string(),
+            opus_bitrate: 128,
+            opus_downmix: true,
             default_output_dir: None,
         }
     }
@@ -33,6 +37,8 @@ static CONFIG: RwLock<RuntimeConfig> = RwLock::new(RuntimeConfig {
     auto_sync_audio: true,
     auto_sync_subs: true,
     opus_mode: String::new(),
+    opus_bitrate: 128,
+    opus_downmix: true,
     default_output_dir: None,
 });
 

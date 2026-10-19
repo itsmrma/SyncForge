@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import Settings from '@mui/icons-material/Settings';
 import GraphicEq from '@mui/icons-material/GraphicEq';
 import modules from '../modules';
 import SettingsDialog from './SettingsDialog';
-import { DEFAULT_SHORTCUTS, formatCompactShortcut } from '../shortcuts';
+import { DEFAULT_SHORTCUTS, formatCompactShortcut, formatShortcutDisplay } from '../shortcuts';
 
 export default function Sidebar({
   selectedMod,
@@ -78,6 +78,23 @@ export default function Sidebar({
 
   const repeatCombo = shortcuts?.repeat_last ?? DEFAULT_SHORTCUTS.repeat_last;
   const settingsCombo = shortcuts?.open_settings ?? DEFAULT_SHORTCUTS.open_settings;
+
+  const titleFontSize = useMemo(() => {
+    if (width <= 320) {
+      const progress = (width - 240) / 80;
+      return `${(0.66 + progress * 0.18).toFixed(3)}rem`;
+    }
+    const progress = Math.min((width - 320) / 280, 1);
+    return `${(0.84 + progress * 0.10).toFixed(3)}rem`;
+  }, [width]);
+
+  const buttonFontSize = useMemo(() => {
+    if (width <= 320) {
+      const progress = (width - 240) / 80;
+      return `${(0.76 + progress * 0.08).toFixed(3)}rem`;
+    }
+    return '0.84rem';
+  }, [width]);
 
   return (
     <>
@@ -197,7 +214,7 @@ export default function Sidebar({
                   title={
                     collapsed
                       ? modCombo
-                        ? `${module.title} (${modCombo})`
+                        ? `${module.title} (${formatShortcutDisplay(modCombo)})`
                         : module.title
                       : ''
                   }
@@ -212,7 +229,7 @@ export default function Sidebar({
                       borderRadius: 1.75,
                       mb: 0.6,
                       py: 1,
-                      px: 1.5,
+                      px: width < 280 ? 1 : 1.5,
                       position: 'relative',
                       border: '1px solid',
                       borderColor: active
@@ -230,7 +247,7 @@ export default function Sidebar({
                   >
                     <ListItemIcon
                       sx={{
-                        minWidth: 32,
+                        minWidth: width < 280 ? 28 : 32,
                         flexShrink: 0,
                         color: active ? '#818CF8' : 'text.secondary',
                       }}
@@ -245,7 +262,6 @@ export default function Sidebar({
                         flex: 1,
                         minWidth: 0,
                         overflow: 'hidden',
-                        whiteSpace: 'nowrap',
                         opacity: collapsed ? 0 : 1,
                         transition: isDragging
                           ? 'none'
@@ -259,9 +275,9 @@ export default function Sidebar({
                         primary={module.title}
                         primaryTypographyProps={{
                           fontWeight: active ? 700 : 500,
-                          fontSize: '0.84rem',
+                          fontSize: titleFontSize,
                           color: active ? 'text.primary' : 'text.secondary',
-                          noWrap: true,
+                          lineHeight: 1.25,
                         }}
                         sx={{
                           my: 0,
@@ -274,7 +290,7 @@ export default function Sidebar({
                         <Typography
                           variant="caption"
                           sx={{
-                            ml: 1.5,
+                            ml: width < 280 ? 0.75 : 1.5,
                             fontFamily: 'monospace',
                             fontSize: '0.66rem',
                             color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
@@ -309,9 +325,9 @@ export default function Sidebar({
             title={
               collapsed
                 ? repeatCombo
-                  ? `Repeat Last (${repeatCombo})`
+                  ? `Repeat Last (${formatShortcutDisplay(repeatCombo)})`
                   : 'Repeat Last'
-                : repeatCombo || ''
+                : formatShortcutDisplay(repeatCombo) || ''
             }
             placement="right"
           >
@@ -326,7 +342,7 @@ export default function Sidebar({
                   borderRadius: 1.75,
                   fontWeight: 700,
                   minWidth: 0,
-                  fontSize: '0.84rem',
+                  fontSize: buttonFontSize,
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                   px: 1.5,
@@ -356,7 +372,7 @@ export default function Sidebar({
           </Tooltip>
           {collapsed ? (
             <Tooltip
-              title={settingsCombo ? `Settings (${settingsCombo})` : 'Settings'}
+              title={settingsCombo ? `Settings (${formatShortcutDisplay(settingsCombo)})` : 'Settings'}
               placement="right"
             >
               <IconButton
@@ -389,7 +405,7 @@ export default function Sidebar({
                 borderRadius: 1.75,
                 fontWeight: 700,
                 minWidth: 0,
-                fontSize: '0.84rem',
+                fontSize: buttonFontSize,
                 justifyContent: 'space-between',
                 px: 1.75,
                 py: 0.9,
