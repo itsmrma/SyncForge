@@ -956,3 +956,180 @@ test('Opus bitrate, downmix settings, and Mac shortcut formatting', async ({ pag
   expect(parseFloat(fontSize)).toBeGreaterThan(0);
 });
 
+test('v3.3 Workstation Layout & Clarify: Side-by-side terminal docking, Stream & Telemetry Inspector, and Sub-task CLI transparency', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  // 1. Verify Stream & Telemetry Inspector is visible in the right column
+  const inspector = page.getByTestId('stream-telemetry-inspector');
+  await expect(inspector).toBeVisible();
+  await expect(inspector).toContainText('Stream & Telemetry Inspector');
+
+  // 2. Dock Console to the right column on lg+ viewport
+  const dockBtn = page.getByTestId('dock-terminal-toggle');
+  await expect(dockBtn).toBeVisible();
+  await dockBtn.click();
+
+  const dockedContainer = page.getByTestId('docked-terminal-container');
+  await expect(dockedContainer).toBeVisible();
+  await expect(dockBtn).toContainText('Bottom Drawer');
+
+  // Undock back to bottom drawer via Terminal header button
+  await page.getByRole('button', { name: 'Dock terminal to bottom' }).click();
+  await expect(dockedContainer).not.toBeVisible();
+
+  // Hide terminal via Terminal header button
+  await page.getByRole('button', { name: 'Hide Terminal' }).click();
+
+  // 3. Verify Sub-task CLI transparency indicator & View live console button during running task
+  await page.evaluate(() => {
+    window.__runningPromise = new Promise((resolve) => {
+      window.__resolveRun = resolve;
+    });
+    window.__TAURI_INTERNALS__ = {
+      invoke: async (cmd) => {
+        if (cmd === 'run_module') {
+          window.frontend_api.append_terminal('[ffmpeg] Extracting audio waveform segment...\n');
+          return window.__runningPromise;
+        }
+        return null;
+      },
+    };
+  });
+
+  await page.getByRole('textbox', { name: 'Video File or Folder' }).fill('/tmp/episode01.mkv');
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+
+  const subtaskIndicator = page.getByTestId('subtask-indicator');
+  await expect(subtaskIndicator).toBeVisible();
+  await expect(page.getByTestId('subtask-label')).toContainText('Extracting audio waveform (FFmpeg)...');
+
+  // Update log with RustFFT phase and verify sub-task label updates
+  await page.evaluate(() => {
+    window.frontend_api.append_terminal('[rustfft] Calculating waveform delay...\n');
+  });
+  await expect(page.getByTestId('subtask-label')).toContainText('Calculating FFT cross-correlation delay (RustFFT)...');
+
+  // Click "View live console" quick action
+  await page.getByTestId('view-live-console-btn').click();
+  await expect(page.getByRole('button', { name: 'Hide Terminal' })).toBeVisible();
+
+  // Finish task
+  await page.evaluate(() => {
+    window.__resolveRun({ status: 'ok', message: 'Done' });
+  });
+});
+
+test('v3.3 Polish & Dual-Theme: Inline pre-flight validation and Dark/Light/System theme selector', async ({ page }) => {
+  await page.goto('/');
+
+  // 1. Switch to Waveform Audio Sync & Merge (requires video and sub/source)
+  await page.getByRole('button', { name: /Waveform Audio Sync & Merge/i }).click();
+
+  // Click Launch Module with empty inputs -> should show inline validation instead of modal error dialog
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  await expect(page.getByRole('dialog', { name: 'Task failed' })).not.toBeVisible();
+  await expect(page.getByText(/Target File or Folder \(High Quality\) is required before launching/i)).toBeVisible();
+  await expect(page.getByText(/Source File or Folder \(Audio\/Subs\) is required before launching/i)).toBeVisible();
+
+  // Typing into Target File or Folder immediately clears its inline validation error
+  const targetInput = page.getByRole('textbox', { name: /Target File or Folder/i });
+  await targetInput.fill('/tmp/target.mkv');
+  await expect(page.getByText(/Target File or Folder \(High Quality\) is required before launching/i)).not.toBeVisible();
+
+  // 2. Test Dual-Theme switching (Dark / Light / System) in Settings
+  const appRoot = page.getByTestId('app-root');
+  await expect(appRoot).toHaveAttribute('data-theme-mode', 'dark');
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
+
+  await settingsModal.getByTestId('theme-mode-light').click();
+  await expect(appRoot).toHaveAttribute('data-theme-mode', 'light');
+
+  // Verify Anodized Slate Light background color (#F1F3F7 -> rgb(241, 243, 247))
+  const rootBg = await appRoot.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+  expect(rootBg).toBe('rgb(241, 243, 247)');
+
+  // Switch back to Dark mode
+  await settingsModal.getByTestId('theme-mode-dark').click();
+  await expect(appRoot).toHaveAttribute('data-theme-mode', 'dark');
+  await settingsModal.getByRole('button', { name: 'Done' }).click();
+});
+
+test('v3.3 mpv Sync Preview Dialog: Preview in mpv, audio/subtitle micro-nudge, and Confirm & Mux', async ({ page }) => {
+  await page.goto('/');
+
+  await page.evaluate(() => {
+    window.__mpvCalls = [];
+    window.__resolvedInput = null;
+    window.__TAURI_INTERNALS__ = {
+      invoke: async (cmd, args) => {
+        if (cmd === 'preview_sync_mpv') {
+          window.__mpvCalls.push(args);
+          return 'Launched mpv sync preview';
+        }
+        if (cmd === 'resolve_input') {
+          window.__resolvedInput = args;
+          return null;
+        }
+        return null;
+      },
+    };
+  });
+
+  // Trigger SyncPreviewDialog via frontend_api.ask_sync_preview
+  await page.evaluate(() => {
+    window.frontend_api.ask_sync_preview('cb-mpv-1', {
+      file_name: 'Episode_01.mkv',
+      target_video: '/media/target/Episode_01.mkv',
+      audio_file: '/media/source/Episode_01_ITA.mkv',
+      sub_file: '/media/source/Episode_01.srt',
+      audio_delay_ms: -120,
+      sub_delay_ms: 40,
+      start_time: '00:03:00',
+      window_label: '00:03:00 - 00:06:00',
+      confidence: 'high',
+    });
+  });
+
+  const dialog = page.getByTestId('sync-preview-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId('sync-preview-audio-readout')).toContainText('Audio Delay: -120 ms');
+  await expect(page.getByTestId('sync-preview-sub-readout')).toContainText('Subtitle Offset: +40 ms');
+
+  // Nudge audio by +10ms (-120 -> -110) and subtitle by -25ms (+40 -> +15)
+  await page.getByTestId('nudge-audio-+10').click();
+  await page.getByTestId('nudge-sub--25').click();
+  await expect(page.getByTestId('sync-preview-audio-readout')).toContainText('Audio Delay: -110 ms');
+  await expect(page.getByTestId('sync-preview-sub-readout')).toContainText('Subtitle Offset: +15 ms');
+
+  // Click "Preview in mpv" and verify backend command args
+  await page.getByTestId('preview-in-mpv-btn').click();
+  const mpvCalls = await page.evaluate(() => window.__mpvCalls);
+  expect(mpvCalls.length).toBe(1);
+  expect(mpvCalls[0]).toEqual({
+    target: '/media/target/Episode_01.mkv',
+    audioFile: '/media/source/Episode_01_ITA.mkv',
+    audioDelayMs: -110,
+    subFile: '/media/source/Episode_01.srt',
+    subDelayMs: 15,
+    startTime: '00:03:00',
+  });
+
+  // Click "Confirm & Mux" and verify resolved payload
+  await page.getByTestId('confirm-and-mux-btn').click();
+  await expect(dialog).not.toBeVisible();
+
+  const resolved = await page.evaluate(() => window.__resolvedInput);
+  expect(resolved.callbackId).toBe('cb-mpv-1');
+  const parsed = JSON.parse(resolved.result);
+  expect(parsed).toEqual({
+    action: 'confirm',
+    audio_delay_ms: -110,
+    sub_delay_ms: 15,
+  });
+});
+
+

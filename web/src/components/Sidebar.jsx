@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -19,7 +19,7 @@ import modules from '../modules';
 import SettingsDialog from './SettingsDialog';
 import { DEFAULT_SHORTCUTS, formatCompactShortcut, formatShortcutDisplay } from '../shortcuts';
 
-export default function Sidebar({
+function Sidebar({
   selectedMod,
   onSelect,
   running,
@@ -101,18 +101,18 @@ export default function Sidebar({
       <Box
         component="aside"
         aria-label="Modules and settings"
-        sx={{
+        sx={(theme) => ({
           width: collapsed ? 72 : width,
           flexShrink: 0,
-          bgcolor: '#0D111A',
-          boxShadow: collapsed ? 'inset -1px 0 0 rgba(148, 163, 184, 0.10)' : 'none',
+          bgcolor: theme.palette.mode === 'light' ? '#EAECEF' : '#0D111A',
+          boxShadow: collapsed ? `inset -1px 0 0 ${theme.palette.divider}` : 'none',
           display: 'flex',
           flexDirection: 'column',
           userSelect: isDragging ? 'none' : 'auto',
           overflowX: 'hidden',
           transition: isDragging ? 'none !important' : 'width 180ms cubic-bezier(0.4, 0, 0.2, 1)',
           willChange: isDragging ? 'auto' : 'width',
-        }}
+        })}
       >
         <Box
           sx={{
@@ -123,7 +123,8 @@ export default function Sidebar({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: collapsed ? 1 : 0,
-            borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
             boxSizing: 'border-box',
@@ -144,13 +145,13 @@ export default function Sidebar({
                 width: 32,
                 height: 32,
                 borderRadius: 1.5,
-                background: 'linear-gradient(135deg, #38BDF8 0%, #6366F1 60%, #A855F7 100%)',
+                background: 'linear-gradient(135deg, #38BDF8 0%, #6366F1 60%, #4F46E5 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
                 flexShrink: 0,
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.30)',
               }}
             >
               <GraphicEq fontSize="small" />
@@ -182,7 +183,8 @@ export default function Sidebar({
               onClick={() => setCollapsed((value) => !value)}
               sx={{
                 color: 'text.secondary',
-                border: '1px solid rgba(148, 163, 184, 0.12)',
+                border: '1px solid',
+                borderColor: 'divider',
                 borderRadius: 1.5,
                 flexShrink: 0,
               }}
@@ -249,7 +251,7 @@ export default function Sidebar({
                       sx={{
                         minWidth: width < 280 ? 28 : 32,
                         flexShrink: 0,
-                        color: active ? '#818CF8' : 'text.secondary',
+                        color: active ? 'primary.main' : 'text.secondary',
                       }}
                     >
                       <module.icon fontSize="small" />
@@ -293,7 +295,7 @@ export default function Sidebar({
                             ml: width < 280 ? 0.75 : 1.5,
                             fontFamily: 'monospace',
                             fontSize: '0.66rem',
-                            color: active ? '#A5B4FC' : 'rgba(148, 163, 184, 0.45)',
+                            color: active ? 'primary.main' : 'text.disabled',
                             fontWeight: 600,
                             flexShrink: 0,
                           }}
@@ -314,7 +316,8 @@ export default function Sidebar({
             px: 1.5,
             pt: 1.5,
             pb: 2,
-            borderTop: '1px solid rgba(148, 163, 184, 0.08)',
+            borderTop: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             flexDirection: 'column',
             gap: 1.25,
@@ -385,7 +388,7 @@ export default function Sidebar({
                   display: 'flex',
                   mx: 'auto',
                   color: 'text.secondary',
-                  '&:hover': { color: '#818CF8' },
+                  '&:hover': { color: 'primary.main' },
                 }}
               >
                 <Settings fontSize="small" />
@@ -410,12 +413,12 @@ export default function Sidebar({
                 px: 1.75,
                 py: 0.9,
                 color: 'text.secondary',
-                borderColor: 'rgba(148, 163, 184, 0.16)',
+                borderColor: 'divider',
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
                 '&:hover': {
-                  borderColor: '#818CF8',
-                  color: '#818CF8',
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
                   bgcolor: 'rgba(99, 102, 241, 0.08)',
                 },
               }}
@@ -447,7 +450,7 @@ export default function Sidebar({
                       ml: 1.5,
                       fontFamily: 'monospace',
                       fontSize: '0.66rem',
-                      color: 'rgba(148, 163, 184, 0.55)',
+                      color: 'text.disabled',
                       fontWeight: 700,
                       flexShrink: 0,
                     }}
@@ -486,7 +489,7 @@ export default function Sidebar({
             width: 4,
             flexShrink: 0,
             cursor: 'col-resize',
-            bgcolor: isDragging ? 'primary.main' : 'rgba(148, 163, 184, 0.08)',
+            bgcolor: isDragging ? 'primary.main' : 'divider',
             transition: isDragging ? 'none' : 'background-color 0.15s ease',
             '&:hover': { bgcolor: 'primary.main' },
             zIndex: 10,
@@ -496,3 +499,5 @@ export default function Sidebar({
     </>
   );
 }
+
+export default memo(Sidebar);

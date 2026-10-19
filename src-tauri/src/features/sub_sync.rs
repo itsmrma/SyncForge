@@ -9,8 +9,8 @@ use crate::core::mkv_tools::{
 };
 use crate::core::tasks::TaskError;
 use crate::core::utils::{
-    ask_directory, get_files_recursive, get_track_signature, log_line, match_files, normalize_path,
-    run_subprocess, set_file_progress,
+    ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, match_files,
+    normalize_path, run_subprocess, set_file_progress, AskOptions,
 };
 
 pub fn run_sync_subs() -> Result<(), TaskError> {
@@ -65,6 +65,7 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
         let s_clean = s_clean_buf.to_string_lossy().to_string();
 
         if cfg.auto_sync_subs {
+            log_line("   [ffsubsync] Synchronizing subtitles...");
             let mut cmd_ffsubsync = vec![
                 "ffsubsync".to_string(),
                 v_clean.clone(),
@@ -84,6 +85,46 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
         }
 
         if Path::new(&synced).exists() {
+            let mut sub_delay_ms: i64 = 0;
+            if cfg.preview_mpv {
+                let preview_ctx = serde_json::json!({
+                    "filename": v_name,
+                    "target": v_clean,
+                    "audio_file": serde_json::Value::Null,
+                    "audio_delay_ms": 0,
+                    "sub_file": synced,
+                    "sub_delay_ms": 0,
+                    "start_time": "00:02:00",
+                    "duration": "00:02:00",
+                    "has_audio": false,
+                    "has_sub": true,
+                });
+                let resp = ask_user(
+                    &format!("Verify subtitle sync for {}", v_name),
+                    AskOptions {
+                        tracks: Vec::new(),
+                        kind: "sync_preview".to_string(),
+                        allow_empty: false,
+                        allow_skip: false,
+                        context: Some(preview_ctx.to_string()),
+                        files: vec![v_clean.clone()],
+                    },
+                )?;
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp) {
+                    let action = parsed
+                        .get("action")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("confirm");
+                    if action == "cancel" {
+                        let _ = fs::remove_file(&synced);
+                        return Err(TaskError::Cancelled);
+                    }
+                    if let Some(s_ms) = parsed.get("sub_delay_ms").and_then(|v| v.as_i64()) {
+                        sub_delay_ms = s_ms;
+                    }
+                }
+            }
+
             let name_only = v_clean_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
@@ -91,15 +132,19 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
             let out = normalize_path(&Path::new(&out_folder).join(format!("{}_subbed.mkv", name_only)));
             let out_dir = out.parent().unwrap_or_else(|| Path::new(&out_folder));
 
-            let cmd = vec![
+            log_line("   [mkvmerge] Writing MKV file...");
+            let mut cmd = vec![
                 "mkvmerge".to_string(),
                 "-o".to_string(),
                 out.to_string_lossy().to_string(),
                 v_clean,
                 "--language".to_string(),
                 "0:ita".to_string(),
-                synced.clone(),
             ];
+            if sub_delay_ms != 0 {
+                cmd.extend(["--sync".to_string(), format!("0:{}", sub_delay_ms)]);
+            }
+            cmd.push(synced.clone());
             run_subprocess(&cmd, Some(out_dir))?;
             let _ = fs::remove_file(&synced);
         }
@@ -216,7 +261,10 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
 
             let mut temp_files: Vec<String> = Vec::new();
 
-            log_line(&format!("   📝 Extracting Sub ID {}...", selected_sub_track.id));
+            log_line(&format!(
+                "   [mkvextract] 📝 Extracting Sub ID {}...",
+                selected_sub_track.id
+            ));
             let codec_id = selected_sub_track
                 .properties
                 .as_ref()
@@ -276,7 +324,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
 
             if Path::new(&raw_sub_path).exists() {
                 if can_sync && cfg.auto_sync_subs {
-                    log_line("      [Sync] Running ffsubsync...");
+                    log_line("      [ffsubsync] [Sync] Running ffsubsync...");
                     let mut cmd_ffsubsync = vec![
                         "ffsubsync".to_string(),
                         tgt_clean.clone(),
@@ -306,15 +354,61 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                     log_line("      [Sync] Skipped (disabled in settings). Using original.");
                 }
 
-                let cmd = vec![
+                let mut sub_delay_ms: i64 = 0;
+                if cfg.preview_mpv {
+                    let preview_ctx = serde_json::json!({
+                        "filename": filename,
+                        "target": tgt_clean,
+                        "audio_file": serde_json::Value::Null,
+                        "audio_delay_ms": 0,
+                        "sub_file": final_sub_to_merge,
+                        "sub_delay_ms": 0,
+                        "start_time": "00:02:00",
+                        "duration": "00:02:00",
+                        "has_audio": false,
+                        "has_sub": true,
+                    });
+                    let resp = ask_user(
+                        &format!("Verify subtitle sync for {}", filename),
+                        AskOptions {
+                            tracks: Vec::new(),
+                            kind: "sync_preview".to_string(),
+                            allow_empty: false,
+                            allow_skip: false,
+                            context: Some(preview_ctx.to_string()),
+                            files: vec![tgt_clean.clone()],
+                        },
+                    )?;
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp) {
+                        let action = parsed
+                            .get("action")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("confirm");
+                        if action == "cancel" {
+                            for t in temp_files {
+                                let _ = fs::remove_file(t);
+                            }
+                            return Err(TaskError::Cancelled);
+                        }
+                        if let Some(s_ms) = parsed.get("sub_delay_ms").and_then(|v| v.as_i64()) {
+                            sub_delay_ms = s_ms;
+                        }
+                    }
+                }
+
+                log_line("   [mkvmerge] Writing MKV file...");
+                let mut cmd = vec![
                     "mkvmerge".to_string(),
                     "-o".to_string(),
                     out_file.to_string_lossy().to_string(),
                     tgt_clean,
                     "--language".to_string(),
                     "0:ita".to_string(),
-                    final_sub_to_merge,
                 ];
+                if sub_delay_ms != 0 {
+                    cmd.extend(["--sync".to_string(), format!("0:{}", sub_delay_ms)]);
+                }
+                cmd.push(final_sub_to_merge);
                 let returncode = run_subprocess(&cmd, Some(out_dir))?;
                 if returncode != 0 {
                     log_line("   ❌ ERROR during muxing.");

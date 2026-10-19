@@ -46,7 +46,7 @@ pub fn get_search_directories() -> Vec<PathBuf> {
                 dirs.push(base.clone());
             }
 
-            // Common subdirectories for portable setups: bin, tools, ffmpeg, mkvtoolnix, ffsubsync
+            // Common subdirectories for portable setups: bin, tools, ffmpeg, mkvtoolnix, ffsubsync, mpv
             let common_subs = [
                 "bin",
                 "tools",
@@ -55,6 +55,8 @@ pub fn get_search_directories() -> Vec<PathBuf> {
                 "mkvtoolnix",
                 "MKVToolNix",
                 "ffsubsync",
+                "mpv",
+                "mpv/bin",
             ];
             for sub in &common_subs {
                 let sub_path = base.join(sub);
@@ -460,3 +462,132 @@ pub fn capture_command(
         stderr,
     })
 }
+
+pub fn build_mpv_preview_args(
+    target: &str,
+    audio_file: Option<&str>,
+    audio_delay_ms: Option<i64>,
+    sub_file: Option<&str>,
+    sub_delay_ms: Option<i64>,
+    start_time: Option<&str>,
+) -> Vec<String> {
+    let mut args = vec![target.to_string()];
+
+    if let Some(af) = audio_file.map(str::trim).filter(|s| !s.is_empty()) {
+        args.push(format!("--audio-file={}", af));
+    }
+    if let Some(ad) = audio_delay_ms {
+        args.push(format!("--audio-delay={:.3}", (ad as f64) / 1000.0));
+    }
+    if let Some(sf) = sub_file.map(str::trim).filter(|s| !s.is_empty()) {
+        args.push(format!("--sub-file={}", sf));
+    }
+    if let Some(sd) = sub_delay_ms {
+        args.push(format!("--sub-delay={:.3}", (sd as f64) / 1000.0));
+    }
+    if let Some(st) = start_time.map(str::trim).filter(|s| !s.is_empty()) {
+        args.push(format!("--start={}", st));
+    }
+
+    let a_ms = audio_delay_ms.unwrap_or(0);
+    let s_ms = sub_delay_ms.unwrap_or(0);
+    args.push(format!(
+        "--title=SyncForge Preview — Audio: {:+}ms | Sub: {:+}ms",
+        a_ms, s_ms
+    ));
+    args
+}
+
+pub fn preview_sync_mpv(
+    target: &str,
+    audio_file: Option<&str>,
+    audio_delay_ms: Option<i64>,
+    sub_file: Option<&str>,
+    sub_delay_ms: Option<i64>,
+    start_time: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let trimmed_target = target.trim();
+    if trimmed_target.is_empty() {
+        return Err("Target video path is empty.".to_string());
+    }
+
+    let args = build_mpv_preview_args(
+        trimmed_target,
+        audio_file,
+        audio_delay_ms,
+        sub_file,
+        sub_delay_ms,
+        start_time,
+    );
+
+    let resolved_binary = resolve_executable("mpv");
+    let mut command = Command::new(&resolved_binary);
+    command.args(&args);
+    command.envs(external_tool_environment());
+    command.stdin(Stdio::null());
+    command.stdout(Stdio::null());
+    command.stderr(Stdio::null());
+
+    command.spawn().map_err(|e| {
+        format!(
+            "Failed to launch mpv ('{}'): {}. Make sure mpv is installed on your PATH or placed in the tools/ folder.",
+            resolved_binary, e
+        )
+    })?;
+
+    let mut full_cmd = vec![resolved_binary];
+    full_cmd.extend(args);
+    Ok(full_cmd)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_mpv_preview_args_combined() {
+        let args = build_mpv_preview_args(
+            "/media/target.mkv",
+            Some("/media/source.mkv"),
+            Some(-128),
+            Some("/media/synced.srt"),
+            Some(42),
+            Some("00:05:00"),
+        );
+        assert_eq!(
+            args,
+            vec![
+                "/media/target.mkv",
+                "--audio-file=/media/source.mkv",
+                "--audio-delay=-0.128",
+                "--sub-file=/media/synced.srt",
+                "--sub-delay=0.042",
+                "--start=00:05:00",
+                "--title=SyncForge Preview — Audio: -128ms | Sub: +42ms",
+            ]
+        );
+    }
+
+    #[test]
+    fn test_build_mpv_preview_args_subs_only() {
+        let args = build_mpv_preview_args(
+            "/media/target.mkv",
+            None,
+            None,
+            Some("/media/subs.ass"),
+            Some(0),
+            Some("00:03:00"),
+        );
+        assert_eq!(
+            args,
+            vec![
+                "/media/target.mkv",
+                "--sub-file=/media/subs.ass",
+                "--sub-delay=0.000",
+                "--start=00:03:00",
+                "--title=SyncForge Preview — Audio: +0ms | Sub: +0ms",
+            ]
+        );
+    }
+}
+

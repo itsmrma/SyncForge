@@ -117,4 +117,36 @@ export const desktopBridge = {
     }
     return null;
   },
+
+  async previewSyncMpv({
+    target,
+    audioFile = null,
+    audioDelayMs = 0,
+    subFile = null,
+    subDelayMs = 0,
+    startTime = null,
+  }) {
+    const mock = getMockApi();
+    if (mock && mock.preview_sync_mpv) {
+      return await mock.preview_sync_mpv({
+        target,
+        audioFile,
+        audioDelayMs,
+        subFile,
+        subDelayMs,
+        startTime,
+      });
+    }
+    if (hasTauri()) {
+      return await invoke('preview_sync_mpv', {
+        target,
+        audioFile,
+        audioDelayMs,
+        subFile,
+        subDelayMs,
+        startTime,
+      });
+    }
+    return { status: 'mock_launched', target, audioFile, audioDelayMs, subFile, subDelayMs, startTime };
+  },
 };

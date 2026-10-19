@@ -245,6 +245,31 @@ async fn inspect_media(state: State<'_, Api>, path: String) -> Result<Value, Str
         .map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+async fn preview_sync_mpv(
+    state: State<'_, Api>,
+    target: String,
+    audio_file: Option<String>,
+    audio_delay_ms: Option<i64>,
+    sub_file: Option<String>,
+    sub_delay_ms: Option<i64>,
+    start_time: Option<String>,
+) -> Result<Value, String> {
+    let api = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        api.preview_sync_mpv(
+            &target,
+            audio_file.as_deref(),
+            audio_delay_ms,
+            sub_file.as_deref(),
+            sub_delay_ms,
+            start_time.as_deref(),
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 pub fn run() {
     crate::core::processes::setup_environment();
     let api = Api::new();
@@ -274,7 +299,8 @@ pub fn run() {
             pick_file,
             show_in_folder,
             get_version,
-            inspect_media
+            inspect_media,
+            preview_sync_mpv
         ])
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");

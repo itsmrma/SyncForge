@@ -212,6 +212,14 @@ pub fn run_injection() -> Result<(), TaskError> {
 
             cmd.push(tgt_clean.clone());
 
+            let mut audio_delay_ms: i64 = 0;
+            let mut sub_delay_ms: i64 = 0;
+            let mut sample_start = "00:05:00".to_string();
+            let mut sample_duration = "00:02:00".to_string();
+            let mut extracted_audio_path: Option<String> = None;
+            let mut final_audio_to_merge: Option<String> = None;
+            let mut final_sub_path: Option<String> = None;
+
             if let (true, Some(ref a_track)) = (do_audio, &selected_audio_track) {
                 log_line(&format!("   🎤 Extracting Audio ID {}...", a_track.id));
                 let full_audio_path = temp_dir
@@ -237,8 +245,8 @@ pub fn run_injection() -> Result<(), TaskError> {
                     Some(out_dir),
                 )?;
                 temp_files.push(full_audio_path.clone());
+                extracted_audio_path = Some(full_audio_path.clone());
 
-                let mut delay_ms = 0;
                 if do_audio_sync {
                     log_line(&format!(
                         "   🧪 Searching for sync (Max +/- {}ms)...",
@@ -255,12 +263,22 @@ pub fn run_injection() -> Result<(), TaskError> {
                         .to_string_lossy()
                         .to_string();
 
-                    extract_audio_segment(&tgt_clean, &wav_ref, "00:05:00", "00:02:00")?;
-                    extract_audio_segment(&full_audio_path, &wav_src, "00:05:00", "00:02:00")?;
+                    extract_audio_segment(
+                        &tgt_clean,
+                        &wav_ref,
+                        &sample_start,
+                        &sample_duration,
+                    )?;
+                    extract_audio_segment(
+                        &full_audio_path,
+                        &wav_src,
+                        &sample_start,
+                        &sample_duration,
+                    )?;
 
                     if Path::new(&wav_ref).exists() && Path::new(&wav_src).exists() {
-                        delay_ms = find_audio_delay(&wav_ref, &wav_src)?;
-                        log_line(&format!("   ⏱️  Delay applied: {} ms", delay_ms));
+                        audio_delay_ms = find_audio_delay(&wav_ref, &wav_src)?;
+                        log_line(&format!("   ⏱️  Delay applied: {} ms", audio_delay_ms));
                         temp_files.push(wav_ref);
                         temp_files.push(wav_src);
                     }
@@ -280,20 +298,14 @@ pub fn run_injection() -> Result<(), TaskError> {
                         }
                     }
                 }
-
-                cmd.extend([
-                    "--language".to_string(),
-                    "0:ita".to_string(),
-                    "--track-name".to_string(),
-                    "0:Muxed Audio".to_string(),
-                    "--sync".to_string(),
-                    format!("0:{}", delay_ms),
-                    final_audio_path,
-                ]);
+                final_audio_to_merge = Some(final_audio_path);
             }
 
             if let (true, Some(ref s_track)) = (do_subs, &selected_sub_track) {
-                log_line(&format!("   📝 Extracting Sub ID {}...", s_track.id));
+                log_line(&format!(
+                    "   [mkvextract] 📝 Extracting Sub ID {}...",
+                    s_track.id
+                ));
                 let codec_id = s_track
                     .properties
                     .as_ref()
@@ -349,7 +361,7 @@ pub fn run_injection() -> Result<(), TaskError> {
 
                 if Path::new(&raw_sub_path).exists() {
                     if can_sync && do_sub_sync {
-                        log_line("      [Sync] Starting ffsubsync...");
+                        log_line("      [ffsubsync] [Sync] Starting ffsubsync...");
                         let mut cmd_ffsubsync = vec![
                             "ffsubsync".to_string(),
                             tgt_clean.clone(),
@@ -372,15 +384,138 @@ pub fn run_injection() -> Result<(), TaskError> {
                             }
                         }
                     }
-
-                    cmd.extend([
-                        "--language".to_string(),
-                        "0:ita".to_string(),
-                        "--track-name".to_string(),
-                        "0:Muxed Sub".to_string(),
-                        final_sub_to_merge,
-                    ]);
+                    final_sub_path = Some(final_sub_to_merge);
                 }
+            }
+
+            if cfg.preview_mpv && (final_audio_to_merge.is_some() || final_sub_path.is_some()) {
+                loop {
+                    let preview_ctx = serde_json::json!({
+                        "filename": filename,
+                        "target": tgt_clean,
+                        "audio_file": extracted_audio_path.as_ref().or(final_audio_to_merge.as_ref()),
+                        "audio_delay_ms": audio_delay_ms,
+                        "sub_file": final_sub_path,
+                        "sub_delay_ms": sub_delay_ms,
+                        "start_time": sample_start,
+                        "duration": sample_duration,
+                        "has_audio": final_audio_to_merge.is_some(),
+                        "has_sub": final_sub_path.is_some(),
+                    });
+                    let resp = ask_user(
+                        &format!("Verify sync for {}", filename),
+                        AskOptions {
+                            tracks: Vec::new(),
+                            kind: "sync_preview".to_string(),
+                            allow_empty: false,
+                            allow_skip: false,
+                            context: Some(preview_ctx.to_string()),
+                            files: vec![tgt_clean.clone()],
+                        },
+                    )?;
+
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&resp) {
+                        let action = parsed
+                            .get("action")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("confirm");
+                        if action == "cancel" {
+                            for t in temp_files {
+                                let _ = fs::remove_file(t);
+                            }
+                            return Err(TaskError::Cancelled);
+                        } else if action == "recalculate" {
+                            if let Some(new_start) =
+                                parsed.get("start_time").and_then(|v| v.as_str())
+                            {
+                                if !new_start.trim().is_empty() {
+                                    sample_start = new_start.trim().to_string();
+                                }
+                            }
+                            if let Some(new_dur) = parsed.get("duration").and_then(|v| v.as_str()) {
+                                if !new_dur.trim().is_empty() {
+                                    sample_duration = new_dur.trim().to_string();
+                                }
+                            }
+                            if let Some(ref full_audio_path) = extracted_audio_path {
+                                log_line(&format!(
+                                    "   🔄 Recalculating waveform sync at window {} ({})...",
+                                    sample_start, sample_duration
+                                ));
+                                let wav_ref = temp_dir
+                                    .path()
+                                    .join("temp_ref_recalc.wav")
+                                    .to_string_lossy()
+                                    .to_string();
+                                let wav_src = temp_dir
+                                    .path()
+                                    .join("temp_src_recalc.wav")
+                                    .to_string_lossy()
+                                    .to_string();
+                                extract_audio_segment(
+                                    &tgt_clean,
+                                    &wav_ref,
+                                    &sample_start,
+                                    &sample_duration,
+                                )?;
+                                extract_audio_segment(
+                                    full_audio_path,
+                                    &wav_src,
+                                    &sample_start,
+                                    &sample_duration,
+                                )?;
+                                if Path::new(&wav_ref).exists() && Path::new(&wav_src).exists() {
+                                    audio_delay_ms = find_audio_delay(&wav_ref, &wav_src)?;
+                                    log_line(&format!(
+                                        "   ⏱️  Recalculated delay: {} ms",
+                                        audio_delay_ms
+                                    ));
+                                    temp_files.push(wav_ref);
+                                    temp_files.push(wav_src);
+                                }
+                            }
+                            continue;
+                        } else {
+                            if let Some(a_ms) =
+                                parsed.get("audio_delay_ms").and_then(|v| v.as_i64())
+                            {
+                                audio_delay_ms = a_ms;
+                            }
+                            if let Some(s_ms) = parsed.get("sub_delay_ms").and_then(|v| v.as_i64())
+                            {
+                                sub_delay_ms = s_ms;
+                            }
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if let Some(final_audio_path) = final_audio_to_merge {
+                cmd.extend([
+                    "--language".to_string(),
+                    "0:ita".to_string(),
+                    "--track-name".to_string(),
+                    "0:Muxed Audio".to_string(),
+                    "--sync".to_string(),
+                    format!("0:{}", audio_delay_ms),
+                    final_audio_path,
+                ]);
+            }
+
+            if let Some(final_sub_to_merge) = final_sub_path {
+                cmd.extend([
+                    "--language".to_string(),
+                    "0:ita".to_string(),
+                    "--track-name".to_string(),
+                    "0:Muxed Sub".to_string(),
+                ]);
+                if sub_delay_ms != 0 {
+                    cmd.extend(["--sync".to_string(), format!("0:{}", sub_delay_ms)]);
+                }
+                cmd.push(final_sub_to_merge);
             }
 
             if do_attachments && has_attachments(&src_clean)? {
@@ -396,7 +531,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                 ]);
             }
 
-            log_line("   💾 Writing MKV file...");
+            log_line("   [mkvmerge] 💾 Writing MKV file...");
             let returncode = run_subprocess(&cmd, Some(out_dir))?;
 
             for t in temp_files {

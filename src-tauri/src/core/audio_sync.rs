@@ -13,6 +13,10 @@ pub fn extract_audio_segment(
     start_time: &str,
     duration: &str,
 ) -> Result<(), TaskError> {
+    log_line(&format!(
+        "   [ffmpeg] Extracting audio waveform ({} + {})...",
+        start_time, duration
+    ));
     let cmd = vec![
         "ffmpeg".to_string(),
         "-y".to_string(),
@@ -97,6 +101,7 @@ fn std_dev(data: &[f32]) -> f32 {
 
 pub fn find_audio_delay(ref_wav: &str, src_wav: &str) -> Result<i64, TaskError> {
     check_cancelled()?;
+    log_line("   [rustfft] Calculating waveform delay...");
 
     let (fs_ref, data_ref) = read_wav_samples(ref_wav)
         .map_err(|e| TaskError::Message(format!("Audio analysis failed: {}", e)))?;

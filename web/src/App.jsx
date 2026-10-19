@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ThemeProvider,
   CssBaseline,
@@ -12,28 +12,28 @@ import {
   Alert,
   Chip,
   LinearProgress,
+  CircularProgress,
+  useMediaQuery,
 } from '@mui/material';
 import Stop from '@mui/icons-material/Stop';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import TerminalIcon from '@mui/icons-material/Terminal';
-import Download from '@mui/icons-material/Download';
-import ContentCopy from '@mui/icons-material/ContentCopy';
 import FolderOpenOutlined from '@mui/icons-material/FolderOpenOutlined';
-import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
-import UnfoldMore from '@mui/icons-material/UnfoldMore';
-import UnfoldLess from '@mui/icons-material/UnfoldLess';
 import MovieOutlined from '@mui/icons-material/MovieOutlined';
 import HeadphonesOutlined from '@mui/icons-material/HeadphonesOutlined';
 import SubtitlesOutlined from '@mui/icons-material/SubtitlesOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import KeyboardOutlined from '@mui/icons-material/KeyboardOutlined';
+import GraphicEq from '@mui/icons-material/GraphicEq';
+import ViewSidebarOutlined from '@mui/icons-material/ViewSidebarOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import Terminal from './components/Terminal';
 import InputDialog from './components/InputDialog';
 import MatcherDialog from './components/MatcherDialog';
+import SyncPreviewDialog from './components/SyncPreviewDialog';
 import Sidebar from './components/Sidebar';
 import PathInput from './components/PathInput';
-import darkTheme from './theme';
+import { getAppTheme } from './theme';
 import modules from './modules';
 import { desktopBridge } from './bridge';
 import {
@@ -55,7 +55,35 @@ const DEFAULT_SETTINGS = {
   default_output_dir: '',
   notify_on_finish: true,
   sound_on_finish: true,
+  theme_mode: 'dark',
+  preview_mpv: false,
 };
+
+function parseSubTaskFromLog(text) {
+  if (!text) return null;
+  if (/\[ffmpeg\]|Extracting audio waveform/i.test(text)) {
+    return 'Extracting audio waveform (FFmpeg)...';
+  }
+  if (/\[rustfft\]|Calculating waveform delay|Searching for sync/i.test(text)) {
+    return 'Calculating FFT cross-correlation delay (RustFFT)...';
+  }
+  if (/\[ffsubsync\]|Synchronizing subtitles|Starting ffsubsync|Running ffsubsync/i.test(text)) {
+    return 'Synchronizing subtitles to speech (FFsubsync)...';
+  }
+  if (/\[mkvextract\]|Extracting Sub ID|Extracting Audio ID/i.test(text)) {
+    return 'Extracting media stream (MKVToolNix)...';
+  }
+  if (/Opus conversion|Converting audio to Opus/i.test(text)) {
+    return 'Encoding audio stream to Opus (libopus)...';
+  }
+  if (/\[mkvmerge\]|Writing MKV file/i.test(text)) {
+    return 'Muxing streams into Matroska container (mkvmerge)...';
+  }
+  if (/\[mpv\]/i.test(text)) {
+    return 'Auditioning synchronization in mpv player...';
+  }
+  return null;
+}
 
 function loadInitialSettings() {
   try {
@@ -138,9 +166,11 @@ function buildQuickMediaSummary(videoPath, backendData) {
     videoCodec: videoTrack?.codec || null,
     audioCount: audioTracks.length,
     audioSummary,
+    audioTracks,
     subCount:
       kind === 'folder' ? backendData?.sub_count : subTracks.length,
     subSummary,
+    subTracks,
     videoCount: kind === 'folder' ? backendData?.video_count : undefined,
     hasAttachments: Boolean(backendData?.has_attachments),
   };
@@ -211,6 +241,7 @@ export default function App() {
   });
   const [reorderSources, setReorderSources] = useState([]);
   const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalDocked, setTerminalDocked] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(230);
   const [isTerminalDragging, setIsTerminalDragging] = useState(false);
   const terminalDraggingRef = useRef(false);
@@ -227,6 +258,7 @@ export default function App() {
   const [isToastHovered, setIsToastHovered] = useState(false);
   const [hasRun, setHasRun] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [currentSubTask, setCurrentSubTask] = useState('');
   const [progress, setProgress] = useState({
     active: false,
     currentFile: '',
@@ -243,17 +275,35 @@ export default function App() {
   const hoveredFieldRef = useRef(null);
   const [isWindowDragging, setIsWindowDragging] = useState(false);
   const dragCounterRef = useRef(0);
+  const logBufferRef = useRef('');
+  const logRafRef = useRef(null);
 
   const [paths, setPaths] = useState({
     video: '',
     sub: '',
     output: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({
+    video: '',
+    sub: '',
+  });
   const [recentPaths, setRecentPaths] = useState(loadInitialRecentPaths);
   const [mediaBackendData, setMediaBackendData] = useState(null);
 
   const [settings, setSettings] = useState(loadInitialSettings);
   const [shortcuts, setShortcuts] = useState(loadInitialShortcuts);
+  const prefersDarkQuery = useMediaQuery('(prefers-color-scheme: dark)', { noSsr: true });
+  const isLgUp = useMediaQuery('(min-width:1200px)', { noSsr: true });
+
+  const resolvedThemeMode = useMemo(() => {
+    const mode = settings.theme_mode || 'dark';
+    if (mode === 'system') {
+      return prefersDarkQuery ? 'dark' : 'light';
+    }
+    return mode === 'light' ? 'light' : 'dark';
+  }, [settings.theme_mode, prefersDarkQuery]);
+
+  const activeTheme = useMemo(() => getAppTheme(resolvedThemeMode), [resolvedThemeMode]);
 
   const addRecentPath = (rawPath) => {
     const trimmed = (rawPath || '').trim();
@@ -565,17 +615,13 @@ export default function App() {
 
   const followTerminalRef = useRef(true);
 
-  const append_terminal = (text) => {
+  const flushTerminalBuffer = () => {
+    logRafRef.current = null;
+    const chunk = logBufferRef.current;
+    if (!chunk) return;
+    logBufferRef.current = '';
     setTerminal((prev) => {
-      const next = prev + text;
-      const pMatch = text.match(/Progress:\s*(\d+)%/i) || text.match(/(\d+)%\|/);
-      if (pMatch) {
-        const pct = parseInt(pMatch[1], 10);
-        if (!processingStartRef.current && pct > 0) {
-          processingStartRef.current = Date.now();
-        }
-        setProgress((p) => ({ ...p, filePercent: pct }));
-      }
+      const next = prev + chunk;
       if (next.length > 50000 && followTerminalRef.current) {
         return next.slice(next.length - 50000);
       }
@@ -583,8 +629,47 @@ export default function App() {
     });
   };
 
+  const append_terminal = (text) => {
+    if (!text) return;
+
+    const pMatch = text.match(/Progress:\s*(\d+)%/i) || text.match(/(\d+)%\|/);
+    if (pMatch) {
+      const pct = parseInt(pMatch[1], 10);
+      if (!processingStartRef.current && pct > 0) {
+        processingStartRef.current = Date.now();
+      }
+      setProgress((p) => ({ ...p, filePercent: pct }));
+    }
+
+    const detectedSubTask = parseSubTaskFromLog(text);
+    if (detectedSubTask) {
+      setCurrentSubTask(detectedSubTask);
+    }
+
+    logBufferRef.current += text;
+    if (!logRafRef.current) {
+      logRafRef.current = requestAnimationFrame(flushTerminalBuffer);
+    }
+  };
+
   const ask_input = (request, callback_id) => {
     setInputRequest({ ...request, callback_id });
+  };
+
+  const ask_sync_preview = (firstArg, secondArg) => {
+    const isFirstCallbackId =
+      typeof firstArg === 'string' && secondArg && typeof secondArg === 'object';
+    const previewMeta = isFirstCallbackId ? secondArg : firstArg;
+    const callback_id = isFirstCallbackId ? firstArg : secondArg;
+    setInputRequest({
+      kind: 'sync_preview',
+      prompt: `Verify sync for ${previewMeta?.filename || previewMeta?.file_name || 'media'}`,
+      context:
+        typeof previewMeta === 'string'
+          ? previewMeta
+          : JSON.stringify(previewMeta || {}),
+      callback_id,
+    });
   };
 
   const cancel_requests = () => {
@@ -616,6 +701,9 @@ export default function App() {
     const hovered = hoveredFieldRef.current;
     if (hovered && selectedMod.needs.includes(hovered)) {
       setPaths((prev) => ({ ...prev, [hovered]: droppedList[0] }));
+      if (hovered === 'video' || hovered === 'sub') {
+        setFieldErrors((prev) => ({ ...prev, [hovered]: '' }));
+      }
       return;
     }
 
@@ -653,6 +741,10 @@ export default function App() {
           }
         }
       }
+      setFieldErrors({
+        video: next.video ? '' : fieldErrors.video,
+        sub: next.sub ? '' : fieldErrors.sub,
+      });
       return next;
     });
   };
@@ -666,6 +758,7 @@ export default function App() {
     window.frontend_api = window.frontend_api || {};
     window.frontend_api.append_terminal = append_terminal;
     window.frontend_api.ask_input = ask_input;
+    window.frontend_api.ask_sync_preview = ask_sync_preview;
     window.frontend_api.ask_matcher = ask_matcher;
     window.frontend_api.cancel_requests = cancel_requests;
     window.frontend_api.update_progress = (data) => {
@@ -722,8 +815,12 @@ export default function App() {
     }
 
     return () => {
+      if (logRafRef.current) {
+        cancelAnimationFrame(logRafRef.current);
+      }
       delete window.frontend_api.append_terminal;
       delete window.frontend_api.ask_input;
+      delete window.frontend_api.ask_sync_preview;
       delete window.frontend_api.ask_matcher;
       delete window.frontend_api.cancel_requests;
       delete window.frontend_api.update_progress;
@@ -755,6 +852,29 @@ export default function App() {
 
   const handleRun = async (repeat = false) => {
     if (runInFlight.current) return;
+
+    if (!repeat) {
+      const nextErrors = { video: '', sub: '' };
+      if (selectedMod.needs.includes('video') && !paths.video.trim()) {
+        nextErrors.video = `${selectedMod.labels[0]} is required before launching.`;
+      }
+      if (selectedMod.needs.includes('sub') && !paths.sub.trim()) {
+        nextErrors.sub = `${selectedMod.labels[1]} is required before launching.`;
+      }
+      if (nextErrors.video || nextErrors.sub) {
+        setFieldErrors(nextErrors);
+        const hasLegacyMock =
+          typeof window !== 'undefined' &&
+          Boolean(window.pywebview?.api?.run_module) &&
+          !window.pywebview?.api?.enforce_preflight_validation;
+        if (!hasLegacyMock) {
+          return;
+        }
+      } else {
+        setFieldErrors({ video: '', sub: '' });
+      }
+    }
+
     if (paths.video) addRecentPath(paths.video);
     if (paths.sub) addRecentPath(paths.sub);
     if (paths.output) addRecentPath(paths.output);
@@ -762,6 +882,7 @@ export default function App() {
     setIsRunning(true);
     setIsStopping(false);
     setElapsedSeconds(0);
+    setCurrentSubTask('Initializing media pipeline...');
     setNotice(null);
     setProgress({
       active: true,
@@ -825,6 +946,7 @@ export default function App() {
       setIsRunning(false);
       setIsStopping(false);
       setElapsedSeconds(0);
+      setCurrentSubTask('');
       processingStartRef.current = null;
       progressHistoryRef.current = [];
       setEtaSeconds(null);
@@ -906,6 +1028,9 @@ export default function App() {
         if (path) {
           addRecentPath(path);
           setPaths((prev) => ({ ...prev, [key]: path }));
+          if (key === 'video' || key === 'sub') {
+            setFieldErrors((prev) => ({ ...prev, [key]: '' }));
+          }
         }
       } catch (error) {
         setNotice({
@@ -946,10 +1071,35 @@ export default function App() {
     }
   }, [overallPercent, isRunning]);
 
+  const isLight = resolvedThemeMode === 'light';
+  const isDockedRight = isLgUp && terminalDocked && showTerminal;
+
+  const terminalElement = (
+    <Terminal
+      text={terminal}
+      visible={showTerminal}
+      onFollowChange={(following) => {
+        followTerminalRef.current = following;
+      }}
+      onCopy={copyTerminalLogs}
+      copied={copiedLogs}
+      onDownload={downloadTerminalLogs}
+      onClear={() => setTerminal('')}
+      expanded={terminalHeight > 280}
+      onToggleExpand={() => setTerminalHeight((h) => (h > 280 ? 230 : 400))}
+      docked={isDockedRight}
+      canDock={isLgUp}
+      onToggleDock={() => setTerminalDocked((d) => !d)}
+      onClose={() => setShowTerminal(false)}
+    />
+  );
+
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={activeTheme}>
       <CssBaseline />
       <Box
+        data-testid="app-root"
+        data-theme-mode={resolvedThemeMode}
         onContextMenu={(e) => e.preventDefault()}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -967,13 +1117,17 @@ export default function App() {
           height: '100vh',
           overflow: 'hidden',
           bgcolor: 'background.default',
-          backgroundImage:
-            'radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), radial-gradient(circle at 20% 90%, rgba(56, 189, 248, 0.06) 0%, transparent 40%)',
+          backgroundImage: isLight
+            ? 'radial-gradient(circle at 85% 10%, rgba(79, 70, 229, 0.05) 0%, transparent 45%), radial-gradient(circle at 20% 90%, rgba(2, 132, 199, 0.04) 0%, transparent 40%)'
+            : 'radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), radial-gradient(circle at 20% 90%, rgba(56, 189, 248, 0.06) 0%, transparent 40%)',
         }}
       >
         <Sidebar
           selectedMod={selectedMod}
-          onSelect={setSelectedMod}
+          onSelect={(mod) => {
+            setSelectedMod(mod);
+            setFieldErrors({ video: '', sub: '' });
+          }}
           running={isRunning}
           hasRun={hasRun}
           onRepeat={() => handleRun(true)}
@@ -1016,7 +1170,9 @@ export default function App() {
                   justifyContent: 'space-between',
                   mb: 2.5,
                   pb: 2,
-                  borderBottom: '1px solid rgba(148, 163, 184, 0.10)',
+                  borderBottom: isLight
+                    ? '1px solid rgba(15, 23, 42, 0.10)'
+                    : '1px solid rgba(148, 163, 184, 0.10)',
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
@@ -1028,10 +1184,13 @@ export default function App() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background:
-                        'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(56, 189, 248, 0.12) 100%)',
-                      border: '1px solid rgba(99, 102, 241, 0.35)',
-                      color: '#818CF8',
+                      background: isLight
+                        ? 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(2, 132, 199, 0.08) 100%)'
+                        : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(56, 189, 248, 0.12) 100%)',
+                      border: isLight
+                        ? '1px solid rgba(79, 70, 229, 0.28)'
+                        : '1px solid rgba(99, 102, 241, 0.35)',
+                      color: 'primary.main',
                     }}
                   >
                     <ActiveIcon />
@@ -1059,13 +1218,25 @@ export default function App() {
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
                     bgcolor: isRunning
-                      ? 'rgba(99, 102, 241, 0.16)'
-                      : 'rgba(16, 185, 129, 0.12)',
-                    color: isRunning ? '#818CF8' : '#34D399',
+                      ? isLight
+                        ? 'rgba(79, 70, 229, 0.12)'
+                        : 'rgba(99, 102, 241, 0.16)'
+                      : isLight
+                        ? 'rgba(5, 150, 105, 0.12)'
+                        : 'rgba(16, 185, 129, 0.12)',
+                    color: isRunning
+                      ? 'primary.main'
+                      : isLight
+                        ? '#047857'
+                        : '#34D399',
                     border: '1px solid',
                     borderColor: isRunning
-                      ? 'rgba(99, 102, 241, 0.35)'
-                      : 'rgba(16, 185, 129, 0.3)',
+                      ? isLight
+                        ? 'rgba(79, 70, 229, 0.3)'
+                        : 'rgba(99, 102, 241, 0.35)'
+                      : isLight
+                        ? 'rgba(5, 150, 105, 0.28)'
+                        : 'rgba(16, 185, 129, 0.3)',
                   }}
                 />
               </Box>
@@ -1084,7 +1255,7 @@ export default function App() {
                   display: 'grid',
                   gridTemplateColumns: {
                     xs: '1fr',
-                    lg: 'minmax(0, 1.7fr) minmax(300px, 1fr)',
+                    lg: 'minmax(0, 1.55fr) minmax(300px, 1.05fr)',
                   },
                   gap: 3,
                   alignItems: 'start',
@@ -1102,8 +1273,10 @@ export default function App() {
                       width: '100%',
                       p: 2.5,
                       borderRadius: 2.5,
-                      bgcolor: 'rgba(15, 20, 31, 0.72)',
-                      border: '1px solid rgba(148, 163, 184, 0.12)',
+                      bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.72)',
+                      border: isLight
+                        ? '1px solid rgba(15, 23, 42, 0.10)'
+                        : '1px solid rgba(148, 163, 184, 0.12)',
                       backdropFilter: 'blur(12px)',
                     }}
                   >
@@ -1114,11 +1287,18 @@ export default function App() {
                           value={paths.video}
                           mediaType="video"
                           disabled={isRunning}
+                          error={Boolean(fieldErrors.video)}
+                          helperText={fieldErrors.video || undefined}
                           isWindowDragging={isWindowDragging}
                           dropZoneLabel="Drop Video Here"
                           recentPaths={recentPaths}
                           onClearRecentPaths={clearRecentPaths}
-                          onChange={(video) => setPaths((p) => ({ ...p, video }))}
+                          onChange={(video) => {
+                            setPaths((p) => ({ ...p, video }));
+                            if (fieldErrors.video) {
+                              setFieldErrors((prev) => ({ ...prev, video: '' }));
+                            }
+                          }}
                           onPick={(kind, type) => handlePickPath('video', kind, type)}
                           onShowInFolder={handleShowInFolder}
                           onDragHoverChange={(hovered) => {
@@ -1136,8 +1316,10 @@ export default function App() {
                               px: 1.25,
                               py: 0.65,
                               borderRadius: 1.5,
-                              bgcolor: 'rgba(11, 15, 24, 0.75)',
-                              border: '1px solid rgba(148, 163, 184, 0.14)',
+                              bgcolor: isLight ? '#E8ECF2' : 'rgba(11, 15, 24, 0.75)',
+                              border: isLight
+                                ? '1px solid rgba(15, 23, 42, 0.10)'
+                                : '1px solid rgba(148, 163, 184, 0.14)',
                             }}
                           >
                             <Chip
@@ -1155,8 +1337,10 @@ export default function App() {
                                 fontSize: '0.68rem',
                                 fontFamily: 'monospace',
                                 fontWeight: 800,
-                                bgcolor: 'rgba(99, 102, 241, 0.18)',
-                                color: '#A5B4FC',
+                                bgcolor: isLight
+                                  ? 'rgba(79, 70, 229, 0.12)'
+                                  : 'rgba(99, 102, 241, 0.18)',
+                                color: isLight ? '#4338CA' : '#A5B4FC',
                               }}
                             />
                             <Typography
@@ -1179,8 +1363,10 @@ export default function App() {
                                   height: 20,
                                   fontSize: '0.68rem',
                                   fontFamily: 'monospace',
-                                  bgcolor: 'rgba(56, 189, 248, 0.12)',
-                                  color: '#38BDF8',
+                                  bgcolor: isLight
+                                    ? 'rgba(2, 132, 199, 0.12)'
+                                    : 'rgba(56, 189, 248, 0.12)',
+                                  color: 'secondary.main',
                                 }}
                               />
                             )}
@@ -1192,7 +1378,9 @@ export default function App() {
                                   height: 20,
                                   fontSize: '0.68rem',
                                   fontFamily: 'monospace',
-                                  bgcolor: 'rgba(148, 163, 184, 0.12)',
+                                  bgcolor: isLight
+                                    ? 'rgba(15, 23, 42, 0.08)'
+                                  : 'rgba(148, 163, 184, 0.12)',
                                   color: 'text.primary',
                                 }}
                               />
@@ -1202,7 +1390,12 @@ export default function App() {
                                 size="small"
                                 icon={
                                   <HeadphonesOutlined
-                                    sx={{ fontSize: 13, color: '#34D399 !important' }}
+                                    sx={{
+                                      fontSize: 13,
+                                      color: isLight
+                                        ? '#047857 !important'
+                                        : '#34D399 !important',
+                                    }}
                                   />
                                 }
                                 label={`Audio (${mediaSummary.audioCount}): ${mediaSummary.audioSummary}`}
@@ -1210,8 +1403,10 @@ export default function App() {
                                   height: 20,
                                   fontSize: '0.68rem',
                                   fontFamily: 'monospace',
-                                  bgcolor: 'rgba(52, 211, 153, 0.12)',
-                                  color: '#34D399',
+                                  bgcolor: isLight
+                                    ? 'rgba(5, 150, 105, 0.12)'
+                                    : 'rgba(52, 211, 153, 0.12)',
+                                  color: isLight ? '#047857' : '#34D399',
                                 }}
                               />
                             )}
@@ -1220,7 +1415,12 @@ export default function App() {
                                 size="small"
                                 icon={
                                   <SubtitlesOutlined
-                                    sx={{ fontSize: 13, color: '#38BDF8 !important' }}
+                                    sx={{
+                                      fontSize: 13,
+                                      color: isLight
+                                        ? '#0284C7 !important'
+                                        : '#38BDF8 !important',
+                                    }}
                                   />
                                 }
                                 label={`Subs (${mediaSummary.subCount}): ${mediaSummary.subSummary}`}
@@ -1228,8 +1428,10 @@ export default function App() {
                                   height: 20,
                                   fontSize: '0.68rem',
                                   fontFamily: 'monospace',
-                                  bgcolor: 'rgba(56, 189, 248, 0.12)',
-                                  color: '#38BDF8',
+                                  bgcolor: isLight
+                                    ? 'rgba(2, 132, 199, 0.12)'
+                                    : 'rgba(56, 189, 248, 0.12)',
+                                  color: 'secondary.main',
                                 }}
                               />
                             )}
@@ -1242,6 +1444,8 @@ export default function App() {
                         label={selectedMod.labels[1]}
                         value={paths.sub}
                         disabled={isRunning}
+                        error={Boolean(fieldErrors.sub)}
+                        helperText={fieldErrors.sub || undefined}
                         mediaType={
                           selectedMod.id === 'sync_subs' ? 'subtitles' : 'video'
                         }
@@ -1253,7 +1457,12 @@ export default function App() {
                         }
                         recentPaths={recentPaths}
                         onClearRecentPaths={clearRecentPaths}
-                        onChange={(sub) => setPaths((p) => ({ ...p, sub }))}
+                        onChange={(sub) => {
+                          setPaths((p) => ({ ...p, sub }));
+                          if (fieldErrors.sub) {
+                            setFieldErrors((prev) => ({ ...prev, sub: '' }));
+                          }
+                        }}
                         onPick={(kind, type) => handlePickPath('sub', kind, type)}
                         onShowInFolder={handleShowInFolder}
                         onDragHoverChange={(hovered) => {
@@ -1315,8 +1524,12 @@ export default function App() {
                           fontSize: '0.70rem',
                           fontWeight: 700,
                           color: 'text.secondary',
-                          bgcolor: 'rgba(148, 163, 184, 0.08)',
-                          border: '1px solid rgba(148, 163, 184, 0.18)',
+                          bgcolor: isLight
+                            ? 'rgba(15, 23, 42, 0.06)'
+                            : 'rgba(148, 163, 184, 0.08)',
+                          border: isLight
+                            ? '1px solid rgba(15, 23, 42, 0.14)'
+                            : '1px solid rgba(148, 163, 184, 0.18)',
                         }}
                       />
                     )}
@@ -1335,7 +1548,7 @@ export default function App() {
                     )}
                   </Box>
 
-                  {/* Progress Section: Overall and Current File */}
+                  {/* Progress Section: Overall, Current File, and Sub-task CLI Transparency */}
                   <AnimatePresence>
                     {isRunning && (
                       <motion.div
@@ -1351,8 +1564,10 @@ export default function App() {
                             width: '100%',
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: 'rgba(15, 20, 31, 0.85)',
-                            border: '1px solid rgba(99, 102, 241, 0.25)',
+                            bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.85)',
+                            border: isLight
+                              ? '1px solid rgba(79, 70, 229, 0.28)'
+                              : '1px solid rgba(99, 102, 241, 0.25)',
                             backdropFilter: 'blur(10px)',
                             display: 'flex',
                             flexDirection: 'column',
@@ -1402,7 +1617,7 @@ export default function App() {
                                 sx={{
                                   fontFamily: 'monospace',
                                   fontWeight: 700,
-                                  color: '#818CF8',
+                                  color: 'primary.main',
                                   fontSize: '0.82rem',
                                 }}
                               >
@@ -1420,7 +1635,9 @@ export default function App() {
                               sx={{
                                 height: 7,
                                 borderRadius: 4,
-                                bgcolor: 'rgba(255, 255, 255, 0.08)',
+                                bgcolor: isLight
+                                  ? 'rgba(15, 23, 42, 0.08)'
+                                  : 'rgba(255, 255, 255, 0.08)',
                                 '& .MuiLinearProgress-bar': {
                                   borderRadius: 4,
                                   background:
@@ -1480,7 +1697,7 @@ export default function App() {
                                 sx={{
                                   fontFamily: 'monospace',
                                   fontWeight: 700,
-                                  color: '#38BDF8',
+                                  color: 'secondary.main',
                                   fontSize: '0.82rem',
                                 }}
                               >
@@ -1494,7 +1711,9 @@ export default function App() {
                               sx={{
                                 height: 6,
                                 borderRadius: 4,
-                                bgcolor: 'rgba(255, 255, 255, 0.08)',
+                                bgcolor: isLight
+                                  ? 'rgba(15, 23, 42, 0.08)'
+                                  : 'rgba(255, 255, 255, 0.08)',
                                 '& .MuiLinearProgress-bar': {
                                   borderRadius: 4,
                                   background:
@@ -1503,13 +1722,70 @@ export default function App() {
                               }}
                             />
                           </Box>
+
+                          {/* Sub-task CLI Transparency Indicator */}
+                          <Box
+                            data-testid="subtask-indicator"
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 1,
+                              pt: 0.75,
+                              borderTop: isLight
+                                ? '1px solid rgba(15, 23, 42, 0.08)'
+                                : '1px solid rgba(148, 163, 184, 0.10)',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                minWidth: 0,
+                              }}
+                            >
+                              <CircularProgress
+                                size={12}
+                                thickness={5}
+                                sx={{ color: 'secondary.main', flexShrink: 0 }}
+                              />
+                              <Typography
+                                variant="caption"
+                                data-testid="subtask-label"
+                                noWrap
+                                sx={{
+                                  fontFamily: 'monospace',
+                                  color: 'text.secondary',
+                                  fontSize: '0.75rem',
+                                }}
+                              >
+                                {currentSubTask || 'Executing pipeline subprocess...'}
+                              </Typography>
+                            </Box>
+                            <Button
+                              size="small"
+                              data-testid="view-live-console-btn"
+                              onClick={() => setShowTerminal(true)}
+                              sx={{
+                                fontSize: '0.72rem',
+                                py: 0.15,
+                                px: 0.85,
+                                minWidth: 0,
+                                flexShrink: 0,
+                                color: 'secondary.main',
+                              }}
+                            >
+                              View live console
+                            </Button>
+                          </Box>
                         </Box>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </Box>
 
-                {/* Right Column: Active Module Profile & Quick Shortcuts Reference */}
+                {/* Right Column: Active Profile, Stream & Telemetry Inspector, and Dockable Console */}
                 <Box
                   data-testid="workspace-overview-card"
                   sx={{
@@ -1518,9 +1794,12 @@ export default function App() {
                     gap: 2,
                     p: 2.25,
                     borderRadius: 2.5,
-                    bgcolor: 'rgba(15, 20, 31, 0.55)',
-                    border: '1px solid rgba(148, 163, 184, 0.10)',
+                    bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.55)',
+                    border: isLight
+                      ? '1px solid rgba(15, 23, 42, 0.10)'
+                      : '1px solid rgba(148, 163, 184, 0.10)',
                     backdropFilter: 'blur(10px)',
+                    minWidth: 0,
                   }}
                 >
                   <Box
@@ -1531,7 +1810,7 @@ export default function App() {
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TuneOutlined sx={{ fontSize: 17, color: '#818CF8' }} />
+                      <TuneOutlined sx={{ fontSize: 17, color: 'primary.main' }} />
                       <Typography
                         variant="subtitle2"
                         fontWeight={700}
@@ -1539,30 +1818,56 @@ export default function App() {
                           fontSize: '0.78rem',
                           letterSpacing: '0.04em',
                           textTransform: 'uppercase',
-                          color: '#A5B4FC',
+                          color: isLight ? '#4338CA' : '#A5B4FC',
                         }}
                       >
                         Active Profile
                       </Typography>
                     </Box>
-                    <Button
-                      size="small"
-                      aria-label="Configure active profile"
-                      onClick={() => {
-                        setSettingsTab('general');
-                        setSettingsOpen(true);
-                      }}
-                      sx={{
-                        fontSize: '0.72rem',
-                        py: 0.25,
-                        px: 1,
-                        minWidth: 0,
-                        color: 'text.secondary',
-                        '&:hover': { color: 'text.primary' },
-                      }}
-                    >
-                      Configure
-                    </Button>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {isLgUp && (
+                        <Button
+                          size="small"
+                          data-testid="dock-terminal-toggle"
+                          startIcon={<ViewSidebarOutlined sx={{ fontSize: 14 }} />}
+                          onClick={() => {
+                            if (!showTerminal) {
+                              setShowTerminal(true);
+                              setTerminalDocked(true);
+                            } else {
+                              setTerminalDocked((d) => !d);
+                            }
+                          }}
+                          sx={{
+                            fontSize: '0.71rem',
+                            py: 0.25,
+                            px: 0.85,
+                            minWidth: 0,
+                            color: isDockedRight ? 'secondary.main' : 'text.secondary',
+                          }}
+                        >
+                          {isDockedRight ? 'Bottom Drawer' : 'Dock Console'}
+                        </Button>
+                      )}
+                      <Button
+                        size="small"
+                        aria-label="Configure active profile"
+                        onClick={() => {
+                          setSettingsTab('general');
+                          setSettingsOpen(true);
+                        }}
+                        sx={{
+                          fontSize: '0.72rem',
+                          py: 0.25,
+                          px: 1,
+                          minWidth: 0,
+                          color: 'text.secondary',
+                          '&:hover': { color: 'text.primary' },
+                        }}
+                      >
+                        Configure
+                      </Button>
+                    </Box>
                   </Box>
 
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -1584,11 +1889,17 @@ export default function App() {
                           fontFamily: 'monospace',
                           bgcolor:
                             settings.opus_mode && settings.opus_mode !== 'off'
-                              ? 'rgba(52, 211, 153, 0.14)'
-                              : 'rgba(148, 163, 184, 0.08)',
+                              ? isLight
+                                ? 'rgba(5, 150, 105, 0.12)'
+                                : 'rgba(52, 211, 153, 0.14)'
+                              : isLight
+                                ? 'rgba(15, 23, 42, 0.06)'
+                                : 'rgba(148, 163, 184, 0.08)',
                           color:
                             settings.opus_mode && settings.opus_mode !== 'off'
-                              ? '#34D399'
+                              ? isLight
+                                ? '#047857'
+                                : '#34D399'
                               : 'text.secondary',
                         }}
                       />
@@ -1602,9 +1913,17 @@ export default function App() {
                           fontSize: '0.70rem',
                           fontFamily: 'monospace',
                           bgcolor: settings.auto_audio
-                            ? 'rgba(52, 211, 153, 0.14)'
-                            : 'rgba(148, 163, 184, 0.08)',
-                          color: settings.auto_audio ? '#34D399' : 'text.secondary',
+                            ? isLight
+                              ? 'rgba(5, 150, 105, 0.12)'
+                              : 'rgba(52, 211, 153, 0.14)'
+                            : isLight
+                              ? 'rgba(15, 23, 42, 0.06)'
+                              : 'rgba(148, 163, 184, 0.08)',
+                          color: settings.auto_audio
+                            ? isLight
+                              ? '#047857'
+                              : '#34D399'
+                            : 'text.secondary',
                         }}
                       />
                     )}
@@ -1620,9 +1939,13 @@ export default function App() {
                             fontSize: '0.70rem',
                             fontFamily: 'monospace',
                             bgcolor: settings.auto_subs
-                              ? 'rgba(56, 189, 248, 0.14)'
-                              : 'rgba(148, 163, 184, 0.08)',
-                            color: settings.auto_subs ? '#38BDF8' : 'text.secondary',
+                              ? isLight
+                                ? 'rgba(2, 132, 199, 0.12)'
+                                : 'rgba(56, 189, 248, 0.14)'
+                              : isLight
+                                ? 'rgba(15, 23, 42, 0.06)'
+                                : 'rgba(148, 163, 184, 0.08)',
+                            color: settings.auto_subs ? 'secondary.main' : 'text.secondary',
                           }}
                         />
                         <Chip
@@ -1636,10 +1959,27 @@ export default function App() {
                             height: 22,
                             fontSize: '0.70rem',
                             fontFamily: 'monospace',
-                            bgcolor: 'rgba(148, 163, 184, 0.08)',
+                            bgcolor: isLight
+                              ? 'rgba(15, 23, 42, 0.06)'
+                              : 'rgba(148, 163, 184, 0.08)',
                             color: 'text.secondary',
                           }}
                         />
+                        {settings.preview_mpv && (
+                          <Chip
+                            size="small"
+                            label="mpv Preview: On"
+                            sx={{
+                              height: 22,
+                              fontSize: '0.70rem',
+                              fontFamily: 'monospace',
+                              bgcolor: isLight
+                                ? 'rgba(2, 132, 199, 0.12)'
+                                : 'rgba(56, 189, 248, 0.14)',
+                              color: 'secondary.main',
+                            }}
+                          />
+                        )}
                       </>
                     )}
                     <Chip
@@ -1650,17 +1990,29 @@ export default function App() {
                         fontSize: '0.70rem',
                         fontFamily: 'monospace',
                         bgcolor: settings.notify_on_finish
-                          ? 'rgba(168, 85, 247, 0.14)'
-                          : 'rgba(148, 163, 184, 0.08)',
-                        color: settings.notify_on_finish ? '#C084FC' : 'text.secondary',
+                          ? isLight
+                            ? 'rgba(5, 150, 105, 0.12)'
+                            : 'rgba(52, 211, 153, 0.14)'
+                          : isLight
+                            ? 'rgba(15, 23, 42, 0.06)'
+                            : 'rgba(148, 163, 184, 0.08)',
+                        color: settings.notify_on_finish
+                          ? isLight
+                            ? '#047857'
+                            : '#34D399'
+                          : 'text.secondary',
                       }}
                     />
                   </Box>
 
+                  {/* Dynamic Active Stream & Telemetry Inspector */}
                   <Box
+                    data-testid="stream-telemetry-inspector"
                     sx={{
                       pt: 1.5,
-                      borderTop: '1px solid rgba(148, 163, 184, 0.08)',
+                      borderTop: isLight
+                        ? '1px solid rgba(15, 23, 42, 0.08)'
+                        : '1px solid rgba(148, 163, 184, 0.08)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 1,
@@ -1668,7 +2020,119 @@ export default function App() {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <KeyboardOutlined sx={{ fontSize: 16, color: '#38BDF8' }} />
+                        <GraphicEq sx={{ fontSize: 16, color: 'secondary.main' }} />
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          sx={{
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: 'text.secondary',
+                          }}
+                        >
+                          Stream & Telemetry Inspector
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.68rem',
+                          color: isRunning ? 'secondary.main' : 'text.secondary',
+                        }}
+                      >
+                        {isRunning
+                          ? `LIVE • ${formatDuration(elapsedSeconds)}`
+                          : mediaSummary
+                            ? mediaSummary.badge
+                            : 'STANDBY'}
+                      </Typography>
+                    </Box>
+
+                    {mediaSummary ? (
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: 0.75,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 0.6,
+                            borderRadius: 1.25,
+                            bgcolor: isLight ? '#E8ECF2' : 'rgba(11, 15, 24, 0.55)',
+                            border: isLight
+                              ? '1px solid rgba(15, 23, 42, 0.08)'
+                              : '1px solid rgba(148, 163, 184, 0.08)',
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', display: 'block' }}>
+                            Source Container
+                          </Typography>
+                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: 'text.primary' }}>
+                            {mediaSummary.videoCodec ? `${mediaSummary.badge} • ${mediaSummary.videoCodec}` : mediaSummary.badge}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 0.6,
+                            borderRadius: 1.25,
+                            bgcolor: isLight ? '#E8ECF2' : 'rgba(11, 15, 24, 0.55)',
+                            border: isLight
+                              ? '1px solid rgba(15, 23, 42, 0.08)'
+                              : '1px solid rgba(148, 163, 184, 0.08)',
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', display: 'block' }}>
+                            Audio & Sub Streams
+                          </Typography>
+                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: 'text.primary' }}>
+                            {mediaSummary.kind === 'folder'
+                              ? `${mediaSummary.videoCount ?? 0} video(s)`
+                              : `${mediaSummary.audioCount || 0} Aud / ${mediaSummary.subCount || 0} Sub`}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'text.secondary',
+                          fontSize: '0.73rem',
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: 1.25,
+                          bgcolor: isLight ? '#E8ECF2' : 'rgba(11, 15, 24, 0.45)',
+                          border: isLight
+                            ? '1px solid rgba(15, 23, 42, 0.08)'
+                            : '1px solid rgba(148, 163, 184, 0.08)',
+                        }}
+                      >
+                        {isRunning
+                          ? currentSubTask || 'Executing media pipeline...'
+                          : 'Select or drop a media source to inspect container streams, codecs, and track flags.'}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  <Box
+                    sx={{
+                      pt: 1.5,
+                      borderTop: isLight
+                        ? '1px solid rgba(15, 23, 42, 0.08)'
+                        : '1px solid rgba(148, 163, 184, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <KeyboardOutlined sx={{ fontSize: 16, color: 'secondary.main' }} />
                         <Typography
                           variant="caption"
                           fontWeight={700}
@@ -1723,8 +2187,10 @@ export default function App() {
                             px: 1,
                             py: 0.5,
                             borderRadius: 1.25,
-                            bgcolor: 'rgba(11, 15, 24, 0.55)',
-                            border: '1px solid rgba(148, 163, 184, 0.08)',
+                            bgcolor: isLight ? '#E8ECF2' : 'rgba(11, 15, 24, 0.55)',
+                            border: isLight
+                              ? '1px solid rgba(15, 23, 42, 0.08)'
+                              : '1px solid rgba(148, 163, 184, 0.08)',
                           }}
                         >
                           <Typography
@@ -1739,7 +2205,7 @@ export default function App() {
                               fontFamily: 'monospace',
                               fontWeight: 700,
                               fontSize: '0.68rem',
-                              color: sc.combo ? '#E2E8F0' : 'text.disabled',
+                              color: sc.combo ? 'text.primary' : 'text.disabled',
                             }}
                           >
                             {formatShortcutDisplay(sc.combo) || '—'}
@@ -1748,13 +2214,28 @@ export default function App() {
                       ))}
                     </Box>
                   </Box>
+
+                  {/* Side-by-Side Docked Terminal on lg+ */}
+                  {isDockedRight && (
+                    <Box
+                      data-testid="docked-terminal-container"
+                      sx={{
+                        height: terminalHeight > 280 ? 420 : 320,
+                        mt: 0.5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      {terminalElement}
+                    </Box>
+                  )}
                 </Box>
               </Box>
             </motion.div>
           </AnimatePresence>
 
-          {/* Developer Console Drawer */}
-          {showTerminal && (
+          {/* Developer Console Bottom Drawer (when not docked to right column) */}
+          {!isDockedRight && showTerminal && (
             <Box
               role="separator"
               aria-label="Resize terminal"
@@ -1772,105 +2253,69 @@ export default function App() {
                 mt: 1.5,
                 cursor: 'row-resize',
                 borderRadius: 1,
-                bgcolor: 'rgba(148, 163, 184, 0.12)',
+                bgcolor: isLight
+                  ? 'rgba(15, 23, 42, 0.12)'
+                  : 'rgba(148, 163, 184, 0.12)',
                 transition: 'background-color 0.15s ease',
                 '&:hover': { bgcolor: 'primary.main' },
               }}
             />
           )}
-          <Box
-            sx={{
-              height: showTerminal ? terminalHeight : 0,
-              transition: isTerminalDragging
-                ? 'none'
-                : 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-              overflow: 'hidden',
-              mt: showTerminal ? 0.5 : 2,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Terminal
-              text={terminal}
-              visible={showTerminal}
-              onFollowChange={(following) => {
-                followTerminalRef.current = following;
+          {!isDockedRight && (
+            <Box
+              sx={{
+                height: showTerminal ? terminalHeight : 0,
+                transition: isTerminalDragging
+                  ? 'none'
+                  : 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                overflow: 'hidden',
+                mt: showTerminal ? 0.5 : 2,
+                display: 'flex',
+                flexDirection: 'column',
               }}
-            />
-          </Box>
-
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1.5,
-              mt: 1,
-              pt: 1,
-              borderTop: '1px solid rgba(148, 163, 184, 0.08)',
-              alignSelf: 'stretch',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <Button
-              size="small"
-              startIcon={<TerminalIcon fontSize="small" />}
-              onClick={() => setShowTerminal(!showTerminal)}
-              sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
             >
-              {showTerminal ? 'Hide Terminal' : 'Show Terminal'}
-            </Button>
-            {showTerminal && (
+              {terminalElement}
+            </Box>
+          )}
+
+          {!showTerminal && (
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                mt: 1,
+                pt: 1,
+                borderTop: isLight
+                  ? '1px solid rgba(15, 23, 42, 0.08)'
+                  : '1px solid rgba(148, 163, 184, 0.08)',
+                alignSelf: 'stretch',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
               <Button
                 size="small"
-                aria-label="Toggle expanded terminal"
-                startIcon={
-                  terminalHeight > 280 ? (
-                    <UnfoldLess fontSize="small" />
-                  ) : (
-                    <UnfoldMore fontSize="small" />
-                  )
-                }
-                onClick={() =>
-                  setTerminalHeight((h) => (h > 280 ? 230 : 400))
-                }
+                startIcon={<TerminalIcon fontSize="small" />}
+                onClick={() => setShowTerminal(true)}
                 sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
               >
-                {terminalHeight > 280 ? 'Compact Terminal' : 'Expand Terminal'}
+                Show Terminal
               </Button>
-            )}
-            {terminal && (
-              <>
-                <Button
-                  size="small"
-                  startIcon={<ContentCopy fontSize="small" />}
-                  onClick={copyTerminalLogs}
-                  sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-                >
-                  {copiedLogs ? 'Copied!' : 'Copy Logs'}
-                </Button>
-                <Button
-                  size="small"
-                  startIcon={<Download fontSize="small" />}
-                  onClick={downloadTerminalLogs}
-                  sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-                >
-                  Download Logs
-                </Button>
-                <Button
-                  size="small"
-                  startIcon={<DeleteSweepOutlined fontSize="small" />}
-                  onClick={() => setTerminal('')}
-                  sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
-                >
-                  Clear Logs
-                </Button>
-              </>
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
       </Box>
 
-      {inputRequest && (
+      {inputRequest && inputRequest.kind === 'sync_preview' && (
+        <SyncPreviewDialog
+          key={inputRequest.callback_id}
+          request={inputRequest}
+          onResolve={resolveInput}
+          onStop={handleStop}
+          stopping={isStopping}
+        />
+      )}
+      {inputRequest && inputRequest.kind !== 'sync_preview' && (
         <InputDialog
           key={inputRequest.callback_id}
           request={inputRequest}
@@ -1912,10 +2357,14 @@ export default function App() {
               onMouseEnter={() => setIsToastHovered(true)}
               onMouseLeave={() => setIsToastHovered(false)}
               sx={{
-                bgcolor: '#0E1422',
-                border: '1px solid rgba(52, 211, 153, 0.45)',
+                bgcolor: isLight ? '#FAFAFC' : '#0E1422',
+                border: isLight
+                  ? '1px solid rgba(5, 150, 105, 0.45)'
+                  : '1px solid rgba(52, 211, 153, 0.45)',
                 borderRadius: 2.5,
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.75)',
+                boxShadow: isLight
+                  ? '0 20px 50px rgba(15, 23, 42, 0.18)'
+                  : '0 20px 50px rgba(0, 0, 0, 0.75)',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1931,7 +2380,11 @@ export default function App() {
                   justifyContent: 'space-between',
                 }}
               >
-                <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#34D399' }}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={700}
+                  sx={{ color: isLight ? '#047857' : '#34D399' }}
+                >
                   Task completed
                 </Typography>
                 <Typography

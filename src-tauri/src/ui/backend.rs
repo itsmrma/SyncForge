@@ -650,6 +650,30 @@ impl Api {
         VERSION.to_string()
     }
 
+    pub fn preview_sync_mpv(
+        &self,
+        target: &str,
+        audio_file: Option<&str>,
+        audio_delay_ms: Option<i64>,
+        sub_file: Option<&str>,
+        sub_delay_ms: Option<i64>,
+        start_time: Option<&str>,
+    ) -> Result<Value, String> {
+        let cmd = crate::core::processes::preview_sync_mpv(
+            target,
+            audio_file,
+            audio_delay_ms,
+            sub_file,
+            sub_delay_ms,
+            start_time,
+        )?;
+        self.append_terminal(&format!("[mpv] Preview launched: {}\n", cmd.join(" ")));
+        Ok(json!({
+            "status": "ok",
+            "cmd": cmd,
+        }))
+    }
+
     pub fn inspect_media(&self, path: &str) -> Result<Value, String> {
         let trimmed = path.trim();
         if trimmed.is_empty() {
@@ -871,6 +895,11 @@ impl Api {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
 
+        let preview_mpv = settings
+            .get("preview_mpv")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
         set_config(RuntimeConfig {
             max_offset_seconds: max_offset,
             enable_max_offset: enable_offset,
@@ -880,6 +909,7 @@ impl Api {
             opus_bitrate,
             opus_downmix,
             default_output_dir: default_output_dir.clone(),
+            preview_mpv,
         });
 
         {

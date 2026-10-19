@@ -26,6 +26,10 @@ import KeyboardOutlined from '@mui/icons-material/KeyboardOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import RestartAlt from '@mui/icons-material/RestartAlt';
 import WarningAmberRounded from '@mui/icons-material/WarningAmberRounded';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
+import SettingsBrightnessOutlined from '@mui/icons-material/SettingsBrightnessOutlined';
 import { desktopBridge } from '../bridge';
 import {
   DEFAULT_SHORTCUTS,
@@ -162,6 +166,8 @@ export default function SettingsDialog({
     (item) => (shortcuts[item.id] ?? DEFAULT_SHORTCUTS[item.id]) !== DEFAULT_SHORTCUTS[item.id]
   ).length;
 
+  const currentThemeMode = settings.theme_mode || 'dark';
+
   return (
     <Box
       role="dialog"
@@ -190,14 +196,19 @@ export default function SettingsDialog({
       }}
     >
       <Box
-        sx={{
+        sx={(theme) => ({
           width: '100%',
           maxWidth: 620,
           maxHeight: '88vh',
-          bgcolor: '#0E131F',
-          border: '1px solid rgba(148, 163, 184, 0.18)',
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          border: '1px solid',
+          borderColor: 'divider',
           borderRadius: 3,
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.85)',
+          boxShadow:
+            theme.palette.mode === 'light'
+              ? '0 24px 64px rgba(15, 23, 42, 0.22)'
+              : '0 24px 64px rgba(0, 0, 0, 0.85)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -206,7 +217,7 @@ export default function SettingsDialog({
             from: { transform: 'scale(0.96)', opacity: 0 },
             to: { transform: 'scale(1)', opacity: 1 },
           },
-        }}
+        })}
       >
         {/* Unified Header & Segmented Tab Bar */}
         <Box
@@ -217,8 +228,9 @@ export default function SettingsDialog({
             px: 3,
             pt: 2.25,
             pb: 2,
-            borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
-            bgcolor: '#0E131F',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -228,9 +240,9 @@ export default function SettingsDialog({
                   width: 34,
                   height: 34,
                   borderRadius: 2,
-                  bgcolor: 'rgba(99, 102, 241, 0.16)',
+                  bgcolor: 'rgba(99, 102, 241, 0.14)',
                   border: '1px solid rgba(99, 102, 241, 0.28)',
-                  color: '#818CF8',
+                  color: 'primary.main',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -243,7 +255,7 @@ export default function SettingsDialog({
                   Settings
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.73rem' }}>
-                  Global preferences, module transcoding rules, and customizable keyboard shortcuts
+                  Global preferences, appearance, mpv sync preview, and keyboard shortcuts
                 </Typography>
               </Box>
             </Box>
@@ -261,15 +273,19 @@ export default function SettingsDialog({
           <Box
             role="tablist"
             aria-label="Settings pages"
-            sx={{
+            sx={(theme) => ({
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 0.75,
               p: 0.5,
               borderRadius: 2,
-              bgcolor: 'rgba(15, 23, 42, 0.65)',
-              border: '1px solid rgba(148, 163, 184, 0.14)',
-            }}
+              bgcolor:
+                theme.palette.mode === 'light'
+                  ? '#E8ECF2'
+                  : 'rgba(15, 23, 42, 0.65)',
+              border: '1px solid',
+              borderColor: 'divider',
+            })}
           >
             <Button
               role="tab"
@@ -284,10 +300,10 @@ export default function SettingsDialog({
                 fontSize: '0.80rem',
                 fontWeight: 700,
                 textTransform: 'none',
-                color: activeTab === 'general' ? '#E2E8F0' : 'text.secondary',
+                color: activeTab === 'general' ? 'text.primary' : 'text.secondary',
                 bgcolor:
                   activeTab === 'general'
-                    ? 'rgba(99, 102, 241, 0.22)'
+                    ? 'rgba(99, 102, 241, 0.18)'
                     : 'transparent',
                 border: '1px solid',
                 borderColor:
@@ -297,9 +313,9 @@ export default function SettingsDialog({
                 '&:hover': {
                   bgcolor:
                     activeTab === 'general'
-                      ? 'rgba(99, 102, 241, 0.28)'
-                      : 'rgba(255, 255, 255, 0.04)',
-                  color: '#E2E8F0',
+                      ? 'rgba(99, 102, 241, 0.24)'
+                      : 'rgba(99, 102, 241, 0.06)',
+                  color: 'text.primary',
                 },
               }}
             >
@@ -318,10 +334,10 @@ export default function SettingsDialog({
                 fontSize: '0.80rem',
                 fontWeight: 700,
                 textTransform: 'none',
-                color: activeTab === 'shortcuts' ? '#E2E8F0' : 'text.secondary',
+                color: activeTab === 'shortcuts' ? 'text.primary' : 'text.secondary',
                 bgcolor:
                   activeTab === 'shortcuts'
-                    ? 'rgba(99, 102, 241, 0.22)'
+                    ? 'rgba(99, 102, 241, 0.18)'
                     : 'transparent',
                 border: '1px solid',
                 borderColor:
@@ -331,9 +347,9 @@ export default function SettingsDialog({
                 '&:hover': {
                   bgcolor:
                     activeTab === 'shortcuts'
-                      ? 'rgba(99, 102, 241, 0.28)'
-                      : 'rgba(255, 255, 255, 0.04)',
-                  color: '#E2E8F0',
+                      ? 'rgba(99, 102, 241, 0.24)'
+                      : 'rgba(99, 102, 241, 0.06)',
+                  color: 'text.primary',
                 },
               }}
             >
@@ -348,7 +364,7 @@ export default function SettingsDialog({
                     fontSize: '0.68rem',
                     fontWeight: 800,
                     bgcolor: 'rgba(245, 158, 11, 0.2)',
-                    color: '#FBBF24',
+                    color: 'warning.main',
                     border: '1px solid rgba(245, 158, 11, 0.4)',
                   }}
                 />
@@ -361,15 +377,97 @@ export default function SettingsDialog({
         <Box sx={{ p: 3, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
           {activeTab === 'general' ? (
             <>
-              {/* Section 1: Audio & Transcoding */}
+              {/* Section 0: Appearance & Theme */}
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <HeadphonesOutlined sx={{ color: '#34D399', fontSize: 18 }} />
+                  <SettingsBrightnessOutlined sx={{ color: 'primary.main', fontSize: 18 }} />
                   <Typography
                     variant="subtitle2"
                     fontWeight={700}
                     sx={{
-                      color: '#34D399',
+                      color: 'primary.main',
+                      fontSize: '0.82rem',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Appearance & Theme
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 0.5 }}>
+                  <Box
+                    data-testid="theme-selector"
+                    role="group"
+                    aria-label="Theme mode"
+                    sx={(theme) => ({
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: 1,
+                      p: 0.5,
+                      borderRadius: 2,
+                      bgcolor:
+                        theme.palette.mode === 'light'
+                          ? '#E8ECF2'
+                          : 'rgba(15, 23, 42, 0.55)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    })}
+                  >
+                    {[
+                      { id: 'dark', label: 'Dark', icon: DarkModeOutlined },
+                      { id: 'light', label: 'Light', icon: LightModeOutlined },
+                      { id: 'system', label: 'System', icon: SettingsBrightnessOutlined },
+                    ].map((opt) => {
+                      const selected = currentThemeMode === opt.id;
+                      const IconComp = opt.icon;
+                      return (
+                        <Button
+                          key={opt.id}
+                          size="small"
+                          data-testid={`theme-mode-${opt.id}`}
+                          aria-pressed={selected}
+                          startIcon={<IconComp fontSize="small" />}
+                          onClick={() => onChange({ ...settings, theme_mode: opt.id })}
+                          sx={{
+                            borderRadius: 1.5,
+                            py: 0.75,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            color: selected ? 'text.primary' : 'text.secondary',
+                            bgcolor: selected ? 'rgba(99, 102, 241, 0.18)' : 'transparent',
+                            border: '1px solid',
+                            borderColor: selected ? 'rgba(99, 102, 241, 0.45)' : 'transparent',
+                            '&:hover': {
+                              bgcolor: selected
+                                ? 'rgba(99, 102, 241, 0.24)'
+                                : 'rgba(99, 102, 241, 0.08)',
+                              color: 'text.primary',
+                            },
+                          }}
+                        >
+                          {opt.label}
+                        </Button>
+                      );
+                    })}
+                  </Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.70rem' }}>
+                    Choose between Carbon-Slate Dark, Anodized Slate Light, or follow OS preference. The live CLI console stays dark for optimal ANSI readability.
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ borderColor: 'divider' }} />
+
+              {/* Section 1: Audio & Transcoding */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <HeadphonesOutlined sx={{ color: 'success.main', fontSize: 18 }} />
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight={700}
+                    sx={{
+                      color: 'success.main',
                       fontSize: '0.82rem',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
@@ -486,17 +584,17 @@ export default function SettingsDialog({
                 </Box>
               </Box>
 
-              <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.10)' }} />
+              <Divider sx={{ borderColor: 'divider' }} />
 
               {/* Section 2: Subtitles & Timing */}
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <SubtitlesOutlined sx={{ color: '#38BDF8', fontSize: 18 }} />
+                  <SubtitlesOutlined sx={{ color: 'secondary.main', fontSize: 18 }} />
                   <Typography
                     variant="subtitle2"
                     fontWeight={700}
                     sx={{
-                      color: '#38BDF8',
+                      color: 'secondary.main',
                       fontSize: '0.82rem',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
@@ -580,20 +678,55 @@ export default function SettingsDialog({
                       '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
                     }}
                   />
+
+                  <Box component="span" sx={{ display: 'block', pt: 0.5 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={Boolean(settings.preview_mpv)}
+                          onChange={(e) =>
+                            onChange({ ...settings, preview_mpv: e.target.checked })
+                          }
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <PlayArrow sx={{ fontSize: 16, color: 'secondary.main' }} />
+                            <Typography fontSize="0.82rem" fontWeight={600}>
+                              Preview sync with mpv before muxing
+                            </Typography>
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'text.secondary',
+                              fontSize: '0.70rem',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            Open an interactive verification dialog after delay calculation to audition and nudge audio/subtitle offsets in mpv before final remuxing
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: '100%', mr: 0 }}
+                    />
+                  </Box>
                 </Box>
               </Box>
 
-              <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.10)' }} />
+              <Divider sx={{ borderColor: 'divider' }} />
 
               {/* Section 3: Output Directory */}
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <FolderOpenOutlined sx={{ color: '#F59E0B', fontSize: 18 }} />
+                  <FolderOpenOutlined sx={{ color: 'warning.main', fontSize: 18 }} />
                   <Typography
                     variant="subtitle2"
                     fontWeight={700}
                     sx={{
-                      color: '#F59E0B',
+                      color: 'warning.main',
                       fontSize: '0.82rem',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
@@ -654,17 +787,17 @@ export default function SettingsDialog({
                 </Box>
               </Box>
 
-              <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.10)' }} />
+              <Divider sx={{ borderColor: 'divider' }} />
 
               {/* Section 4: Notifications & Feedback */}
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <NotificationsActiveOutlined sx={{ color: '#A855F7', fontSize: 18 }} />
+                  <NotificationsActiveOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />
                   <Typography
                     variant="subtitle2"
                     fontWeight={700}
                     sx={{
-                      color: '#A855F7',
+                      color: 'text.secondary',
                       fontSize: '0.82rem',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
@@ -730,16 +863,16 @@ export default function SettingsDialog({
                 sx={{
                   p: 1.5,
                   borderRadius: 1.5,
-                  bgcolor: 'rgba(56, 189, 248, 0.05)',
-                  border: '1px solid rgba(56, 189, 248, 0.15)',
+                  bgcolor: 'rgba(56, 189, 248, 0.06)',
+                  border: '1px solid rgba(56, 189, 248, 0.20)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.5,
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <InfoOutlined sx={{ color: '#38BDF8', fontSize: 16 }} />
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#38BDF8' }}>
+                  <InfoOutlined sx={{ color: 'secondary.main', fontSize: 16 }} />
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'secondary.main' }}>
                     Portable Mode & External Tools
                   </Typography>
                 </Box>
@@ -747,15 +880,11 @@ export default function SettingsDialog({
                   sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4 }}
                 >
                   SyncForge automatically detects MKVToolNix (
-                  <code style={{ color: '#E2E8F0' }}>mkvmerge</code>,{' '}
-                  <code style={{ color: '#E2E8F0' }}>mkvextract</code>,{' '}
-                  <code style={{ color: '#E2E8F0' }}>mkvpropedit</code>), FFmpeg (
-                  <code style={{ color: '#E2E8F0' }}>ffmpeg</code>), and ffsubsync (
-                  <code style={{ color: '#E2E8F0' }}>ffsubsync</code>). You can install them
-                  system-wide or simply place their executables directly in the application folder
-                  (or a <code style={{ color: '#E2E8F0' }}>tools/</code> or{' '}
-                  <code style={{ color: '#E2E8F0' }}>bin/</code> subfolder) for full portability
-                  without installing anything.
+                  <code>mkvmerge</code>, <code>mkvextract</code>, <code>mkvpropedit</code>),
+                  FFmpeg (<code>ffmpeg</code>), ffsubsync (<code>ffsubsync</code>), and mpv (
+                  <code>mpv</code>). You can install them system-wide or place their executables
+                  directly in the application folder (or a <code>tools/</code> or{' '}
+                  <code>bin/</code> subfolder) for full portability.
                 </Typography>
               </Box>
             </>
@@ -1023,8 +1152,9 @@ export default function SettingsDialog({
           sx={{
             px: 3,
             py: 2,
-            borderTop: '1px solid rgba(148, 163, 184, 0.12)',
-            bgcolor: '#0E131F',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
             display: 'flex',
             justifyContent: 'flex-end',
           }}

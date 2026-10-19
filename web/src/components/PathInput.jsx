@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
   Box,
   Button,
@@ -21,7 +21,7 @@ import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
 import HistoryIcon from '@mui/icons-material/History';
 import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
 
-export default function PathInput({
+function PathInput({
   label,
   value,
   onChange,
@@ -32,6 +32,7 @@ export default function PathInput({
   disabled,
   placeholder,
   helperText,
+  error = false,
   isWindowDragging = false,
   dropZoneLabel,
   recentPaths = [],
@@ -100,35 +101,19 @@ export default function PathInput({
         borderColor: dragOver
           ? '#38BDF8'
           : isWindowDragging
-            ? 'rgba(99, 102, 241, 0.7)'
+            ? 'rgba(99, 102, 241, 0.65)'
             : 'transparent',
         bgcolor: dragOver
-          ? 'rgba(56, 189, 248, 0.12)'
+          ? 'rgba(56, 189, 248, 0.10)'
           : isWindowDragging
             ? 'rgba(99, 102, 241, 0.05)'
             : 'transparent',
-        transform: dragOver ? 'scale(1.015)' : 'none',
         boxShadow: dragOver
-          ? '0 0 0 2px rgba(56, 189, 248, 0.4), 0 0 24px rgba(56, 189, 248, 0.35)'
+          ? '0 0 0 2px rgba(56, 189, 248, 0.35)'
           : isWindowDragging
-            ? '0 0 14px rgba(99, 102, 241, 0.25)'
+            ? '0 0 0 1px rgba(99, 102, 241, 0.20)'
             : 'none',
-        animation: isWindowDragging && !dragOver ? 'dropPulse 1.8s ease-in-out infinite' : 'none',
-        '@keyframes dropPulse': {
-          '0%': {
-            borderColor: 'rgba(99, 102, 241, 0.4)',
-            boxShadow: '0 0 0 1px rgba(99, 102, 241, 0.15), 0 0 8px rgba(99, 102, 241, 0.12)',
-          },
-          '50%': {
-            borderColor: 'rgba(56, 189, 248, 0.85)',
-            boxShadow: '0 0 0 2px rgba(56, 189, 248, 0.35), 0 0 18px rgba(56, 189, 248, 0.28)',
-          },
-          '100%': {
-            borderColor: 'rgba(99, 102, 241, 0.4)',
-            boxShadow: '0 0 0 1px rgba(99, 102, 241, 0.15), 0 0 8px rgba(99, 102, 241, 0.12)',
-          },
-        },
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease',
       }}
     >
       <TextField
@@ -138,11 +123,12 @@ export default function PathInput({
         fullWidth
         size="small"
         disabled={disabled}
+        error={Boolean(error)}
         placeholder={isWindowDragging && !value ? 'Drop file or folder here...' : placeholder}
         helperText={helperText}
         sx={{
           '& .MuiOutlinedInput-root': {
-            transition: 'all 0.2s ease',
+            transition: 'border-color 0.15s ease, background-color 0.15s ease',
             ...(isWindowDragging && {
               '& fieldset': {
                 borderColor: dragOver ? '#38BDF8 !important' : 'rgba(99, 102, 241, 0.7)',
@@ -159,12 +145,7 @@ export default function PathInput({
                 <FileDownloadOutlined
                   sx={{
                     fontSize: 20,
-                    color: dragOver ? '#38BDF8' : '#818CF8',
-                    animation: 'dropBounce 0.8s ease-in-out infinite alternate',
-                    '@keyframes dropBounce': {
-                      '0%': { transform: 'translateY(-2px)' },
-                      '100%': { transform: 'translateY(2px)' },
-                    },
+                    color: dragOver ? '#38BDF8' : 'primary.main',
                   }}
                 />
                 <Chip
@@ -176,13 +157,13 @@ export default function PathInput({
                     fontWeight: 700,
                     letterSpacing: '0.03em',
                     bgcolor: dragOver
-                      ? 'rgba(56, 189, 248, 0.25)'
-                      : 'rgba(99, 102, 241, 0.22)',
-                    color: dragOver ? '#38BDF8' : '#A5B4FC',
+                      ? 'rgba(56, 189, 248, 0.20)'
+                      : 'rgba(99, 102, 241, 0.16)',
+                    color: dragOver ? '#38BDF8' : 'primary.main',
                     border: '1px solid',
                     borderColor: dragOver
-                      ? 'rgba(56, 189, 248, 0.5)'
-                      : 'rgba(99, 102, 241, 0.45)',
+                      ? 'rgba(56, 189, 248, 0.45)'
+                      : 'rgba(99, 102, 241, 0.40)',
                   }}
                 />
               </InputAdornment>
@@ -243,8 +224,9 @@ export default function PathInput({
           paper: {
             sx: {
               maxWidth: 440,
-              bgcolor: '#0E131F',
-              border: '1px solid rgba(148, 163, 184, 0.18)',
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
             },
           },
         }}
@@ -260,7 +242,7 @@ export default function PathInput({
               }}
               sx={{ py: 0.75 }}
             >
-              <ListItemIcon sx={{ minWidth: 28, color: '#818CF8' }}>
+              <ListItemIcon sx={{ minWidth: 28, color: 'primary.main' }}>
                 {isFile ? (
                   <InsertDriveFileOutlined fontSize="small" />
                 ) : (
@@ -280,7 +262,7 @@ export default function PathInput({
         })}
         {onClearRecentPaths && (
           <>
-            <Divider sx={{ borderColor: 'rgba(148, 163, 184, 0.12)' }} />
+            <Divider sx={{ borderColor: 'divider' }} />
             <MenuItem
               onClick={() => {
                 onClearRecentPaths();
@@ -324,3 +306,5 @@ export default function PathInput({
     </Box>
   );
 }
+
+export default memo(PathInput);

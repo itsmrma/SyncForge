@@ -14,6 +14,7 @@ pub struct RuntimeConfig {
     pub opus_bitrate: u32,
     pub opus_downmix: bool,
     pub default_output_dir: Option<String>,
+    pub preview_mpv: bool,
 }
 
 impl Default for RuntimeConfig {
@@ -27,6 +28,7 @@ impl Default for RuntimeConfig {
             opus_bitrate: 128,
             opus_downmix: true,
             default_output_dir: None,
+            preview_mpv: false,
         }
     }
 }
@@ -40,6 +42,7 @@ static CONFIG: RwLock<RuntimeConfig> = RwLock::new(RuntimeConfig {
     opus_bitrate: 128,
     opus_downmix: true,
     default_output_dir: None,
+    preview_mpv: false,
 });
 
 pub fn get_config() -> RuntimeConfig {
