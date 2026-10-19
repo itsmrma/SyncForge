@@ -30,7 +30,7 @@ SyncForge is a native desktop media application written in **Rust** with **Tauri
   - `web/src/modules.js`: Definitions of the seven core modules, requirements, and labels.
   - `web/src/components/`:
     - `Sidebar.jsx`: Collapsible and resizable navigation rail.
-    - `SettingsPanel.jsx`: Contextual application settings accordion (disabled/annotated based on active module).
+    - `SettingsDialog.jsx`: Tabbed and collapsible application settings dialog (General, Opus Audio, OpenSubtitles, Keyboard Shortcuts, Portable Mode & External Tools).
     - `Terminal.jsx`: Live developer console with auto-follow pause/resume.
     - `InputDialog.jsx` & `MatcherDialog.jsx`: Interactive track selection and drag-and-drop batch file matching.
   - `web/vite.config.js`: Builds distribution bundle into `web/dist/` consumed by Tauri v2.

@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.4 — Modern Developer Console, OpenSubtitles Integration & Model Context Protocol (MCP)](https://github.com/itsmrma/SyncForge/releases/tag/v3.4)**
-introduces a decluttered icon-first developer console with unified segmented log filters, OpenSubtitles API integration, and full Model Context Protocol (MCP) server support for AI agents. See [CHANGELOG.md](CHANGELOG.md).
+**[3.4.1 — Self-Sync Audio & Subtitles, Live External Tools Detection & Video Timeline Logo](https://github.com/itsmrma/SyncForge/releases/tag/v3.4.1)**
+introduces the 7th core processing mode for in-place self-synchronization, real-time external tool detection in Settings, a video-editing timeline logo, and unified skills. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.

@@ -115,6 +115,19 @@ export function getAppTheme(mode = 'dark') {
           },
         },
       },
+      MuiCheckbox: {
+        defaultProps: {
+          disableRipple: true,
+        },
+        styleOverrides: {
+          root: {
+            transition: 'none !important',
+            '& .MuiSvgIcon-root': {
+              transition: 'none !important',
+            },
+          },
+        },
+      },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {

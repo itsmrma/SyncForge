@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 const OPENSUBTITLES_API_BASE = 'https://api.opensubtitles.com/api/v1';
-const DEFAULT_USER_AGENT = 'SyncForge v3.3.1';
+const DEFAULT_USER_AGENT = 'SyncForge v3.4.1';
 
 /**
  * Returns the path to the shared user configuration file on disk.

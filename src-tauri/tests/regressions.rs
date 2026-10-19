@@ -19,9 +19,10 @@ use syncforge_lib::core::notifications::{
 use syncforge_lib::core::processes::{external_tool_environment_from, CompletedProcess};
 use syncforge_lib::core::tasks::{current_task, with_task, TaskError, TaskProgress};
 use syncforge_lib::core::utils::{
-    ask_directory, get_files_recursive, match_files, parse_track_selection, run_subprocess,
-    AskOptions,
+    ask_directory, get_files_recursive, match_files, parse_track_selection, AskOptions,
 };
+#[cfg(unix)]
+use syncforge_lib::core::utils::run_subprocess;
 use syncforge_lib::ui::backend::{Api, FrontendBridge, PathsInput};
 
 static TEST_LOCK: Mutex<()> = Mutex::new(());

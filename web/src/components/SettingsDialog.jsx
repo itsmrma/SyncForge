@@ -234,12 +234,17 @@ function SettingToggleRow({
         control={
           <Checkbox
             size="small"
+            disableRipple
             checked={Boolean(checked)}
             onChange={(e) => onChange(e.target.checked)}
             disabled={disabled}
             sx={{
               p: 0.75,
               color: 'text.secondary',
+              transition: 'none !important',
+              '& .MuiSvgIcon-root': {
+                transition: 'none !important',
+              },
               '&.Mui-checked': {
                 color: 'primary.main',
               },
@@ -972,11 +977,18 @@ export default function SettingsDialog({
                         control={
                           <Checkbox
                             size="small"
+                            disableRipple
                             checked={settings.opus_downmix !== false}
                             onChange={(e) =>
                               onChange({ ...settings, opus_downmix: e.target.checked })
                             }
                             disabled={settings.opus_mode === 'off'}
+                            sx={{
+                              transition: 'none !important',
+                              '& .MuiSvgIcon-root': {
+                                transition: 'none !important',
+                              },
+                            }}
                           />
                         }
                         label={
