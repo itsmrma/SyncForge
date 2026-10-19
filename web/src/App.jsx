@@ -57,6 +57,8 @@ const DEFAULT_SETTINGS = {
   sound_on_finish: true,
   theme_mode: 'dark',
   preview_mpv: false,
+  opensubtitles_api_key: '',
+  opensubtitles_token: '',
 };
 
 function parseSubTaskFromLog(text) {
@@ -329,10 +331,26 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (desktopBridge.isConnected()) {
+      desktopBridge
+        .loadSettings()
+        .then((loaded) => {
+          if (loaded && typeof loaded === 'object' && Object.keys(loaded).length > 0) {
+            setSettings((prev) => ({ ...prev, ...loaded }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem('syncforge_settings', JSON.stringify(settings));
     } catch {
       // ignore storage errors
+    }
+    if (desktopBridge.isConnected()) {
+      desktopBridge.saveSettings(settings).catch(() => {});
     }
   }, [settings]);
 

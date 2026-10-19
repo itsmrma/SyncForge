@@ -30,6 +30,10 @@ import PlayArrow from '@mui/icons-material/PlayArrow';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import SettingsBrightnessOutlined from '@mui/icons-material/SettingsBrightnessOutlined';
+import KeyOutlined from '@mui/icons-material/KeyOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
+import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined';
 import { desktopBridge } from '../bridge';
 import {
   DEFAULT_SHORTCUTS,
@@ -55,6 +59,8 @@ export default function SettingsDialog({
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
   const [editingShortcut, setEditingShortcut] = useState(null);
   const [conflictState, setConflictState] = useState(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showApiToken, setShowApiToken] = useState(false);
 
   if ((open && !prevOpen) || (initialTab !== prevInitialTab)) {
     setPrevOpen(open);
@@ -711,6 +717,169 @@ export default function SettingsDialog({
                         </Box>
                       }
                       sx={{ width: '100%', mr: 0 }}
+                    />
+                  </Box>
+
+                  {/* OpenSubtitles.com API Integration */}
+                  <Box
+                    data-testid="opensubtitles-settings-card"
+                    sx={{
+                      mt: 1,
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: (theme) =>
+                        theme.palette.mode === 'light'
+                          ? 'rgba(99, 102, 241, 0.05)'
+                          : 'rgba(99, 102, 241, 0.08)',
+                      border: '1px solid',
+                      borderColor: (theme) =>
+                        theme.palette.mode === 'light'
+                          ? 'rgba(99, 102, 241, 0.20)'
+                          : 'rgba(99, 102, 241, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1.5,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <KeyOutlined sx={{ fontSize: 18, color: 'primary.main' }} />
+                        <Typography fontSize="0.82rem" fontWeight={700}>
+                          OpenSubtitles.com API Integration
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="text"
+                        component="a"
+                        href="https://www.opensubtitles.com/en/consumers"
+                        target="_blank"
+                        rel="noreferrer"
+                        endIcon={<OpenInNewOutlined sx={{ fontSize: 14 }} />}
+                        sx={{
+                          fontSize: '0.72rem',
+                          textTransform: 'none',
+                          py: 0.25,
+                          px: 0.75,
+                          color: 'primary.main',
+                        }}
+                      >
+                        Get Free API Key
+                      </Button>
+                    </Box>
+
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                      Required for searching and downloading missing subtitles directly through AI agents and MCP tools.
+                      The key is stored in your local configuration and shared across the GUI and AI assistants.
+                    </Typography>
+
+                    <TextField
+                      label="OpenSubtitles API Key"
+                      data-testid="opensubtitles-api-key-input"
+                      type={showApiKey ? 'text' : 'password'}
+                      size="small"
+                      fullWidth
+                      value={settings.opensubtitles_api_key || ''}
+                      placeholder="Enter your OpenSubtitles API Consumer Key"
+                      onChange={(e) =>
+                        onChange({ ...settings, opensubtitles_api_key: e.target.value.trim() })
+                      }
+                      helperText={
+                        settings.opensubtitles_api_key
+                          ? 'Stored in shared user configuration (~/.config/syncforge/config.json)'
+                          : 'Leave empty if you do not use online subtitle search tools'
+                      }
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                size="small"
+                                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                edge="end"
+                                sx={{ p: 0.5, color: 'text.secondary', mr: settings.opensubtitles_api_key ? 0.5 : 0 }}
+                              >
+                                {showApiKey ? (
+                                  <VisibilityOffOutlined sx={{ fontSize: 16 }} />
+                                ) : (
+                                  <VisibilityOutlined sx={{ fontSize: 16 }} />
+                                )}
+                              </IconButton>
+                              {settings.opensubtitles_api_key ? (
+                                <Tooltip title="Clear OpenSubtitles API Key" arrow>
+                                  <IconButton
+                                    size="small"
+                                    aria-label="Clear API key"
+                                    onClick={() =>
+                                      onChange({ ...settings, opensubtitles_api_key: '' })
+                                    }
+                                    edge="end"
+                                    sx={{ p: 0.5, color: 'text.secondary' }}
+                                  >
+                                    <ClearIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : null}
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
+                      }}
+                    />
+
+                    <TextField
+                      label="OpenSubtitles User Token (Optional VIP / JWT)"
+                      type={showApiToken ? 'text' : 'password'}
+                      size="small"
+                      fullWidth
+                      value={settings.opensubtitles_token || ''}
+                      placeholder="Optional User VIP / Bearer Token"
+                      onChange={(e) =>
+                        onChange({ ...settings, opensubtitles_token: e.target.value.trim() })
+                      }
+                      helperText="Optional: increases daily download quotas for registered or VIP accounts"
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                size="small"
+                                aria-label={showApiToken ? 'Hide token' : 'Show token'}
+                                onClick={() => setShowApiToken(!showApiToken)}
+                                edge="end"
+                                sx={{ p: 0.5, color: 'text.secondary', mr: settings.opensubtitles_token ? 0.5 : 0 }}
+                              >
+                                {showApiToken ? (
+                                  <VisibilityOffOutlined sx={{ fontSize: 16 }} />
+                                ) : (
+                                  <VisibilityOutlined sx={{ fontSize: 16 }} />
+                                )}
+                              </IconButton>
+                              {settings.opensubtitles_token ? (
+                                <Tooltip title="Clear User Token" arrow>
+                                  <IconButton
+                                    size="small"
+                                    aria-label="Clear user token"
+                                    onClick={() =>
+                                      onChange({ ...settings, opensubtitles_token: '' })
+                                    }
+                                    edge="end"
+                                    sx={{ p: 0.5, color: 'text.secondary' }}
+                                  >
+                                    <ClearIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : null}
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
+                      }}
                     />
                   </Box>
                 </Box>

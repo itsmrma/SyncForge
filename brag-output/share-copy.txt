@@ -1,1 +1,1 @@
-Introducing SyncForge: a native desktop media workbench to losslessly merge, filter, and synchronize video, audio, and subtitle streams. Built with Rust, Tauri v2, and pure-Rust FFT waveform cross-correlation for sub-second audio delay alignment.
+SyncForge: an open-source desktop media workbench to losslessly merge, filter, and synchronize video, audio, and subtitle streams. Features 6 processing modes, 1-click track filtering, batch episode matching, and pre-mux mpv preview. Built with Rust & Tauri v2.

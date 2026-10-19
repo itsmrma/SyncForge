@@ -8,6 +8,8 @@
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build",
     "test": "npm --prefix web test",
-    "lint": "npm --prefix web run lint"
+    "lint": "npm --prefix web run lint",
+    "mcp": "node mcp/index.js",
+    "mcp:test": "node mcp/test.js"
   }
 }

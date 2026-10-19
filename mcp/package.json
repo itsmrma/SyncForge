@@ -1,0 +1,21 @@
+{
+  "name": "syncforge-mcp",
+  "version": "3.3.1",
+  "description": "Model Context Protocol (MCP) server for SyncForge - AI Agent integration for media inspection, audio waveform delay synchronization, subtitle alignment, and lossless MKV remuxing",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "syncforge-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "zod": "^3.24.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

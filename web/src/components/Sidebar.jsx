@@ -54,6 +54,7 @@ function Sidebar({
   useEffect(() => {
     const move = (event) => {
       if (!dragging.current) return;
+      event.preventDefault();
       if (rafId.current) cancelAnimationFrame(rafId.current);
       rafId.current = requestAnimationFrame(() => {
         setWidth(Math.min(Math.max(event.clientX, 240), 600));
@@ -66,6 +67,10 @@ function Sidebar({
       if (rafId.current) cancelAnimationFrame(rafId.current);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+      document.documentElement.style.cursor = '';
+      document.documentElement.style.userSelect = '';
+      document.documentElement.style.webkitUserSelect = '';
     };
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', stop);
@@ -82,10 +87,10 @@ function Sidebar({
   const titleFontSize = useMemo(() => {
     if (width <= 320) {
       const progress = (width - 240) / 80;
-      return `${(0.66 + progress * 0.18).toFixed(3)}rem`;
+      return `${(0.80 + progress * 0.05).toFixed(3)}rem`;
     }
     const progress = Math.min((width - 320) / 280, 1);
-    return `${(0.84 + progress * 0.10).toFixed(3)}rem`;
+    return `${(0.85 + progress * 0.05).toFixed(3)}rem`;
   }, [width]);
 
   const buttonFontSize = useMemo(() => {
@@ -241,7 +246,8 @@ function Sidebar({
                         ? 'rgba(99, 102, 241, 0.4)'
                         : 'transparent',
                       overflow: 'hidden',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: collapsed ? 'nowrap' : 'normal',
+                      alignItems: 'center',
                       '&.Mui-selected': {
                         bgcolor: 'rgba(99, 102, 241, 0.14)',
                         '&:hover': {
@@ -254,6 +260,7 @@ function Sidebar({
                       sx={{
                         minWidth: width < 280 ? 28 : 32,
                         flexShrink: 0,
+                        alignSelf: 'center',
                         color: active ? 'primary.main' : 'text.secondary',
                       }}
                     >
@@ -283,24 +290,27 @@ function Sidebar({
                           fontSize: titleFontSize,
                           color: active ? 'text.primary' : 'text.secondary',
                           lineHeight: 1.25,
+                          whiteSpace: collapsed ? 'nowrap' : 'normal',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
                         }}
                         sx={{
                           my: 0,
                           minWidth: 0,
                           flex: '1 1 auto',
-                          overflow: 'hidden',
                         }}
                       />
                       {compactHint && (
                         <Typography
                           variant="caption"
                           sx={{
-                            ml: width < 280 ? 0.75 : 1.5,
+                            ml: width < 280 ? 0.75 : 1.25,
                             fontFamily: 'monospace',
                             fontSize: '0.72rem',
                             color: active ? 'primary.light' : 'text.secondary',
                             fontWeight: 600,
                             flexShrink: 0,
+                            alignSelf: 'center',
                           }}
                         >
                           {compactHint}
@@ -482,11 +492,19 @@ function Sidebar({
           role="separator"
           aria-label="Resize sidebar"
           aria-orientation="vertical"
-          onMouseDown={() => {
+          onMouseDown={(e) => {
+            e.preventDefault();
+            try {
+              window.getSelection()?.removeAllRanges();
+            } catch {}
             dragging.current = true;
             setIsDragging(true);
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+            document.documentElement.style.cursor = 'col-resize';
+            document.documentElement.style.userSelect = 'none';
+            document.documentElement.style.webkitUserSelect = 'none';
           }}
           sx={{
             width: 4,

@@ -1,8 +1,7 @@
 # Changelog
 
-## 3.3.1 - Impeccable Design Quality, Contrast & Heading Hierarchy Polish
+## 3.4 - Modern Developer Console, OpenSubtitles Integration & Model Context Protocol (MCP)
 
-- **Anti-Slop & Chromatic Halo Removal**: Eliminate AI-slop colored glow shadow (`rgba(99, 102, 241, 0.30)`) on the sidebar application logo in favor of crisp, neutral elevation depth (`0 2px 4px rgba(0, 0, 0, 0.45)`).
-- **Accessible Contrast Enhancements**: Elevate inactive and active keyboard shortcut badge contrast in the sidebar (`text.secondary` and `primary.light`, exceeding WCAG AA 4.5:1 ratio) and darken primary button baseline in dark mode (`#4F46E5`) for optimal 6.0:1 text contrast with `#F8FAFC`.
-- **Typographic Legibility Floor**: Bump all functional micro-labels (sidebar shortcut badges, bottom status bar indicators, and keyboard shortcut table items) above the 11px floor (`0.72rem` / 11.52px).
-- **Document Heading Outline Fix**: Explicitly map the Active Profile card header to `component="h4"` to maintain uninterrupted semantic heading progression (`<h3>` -> `<h4>`) across workspace views.
+- **Modern Developer Console Redesign (`Terminal`)**: Declutter the terminal toolbar into an icon-first developer workstation console. Group log content actions (Copy with animated green checkmark confirmation, Download, and Clear) and window layout controls (Dock to Side / Bottom Drawer, Expand / Compact, Hide with `Ctrl+L` / `⌘L` tooltip) separated by a hairline divider. Unify log level filtering into a single recessed segmented pill control (`All` | `Errors` | `Warnings`), integrate search with in-box clear adornment and match counter, and refine the floating *"Go to end"* jump action to a full-pill shape (`rounded.full`, `borderRadius: 999`) matching DESIGN.md.
+- **OpenSubtitles.com API Integration**: Add secure API key and JWT authentication management in Settings (`open_subtitles_api_key`, `open_subtitles_token`) with masked password visibility toggle, clear button adornment, and persistent configuration in Rust backend and frontend bridge.
+- **Model Context Protocol (MCP) Server**: Full native MCP server integration (`mcp/index.js`) exposing all SyncForge processing engines, file pickers, inspection, and batch matching capabilities directly to external AI agents (Claude Desktop, Cursor, Cline).

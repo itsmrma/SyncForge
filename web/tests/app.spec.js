@@ -200,6 +200,30 @@ test('resized sidebar restores its width after collapse', async ({ page }) => {
   await expect.poll(() => sidebar.evaluate(element => element.clientWidth)).toBe(370);
 });
 
+test('sidebar module titles wrap text and resizing does not select window text', async ({ page }) => {
+  const button = page.getByRole('button', { name: 'Waveform Audio Sync & Merge' });
+  const whiteSpace = await button.evaluate(el => window.getComputedStyle(el).whiteSpace);
+  expect(whiteSpace).toBe('normal');
+
+  const separator = page.getByRole('separator', { name: 'Resize sidebar' });
+  const sepBox = await separator.boundingBox();
+  expect(sepBox).not.toBeNull();
+
+  await page.mouse.move(sepBox.x + 2, sepBox.y + 10);
+  await page.mouse.down();
+
+  const userSelectDuring = await page.evaluate(() => document.body.style.userSelect);
+  expect(userSelectDuring).toBe('none');
+
+  await page.mouse.move(250, 100);
+  const selectedText = await page.evaluate(() => window.getSelection()?.toString() || '');
+  expect(selectedText).toBe('');
+
+  await page.mouse.up();
+  const userSelectAfter = await page.evaluate(() => document.body.style.userSelect);
+  expect(userSelectAfter).toBe('');
+});
+
 const tracks = [
   { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'eng', track_name: 'English Audio' } },
   { id: 8, type: 'subtitles', codec: 'SubRip/SRT', properties: { language: 'ita', track_name: 'Italian subtitles', default_track: true } },
@@ -1130,6 +1154,46 @@ test('v3.3 mpv Sync Preview Dialog: Preview in mpv, audio/subtitle micro-nudge, 
     audio_delay_ms: -110,
     sub_delay_ms: 15,
   });
+});
+
+test('OpenSubtitles API key and token settings configuration and persistence', async ({ page }) => {
+  await page.goto('/');
+
+  // 1. Open Settings modal
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
+
+  // 2. Locate OpenSubtitles settings card
+  const osCard = settingsModal.getByTestId('opensubtitles-settings-card');
+  await expect(osCard).toBeVisible();
+  await expect(osCard).toContainText('OpenSubtitles.com API Integration');
+
+  // 3. Fill API Key
+  const apiKeyInput = settingsModal.getByTestId('opensubtitles-api-key-input').locator('input');
+  await expect(apiKeyInput).toBeVisible();
+  await expect(apiKeyInput).toHaveAttribute('type', 'password');
+  await apiKeyInput.fill('my-secret-test-key-12345');
+
+  // 4. Toggle visibility
+  const toggleVisibilityBtn = settingsModal.getByLabel('Show API key');
+  await toggleVisibilityBtn.click();
+  await expect(apiKeyInput).toHaveAttribute('type', 'text');
+
+  // 5. Check clear button appears and works
+  const clearKeyBtn = settingsModal.getByLabel('Clear API key');
+  await expect(clearKeyBtn).toBeVisible();
+
+  // Re-fill and close modal
+  await apiKeyInput.fill('persisted-api-key-abc');
+  await settingsModal.getByRole('button', { name: 'Done' }).click();
+  await expect(settingsModal).not.toBeVisible();
+
+  // 6. Verify stored in localStorage
+  const savedSettings = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('syncforge_settings') || '{}')
+  );
+  expect(savedSettings.opensubtitles_api_key).toBe('persisted-api-key-abc');
 });
 
 

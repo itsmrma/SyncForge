@@ -43,6 +43,9 @@ dist/
 graphify-out/
 .graphify_*
 
+# Hyperframes checks
+**/.hyperframes/artifacts/
+
 # Local editor and operating-system files
 .vscode/
 .idea/

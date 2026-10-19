@@ -270,6 +270,16 @@ async fn preview_sync_mpv(
     .map_err(|e| e.to_string())?
 }
 
+#[tauri::command]
+fn save_settings(settings: Value) -> Result<(), String> {
+    crate::core::config::save_user_config(&settings)
+}
+
+#[tauri::command]
+fn load_settings() -> Value {
+    crate::core::config::load_user_config()
+}
+
 pub fn run() {
     crate::core::processes::setup_environment();
     let api = Api::new();
@@ -300,7 +310,9 @@ pub fn run() {
             show_in_folder,
             get_version,
             inspect_media,
-            preview_sync_mpv
+            preview_sync_mpv,
+            save_settings,
+            load_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");

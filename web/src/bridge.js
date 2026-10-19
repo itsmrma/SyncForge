@@ -149,4 +149,25 @@ export const desktopBridge = {
     }
     return { status: 'mock_launched', target, audioFile, audioDelayMs, subFile, subDelayMs, startTime };
   },
+
+  async saveSettings(settings) {
+    const mock = getMockApi();
+    if (mock && mock.save_settings) {
+      return await mock.save_settings(settings);
+    }
+    if (hasTauri()) {
+      return await invoke('save_settings', { settings });
+    }
+  },
+
+  async loadSettings() {
+    const mock = getMockApi();
+    if (mock && mock.load_settings) {
+      return await mock.load_settings();
+    }
+    if (hasTauri()) {
+      return await invoke('load_settings');
+    }
+    return null;
+  },
 };

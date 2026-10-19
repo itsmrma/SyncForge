@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.3.1 — Impeccable Design Quality, Contrast & Heading Hierarchy Polish](https://github.com/itsmrma/SyncForge/releases/tag/v3.3.1)**
-eliminates AI-slop chromatic halos, refines WCAG AA text contrast ratios across all buttons and shortcut badges, enforces an 11px typographic legibility floor, and restores semantic heading hierarchy. See [CHANGELOG.md](CHANGELOG.md).
+**[3.4 — Modern Developer Console, OpenSubtitles Integration & Model Context Protocol (MCP)](https://github.com/itsmrma/SyncForge/releases/tag/v3.4)**
+introduces a decluttered icon-first developer console with unified segmented log filters, OpenSubtitles API integration, and full Model Context Protocol (MCP) server support for AI agents. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
@@ -21,9 +21,11 @@ eliminates AI-slop chromatic halos, refines WCAG AA text contrast ratios across 
 - **Extract & Sync Subs from MKV:** extract, synchronize, and inject subtitles from another video.
 - **Waveform Audio Sync & Merge:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
 - **Direct Track Merge (No Sync):** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
+- **Online Subtitle Search (OpenSubtitles):** find and download missing subtitles directly by title, IMDb/TMDb ID, episode, or exact 64-bit video `moviehash`, and automatically align them to audio speech.
+- **AI Agent Automation (MCP Server):** full Model Context Protocol server giving AI agents (Claude Desktop, Cursor, Claude Code, Cline) 100% functional parity with the GUI (see [MCP.md](MCP.md)).
 
 Track dialogs show MKVToolNix IDs, language, codec, names, and flags. The sidebar
-collapses to an icon rail and restores its width when expanded. Use **File** or
+collapses to an icon rail, wraps long module titles onto multiple lines for full readability when resized, and prevents text selection during drag gestures. Use **File** or
 **Folder** to select each target/source; external subtitles also accept a single
 subtitle file. File and folder inputs can be combined. Output remains a folder;
 leave it empty to use the target file's parent folder or the target folder.
@@ -51,10 +53,31 @@ SyncForge interfaces with external CLI tools. You have two convenient options:
 
 *(Note: Audio delay cross-correlation in WaveSync Injection is computed natively by SyncForge's built-in Rust FFT engine without external dependencies).*
 
+## AI Agent Automation & MCP Server
+
+SyncForge includes a native **Model Context Protocol (MCP)** server on stdio (`mcp/index.js`), enabling AI agents in **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, and **Cline** to execute all media operations programmatically.
+
+- **20 Autonomous Tools**: Media inspection, WaveSync waveform delay calculation, external subtitle alignment with `ffsubsync`, `mkvpropedit` metadata flag editing, stream filtering, track merging, Opus conversion, font extraction, episode matching, full batch folder execution, and OpenSubtitles configuration.
+- **Online Subtitle Discovery**: Direct OpenSubtitles.com search, video 64-bit `moviehash` calculation, and automated download + alignment.
+- **Shared Configuration**: OpenSubtitles API keys entered in GUI Settings (**Settings → Subtitles & Synchronization**) are saved to `~/.config/syncforge/config.json` and automatically loaded by AI agents and MCP tools.
+- **Client Setup**: Add to your client's MCP configuration:
+  ```json
+  {
+    "mcpServers": {
+      "syncforge": {
+        "command": "node",
+        "args": ["/ABSOLUTE/PATH/TO/SyncForge/mcp/index.js"]
+      }
+    }
+  }
+  ```
+- See **[MCP.md](MCP.md)** for full documentation, tool schemas, and prompt templates.
+
 ## Run from source
 
-Install [Rust](https://rustup.rs/) and [Node.js](https://nodejs.org/), then:
+Install [Rust](https://rustup.rs/) and [Node.js](https://nodejs.org/) (v18+), then:
 
+### Desktop Application (Tauri v2)
 ```sh
 git clone https://github.com/itsmrma/SyncForge.git
 cd SyncForge/web
@@ -64,18 +87,30 @@ npx tauri dev
 ```
 
 To build an optimized standalone executable/bundle:
-
 ```sh
 cd web
 npx tauri build
+```
+
+### Model Context Protocol (MCP) Server
+```sh
+# Install MCP dependencies:
+cd mcp && npm install && cd ..
+
+# Run MCP server tests:
+npm run mcp:test
+
+# Launch MCP server:
+npm run mcp
 ```
 
 ## Development
 
 Rust backend code is under `src-tauri/src`, separated into `core`, `features`, and `ui`.
 React frontend source is under `web/src`, with separate components, module definitions,
-IPC bridge, and theme. Rust regression, cancellation, and integration tests are in
-`src-tauri/tests`; browser integration tests are in `web/tests`.
+IPC bridge, and theme. MCP server implementation is under `mcp/`.
+Rust regression, cancellation, and integration tests are in `src-tauri/tests`; browser
+integration tests are in `web/tests`.
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for structure, test, and build commands.
 
@@ -87,8 +122,9 @@ SyncForge is licensed under the [MIT License](LICENSE).
 - **Inter Font Family**: Copyright (c) 2016 The Inter Project Authors, licensed under the [SIL Open Font License 1.1](web/public/Inter-LICENSE.txt). Included in builds and distributions.
 - **Material Design Icons & MUI**: Copyright (c) Google LLC ([Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)) and Material-UI SAS ([MIT License](https://github.com/mui/material-ui/blob/master/LICENSE)).
 
-### External Tools (System Dependencies)
-SyncForge interfaces with the following open-source CLI media utilities when installed on your system `PATH` or placed in the application folder:
+### External Tools & APIs
 - **MKVToolNix** (`mkvmerge`, `mkvextract`, `mkvpropedit`): Copyright (c) Moritz Bunkus, licensed under the [GNU General Public License v2 (GPL-2.0)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html).
 - **FFmpeg** (`ffmpeg`): Copyright (c) FFmpeg developers, licensed under the [GNU LGPL v2.1+ or GPL v2+](https://ffmpeg.org/legal.html) depending on configuration.
 - **ffsubsync**: Copyright (c) 2018 Stephen Macke, licensed under the [MIT License](web/public/ffsubsync-LICENSE.txt).
+- **OpenSubtitles.com REST API**: Non-commercial community subtitle database for personal use. Requires user-provided Consumer API Key (`OPENSUBTITLES_API_KEY`). Prohibited for commercial exploitation without an enterprise agreement with OpenSubtitles.
+

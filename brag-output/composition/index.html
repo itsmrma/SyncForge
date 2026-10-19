@@ -118,90 +118,74 @@
       display: inline-block;
     }
     .scene-title {
-      font-size: 58px;
+      font-size: 54px;
       font-weight: 800;
       letter-spacing: -0.03em;
       line-height: 1.1;
       text-align: center;
       color: #F8FAFC;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .scene-subtitle {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 500;
       color: #CBD5E1;
       text-align: center;
-      max-width: 900px;
+      max-width: 960px;
       line-height: 1.5;
     }
 
-    /* Scene 1: Hero & Problem */
-    .hook-problem-box {
-      background: rgba(15, 20, 31, 0.75);
-      border: 1px solid rgba(244, 63, 94, 0.3);
-      padding: 30px 48px;
-      border-radius: 16px;
-      margin-bottom: 36px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .problem-alert {
-      color: #FB7185;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-    .hero-modules-grid {
+    /* Scene 1: 6 Core Modules Grid */
+    .modules-grid-6 {
       display: grid;
-      grid-template-columns: repeat(3, 340px);
-      gap: 24px;
+      grid-template-columns: repeat(3, 380px);
+      gap: 20px;
       margin-top: 36px;
     }
-    .module-card {
+    .mod-box {
       background: #0F141F;
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 14px;
-      padding: 24px;
+      padding: 22px 24px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
-    .module-card.active {
-      border-color: rgba(99, 102, 241, 0.6);
+    .mod-box.highlight {
+      border-color: rgba(99, 102, 241, 0.5);
       background: rgba(99, 102, 241, 0.08);
-      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
     }
-    .mod-title {
-      font-size: 20px;
+    .mod-head {
+      font-size: 17px;
       font-weight: 700;
-      color: #F1F5F9;
+      color: #F8FAFC;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .mod-desc {
-      font-size: 14px;
+    .mod-body {
+      font-size: 13.5px;
       color: #CBD5E1;
       line-height: 1.45;
     }
 
     /* Scene 2: Track Inspector */
     .inspector-card {
-      width: 1100px;
+      width: 1120px;
       background: #0F141F;
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 16px;
-      padding: 32px 36px;
+      padding: 30px 36px;
       box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      margin-top: 24px;
     }
     .inspector-toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 18px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.14);
     }
     .filter-buttons {
@@ -209,16 +193,16 @@
       gap: 10px;
     }
     .filter-btn {
-      padding: 8px 16px;
+      padding: 7px 15px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
-      background: rgba(15, 20, 31, 0.8);
+      background: rgba(15, 20, 31, 0.85);
       border: 1px solid rgba(148, 163, 184, 0.24);
       color: #F1F5F9;
     }
     .filter-btn.highlight {
-      background: rgba(99, 102, 241, 0.25);
+      background: rgba(99, 102, 241, 0.28);
       border-color: #818CF8;
       color: #F8FAFC;
     }
@@ -226,9 +210,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 18px;
+      padding: 12px 18px;
       border-radius: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 9px;
       background: #0B0F18;
       border: 1.5px solid rgba(148, 163, 184, 0.14);
     }
@@ -243,25 +227,25 @@
     .track-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
     .track-chip {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 800;
-      font-size: 14px;
-      padding: 4px 10px;
+      font-size: 13.5px;
+      padding: 3px 9px;
       border-radius: 6px;
       background: rgba(99, 102, 241, 0.2);
       color: #A5B4FC;
       border: 1px solid rgba(99, 102, 241, 0.35);
     }
     .track-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #F8FAFC;
     }
     .track-meta {
-      font-size: 13px;
+      font-size: 12.5px;
       color: #CBD5E1;
       margin-top: 2px;
     }
@@ -270,7 +254,7 @@
       gap: 8px;
     }
     .mini-badge {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       padding: 3px 8px;
       border-radius: 4px;
@@ -308,7 +292,7 @@
       padding: 24px;
     }
     .col-header {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #CBD5E1;
       text-transform: uppercase;
@@ -322,13 +306,13 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 14px 18px;
+      padding: 13px 18px;
       background: #0B0F18;
       border: 1px solid rgba(148, 163, 184, 0.14);
       border-radius: 10px;
       margin-bottom: 12px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
+      font-size: 14.5px;
       color: #F1F5F9;
     }
     .source-item {
@@ -353,9 +337,9 @@
     .btn-automatch {
       background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
       color: #FFFFFF;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      padding: 12px 28px;
+      padding: 11px 26px;
       border-radius: 10px;
       border: 1px solid rgba(129, 140, 248, 0.4);
       display: flex;
@@ -364,99 +348,166 @@
       box-shadow: 0 10px 24px rgba(99, 102, 241, 0.3);
     }
 
-    /* Scene 4: WaveSync FFT */
-    .waveform-card {
+    /* Scene 4: mpv Preview & Redesigned Console */
+    .preview-workstation {
       width: 1240px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .panel-card {
       background: #0F141F;
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 16px;
-      padding: 36px 40px;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      padding: 24px 28px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 16px;
     }
-    .wave-row {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .wave-label {
+    .panel-header {
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
+      align-items: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      padding-bottom: 12px;
+    }
+    .panel-title {
+      font-size: 16px;
       font-weight: 700;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: #0B0F18;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    .metric-title {
+      font-size: 13.5px;
       color: #CBD5E1;
       font-family: 'JetBrains Mono', monospace;
     }
-    .wave-track {
-      height: 70px;
-      background: #0B0F18;
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      position: relative;
-      overflow: hidden;
+    .metric-val {
+      font-size: 17px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #38BDF8;
+    }
+    .nudge-group {
       display: flex;
-      align-items: center;
-      padding: 0 20px;
+      gap: 6px;
     }
-    .wave-bars {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      width: 100%;
-      height: 100%;
-    }
-    .wave-bar {
-      flex: 1;
-      background: #38BDF8;
-      border-radius: 2px;
-      opacity: 0.85;
-      min-width: 4px;
-    }
-    .wave-bar.indigo {
-      background: #818CF8;
-    }
-    .fft-results {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 24px;
-      background: rgba(11, 15, 24, 0.8);
-      border: 1px solid rgba(99, 102, 241, 0.25);
-      border-radius: 12px;
-      padding: 20px 32px;
-    }
-    .res-metric {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .res-label {
+    .btn-nudge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.2);
       font-size: 12px;
       font-weight: 700;
       color: #CBD5E1;
-      text-transform: uppercase;
       font-family: 'JetBrains Mono', monospace;
     }
-    .res-val {
-      font-size: 26px;
-      font-weight: 800;
-      color: #34D399;
+    .action-row-mpv {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .btn-mpv {
+      flex: 1;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(15, 20, 31, 0.85);
+      color: #F1F5F9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-confirm {
+      flex: 1;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Terminal Console Panel */
+    .console-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 8px 8px 0 0;
+      background: #0D121D;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-bottom: none;
+    }
+    .console-segment {
+      display: flex;
+      background: #070A10;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .seg-btn {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
       font-family: 'JetBrains Mono', monospace;
-      transform-origin: left center;
+      color: #94A3B8;
+      background: transparent;
+      border: none;
     }
-    .progress-bar-container {
-      width: 100%;
-      background: rgba(148, 163, 184, 0.1);
-      height: 12px;
-      border-radius: 999px;
-      overflow: hidden;
+    .seg-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      color: #38BDF8;
     }
-    .progress-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #6366F1, #38BDF8);
-      border-radius: 999px;
+    .console-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .icon-btn-c {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .console-body {
+      background: #070A10;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 0 0 8px 8px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #CBD5E1;
+      height: 180px;
     }
 
     /* Scene 5: Outro */
@@ -467,9 +518,9 @@
       text-align: center;
     }
     .outro-icon-big {
-      width: 110px;
-      height: 110px;
-      border-radius: 28px;
+      width: 100px;
+      height: 100px;
+      border-radius: 26px;
       background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(56, 189, 248, 0.25) 100%);
       border: 2px solid rgba(129, 140, 248, 0.5);
       display: flex;
@@ -477,16 +528,19 @@
       justify-content: center;
       color: #818CF8;
       box-shadow: 0 20px 60px rgba(99, 102, 241, 0.35);
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .outro-pills {
       display: flex;
-      gap: 16px;
-      margin: 32px 0 28px 0;
+      gap: 14px;
+      margin: 28px 0 24px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 900px;
     }
     .tech-pill {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 700;
       padding: 8px 18px;
       border-radius: 8px;
@@ -546,56 +600,76 @@
       <path d="M3 3l7 18 3-7 7-3L3 3z"></path>
     </svg>
 
-    <!-- SCENE 1: Hook & Desktop Hero (0.0s - 3.8s) -->
-    <div class="clip" id="scene-1" data-start="0" data-duration="3.8">
-      <div class="badge-tag" id="s1-tag">MKV // AUDIO // SUBS // METADATA</div>
-      <div class="hook-problem-box" id="s1-problem">
-        <div class="problem-alert">Desynced audio? Missing subtitles? Cryptic CLI flags?</div>
-        <div style="font-size: 16px; color: #CBD5E1; font-family: 'JetBrains Mono', monospace;">
-          Warning: Audio is 420ms behind video · Subtitle track missing from target
-        </div>
-      </div>
-      <h1 class="scene-title" id="s1-title">Media Remuxing, Forged for Speed</h1>
-      <p class="scene-subtitle" id="s1-sub">A high-performance desktop workbench powered by native Rust and Tauri v2.</p>
+    <!-- SCENE 1: Real Function Focus — The 6 Core Processing Modes (0.0s - 4.0s) -->
+    <div class="clip" id="scene-1" data-start="0" data-duration="4.0">
+      <div class="badge-tag" id="s1-tag">DESKTOP MEDIA WORKBENCH // 6 PROCESSING MODES</div>
+      <h1 class="scene-title" id="s1-title">SyncForge</h1>
+      <p class="scene-subtitle" id="s1-sub">Batch merge, filter, and synchronize video, audio, and subtitle streams.</p>
 
-      <div class="hero-modules-grid" id="s1-modules">
-        <div class="module-card active">
-          <div class="mod-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-            Stream Manager
+      <div class="modules-grid-6" id="s1-modules">
+        <div class="mod-box highlight">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Waveform Audio Sync
           </div>
-          <div class="mod-desc">Remove unwanted tracks and optionally convert audio to Opus stereo.</div>
+          <div class="mod-body">Calculates audio delay via pure-Rust FFT cross-correlation &amp; muxes streams.</div>
         </div>
-        <div class="module-card active">
-          <div class="mod-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            WaveSync Injection
+
+        <div class="mod-box">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            Remove &amp; Filter Tracks
           </div>
-          <div class="mod-desc">Native Rust FFT waveform correlation for sub-second audio delay sync.</div>
+          <div class="mod-body">Losslessly strips unwanted tracks with optional Opus audio encoding.</div>
         </div>
-        <div class="module-card active">
-          <div class="mod-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            Sub Sync &amp; Remux
+
+        <div class="mod-box">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+            Set Default &amp; Forced
           </div>
-          <div class="mod-desc">Speech-to-subtitle alignment via ffsubsync with direct MKV muxing.</div>
+          <div class="mod-body">Modifies track flags and language metadata in-place without remuxing.</div>
+        </div>
+
+        <div class="mod-box">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Sync Subtitle Files
+          </div>
+          <div class="mod-body">Aligns external subtitle files (.srt, .ass) directly to spoken dialogue.</div>
+        </div>
+
+        <div class="mod-box">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+            Sync Subs from MKV
+          </div>
+          <div class="mod-body">Extracts subtitle streams from source videos, speech-syncs, and injects.</div>
+        </div>
+
+        <div class="mod-box">
+          <div class="mod-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.2"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><line x1="6" y1="9" x2="6" y2="21"></line></svg>
+            Direct Track Merge
+          </div>
+          <div class="mod-body">Lossless direct remuxing of selected tracks without re-synchronizing.</div>
         </div>
       </div>
     </div>
 
-    <!-- SCENE 2: Track Inspector & 1-Click Filters (3.8s - 8.2s) -->
-    <div class="clip" id="scene-2" data-start="3.8" data-duration="4.4">
+    <!-- SCENE 2: Track Inspector & 1-Click Filters (4.0s - 8.2s) -->
+    <div class="clip" id="scene-2" data-start="4.0" data-duration="4.2">
       <div class="badge-tag">MKVTOOLNIX TRACK INSPECTOR</div>
-      <h2 class="scene-title">1-Click Dialogue &amp; Subtitle Filtering</h2>
-      <p class="scene-subtitle" style="margin-bottom: 28px;">Instantly strip unwanted audio commentaries, SDH, and foreign tracks.</p>
+      <h2 class="scene-title">Interactive Track Inspector &amp; Stream Filtering</h2>
+      <p class="scene-subtitle" style="margin-bottom: 24px;">Inspect codecs, languages, and track flags with 1-click preset filters.</p>
 
       <div class="inspector-card" id="s2-card">
         <div class="inspector-toolbar">
           <div style="font-size: 15px; font-weight: 700; color: #F8FAFC;">Select tracks to keep in target MKV:</div>
           <div class="filter-buttons">
             <button class="filter-btn">Select all</button>
+            <button class="filter-btn">Only Default</button>
             <button class="filter-btn">Only ENG</button>
-            <button class="filter-btn">Only ITA</button>
             <button class="filter-btn highlight" id="btn-no-commentary">No Commentary/SDH</button>
           </div>
         </div>
@@ -668,11 +742,11 @@
       </div>
     </div>
 
-    <!-- SCENE 3: Drag & Drop TV Episode Auto-Matcher (8.2s - 12.6s) -->
-    <div class="clip" id="scene-3" data-start="8.2" data-duration="4.4">
+    <!-- SCENE 3: Drag & Drop TV Episode Auto-Matcher (8.2s - 12.4s) -->
+    <div class="clip" id="scene-3" data-start="8.2" data-duration="4.2">
       <div class="badge-tag">SMART BATCH MATCHER</div>
-      <h2 class="scene-title">Automatic TV Episode Pairing</h2>
-      <p class="scene-subtitle">Drag-and-drop batch matching for entire seasons in one click.</p>
+      <h2 class="scene-title">Batch TV Episode Auto-Matching</h2>
+      <p class="scene-subtitle">Drag-and-drop season folders — automatically pairs targets with source files.</p>
 
       <div class="matcher-container">
         <!-- Target Column -->
@@ -701,16 +775,16 @@
             <span>Source Audio / Subs (Unordered)</span>
             <span style="color: #A5B4FC; font-family: 'JetBrains Mono', monospace;">3 Files</span>
           </div>
-          <div id="sources-container" style="position: relative; height: 190px;">
+          <div id="sources-container" style="position: relative; height: 180px;">
             <div class="matcher-item source-item" id="src-3" style="position: absolute; width: 100%; top: 0px;">
               <span class="ep-pill" style="background: rgba(99, 102, 241, 0.25); color: #A5B4FC;">S01E03</span>
               <span>Audio_ITA_Ep03.mka</span>
             </div>
-            <div class="matcher-item source-item" id="src-1" style="position: absolute; width: 100%; top: 62px;">
+            <div class="matcher-item source-item" id="src-1" style="position: absolute; width: 100%; top: 58px;">
               <span class="ep-pill" style="background: rgba(99, 102, 241, 0.25); color: #A5B4FC;">S01E01</span>
               <span>Audio_ITA_Ep01.mka</span>
             </div>
-            <div class="matcher-item source-item" id="src-2" style="position: absolute; width: 100%; top: 124px;">
+            <div class="matcher-item source-item" id="src-2" style="position: absolute; width: 100%; top: 116px;">
               <span class="ep-pill" style="background: rgba(99, 102, 241, 0.25); color: #A5B4FC;">S01E02</span>
               <span>Audio_ITA_Ep02.mka</span>
             </div>
@@ -724,81 +798,115 @@
           Auto-Match Episodes
         </button>
         <div id="match-badge" style="opacity: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: #34D399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 8px 16px; border-radius: 8px;">
-          ✓ 3 of 3 Pairs Perfectly Matched
+          ✓ 3 of 3 Pairs Matched · SxxExx Detection
         </div>
       </div>
     </div>
 
-    <!-- SCENE 4: WaveSync Pure-Rust FFT Engine (12.6s - 16.8s) -->
-    <div class="clip" id="scene-4" data-start="12.6" data-duration="4.2">
-      <div class="badge-tag">WAVESYNC ENGINE</div>
-      <h2 class="scene-title">Native Rust FFT Waveform Alignment</h2>
-      <p class="scene-subtitle">Pure-Rust cross-correlation calculates sub-second audio delay with zero dependencies.</p>
+    <!-- SCENE 4: Pre-Mux mpv Preview & Redesigned Console (12.4s - 16.8s) -->
+    <div class="clip" id="scene-4" data-start="12.4" data-duration="4.4">
+      <div class="badge-tag">PRE-MUX VERIFICATION &amp; DEVELOPER CONSOLE</div>
+      <h2 class="scene-title">Interactive mpv Preview &amp; Modern Console</h2>
+      <p class="scene-subtitle">Verify audio and subtitle synchronization in external mpv before final muxing.</p>
 
-      <div class="waveform-card">
-        <div class="wave-row">
-          <div class="wave-label">
-            <span>Target Video Audio (Reference Waveform)</span>
-            <span style="color: #38BDF8;">1080p Master</span>
+      <div class="preview-workstation">
+        <!-- mpv Sync Preview Panel -->
+        <div class="panel-card" id="s4-mpv">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Pre-Mux Sync Preview (mpv)
+            </div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #34D399; font-weight: 700;">Analyzed</span>
           </div>
-          <div class="wave-track">
-            <div class="wave-bars" id="wave-target"></div>
+
+          <div class="metric-row">
+            <span class="metric-title">Audio Delay</span>
+            <span class="metric-val" id="metric-audio-val">-120 ms</span>
+            <div class="nudge-group">
+              <button class="btn-nudge">-50ms</button>
+              <button class="btn-nudge">-10ms</button>
+              <button class="btn-nudge" style="border-color: #38BDF8; color: #38BDF8;">+10ms</button>
+              <button class="btn-nudge">+50ms</button>
+            </div>
+          </div>
+
+          <div class="metric-row">
+            <span class="metric-title">Subtitle Offset</span>
+            <span class="metric-val" style="color: #A5B4FC;">+40 ms</span>
+            <div class="nudge-group">
+              <button class="btn-nudge">-100ms</button>
+              <button class="btn-nudge">-25ms</button>
+              <button class="btn-nudge">+25ms</button>
+              <button class="btn-nudge">+100ms</button>
+            </div>
+          </div>
+
+          <div class="action-row-mpv">
+            <button class="btn-mpv">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Preview in mpv
+            </button>
+            <button class="btn-confirm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Confirm &amp; Mux
+            </button>
           </div>
         </div>
 
-        <div class="wave-row">
-          <div class="wave-label">
-            <span>Source Audio (Calculated Offset: +420 ms)</span>
-            <span style="color: #818CF8;">Italian Dubbed Audio</span>
+        <!-- Redesigned Developer Console Panel -->
+        <div class="panel-card" id="s4-console" style="padding: 16px;">
+          <div class="console-bar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              <span style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;">Console</span>
+              <div class="console-segment">
+                <button class="seg-btn active">All</button>
+                <button class="seg-btn">Errors</button>
+                <button class="seg-btn">Warnings</button>
+              </div>
+            </div>
+            <div class="console-actions">
+              <button class="icon-btn-c">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button class="icon-btn-c">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+              <button class="icon-btn-c">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
           </div>
-          <div class="wave-track">
-            <div class="wave-bars" id="wave-source"></div>
-          </div>
-        </div>
-
-        <div class="fft-results">
-          <div class="res-metric">
-            <span class="res-label">Detected Audio Delay</span>
-            <span class="res-val" id="res-delay">+420 ms</span>
-          </div>
-          <div class="res-metric">
-            <span class="res-label">FFT Correlation Confidence</span>
-            <span class="res-val" style="color: #38BDF8;">99.8%</span>
-          </div>
-          <div class="res-metric">
-            <span class="res-label">Calculation Time</span>
-            <span class="res-val" style="color: #F8FAFC;">48 ms (Rust)</span>
-          </div>
-        </div>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #CBD5E1; font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">
-            <span>Lossless Direct Remuxing</span>
-            <span id="remux-pct" style="color: #34D399;">100% Complete · 0 Re-encoding</span>
-          </div>
-          <div class="progress-bar-container">
-            <div class="progress-fill" id="progress-fill"></div>
+          <div class="console-body">
+            <div><span style="color: #94A3B8;">[00:03.12]</span> <span style="color: #818CF8;">[ffmpeg]</span> Extracting waveform segment (00:03:00 - 00:06:00)...</div>
+            <div><span style="color: #94A3B8;">[00:03.45]</span> <span style="color: #38BDF8;">[rustfft]</span> Calculating cross-correlation delay...</div>
+            <div><span style="color: #94A3B8;">[00:03.68]</span> <span style="color: #34D399;">[rustfft]</span> Waveform delay detected: <span style="color: #38BDF8; font-weight: 700;">-120 ms</span></div>
+            <div><span style="color: #94A3B8;">[00:04.10]</span> <span style="color: #818CF8;">[mkvmerge]</span> Multiplexing audio and subtitle streams...</div>
+            <div style="color: #34D399; font-weight: 700; margin-top: 6px;">✓ Lossless mux complete. Completed file verified.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SCENE 5: Outro & Punchline (16.8s - 20.0s) -->
+    <!-- SCENE 5: Clean Outro (16.8s - 20.0s) -->
     <div class="clip" id="scene-5" data-start="16.8" data-duration="3.2">
       <div class="outro-container">
         <div class="outro-icon-big" id="outro-icon">
-          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
           </svg>
         </div>
-        <h1 class="scene-title" style="font-size: 72px; margin-bottom: 8px;" id="outro-title">SyncForge</h1>
-        <p class="scene-subtitle" style="font-size: 28px; color: #F1F5F9; font-weight: 600;">The Native Desktop Media Workbench</p>
+        <h1 class="scene-title" style="font-size: 68px; margin-bottom: 8px;" id="outro-title">SyncForge</h1>
+        <p class="scene-subtitle" style="font-size: 26px; color: #F1F5F9; font-weight: 600;">The Native Desktop Media Workbench</p>
 
         <div class="outro-pills" id="outro-pills">
-          <div class="tech-pill">Pure-Rust FFT</div>
-          <div class="tech-pill">Tauri v2</div>
-          <div class="tech-pill">Lossless MKVToolNix</div>
-          <div class="tech-pill">Fast &amp; Private</div>
+          <div class="tech-pill">Rust + Tauri v2</div>
+          <div class="tech-pill">MKVToolNix</div>
+          <div class="tech-pill">FFmpeg</div>
+          <div class="tech-pill">ffsubsync</div>
+          <div class="tech-pill">OpenSubtitles API</div>
+          <div class="tech-pill">Local &amp; Private</div>
         </div>
 
         <div class="cta-text" id="outro-cta">
@@ -810,50 +918,33 @@
   </div>
 
   <script>
-    // Generate synthetic waveform bars
-    function populateWaveform(containerId, isIndigo) {
-      const el = document.getElementById(containerId);
-      if (!el) return;
-      const count = 90;
-      for (let i = 0; i < count; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'wave-bar' + (isIndigo ? ' indigo' : '');
-        // Organic pseudo-audio pattern
-        const h = 18 + Math.sin(i * 0.28) * 16 + Math.cos(i * 0.45) * 14 + (Math.sin(i * 1.2) * 10);
-        bar.style.height = Math.max(8, Math.min(64, h)) + 'px';
-        el.appendChild(bar);
-      }
-    }
-    populateWaveform('wave-target', false);
-    populateWaveform('wave-source', true);
-
     // Setup Master GSAP Timeline
     const tl = gsap.timeline({ paused: true });
 
-    // Scene 1: Hook & Desktop Hero (0.0s - 3.8s)
+    // Scene 1: Real Function Focus — The 6 Core Processing Modes (0.0s - 4.0s)
     tl.to('#scene-1', { opacity: 1, duration: 0.25 }, 0.0);
-    tl.fromTo('#s1-problem', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 0.15);
-    tl.fromTo('#s1-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, 0.9);
-    tl.fromTo('#s1-sub', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 1.2);
-    tl.fromTo('#s1-modules .module-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.12, ease: 'back.out(1.2)' }, 1.4);
-    tl.to('#scene-1', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 3.45);
+    tl.fromTo('#s1-tag', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' }, 0.1);
+    tl.fromTo('#s1-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, 0.3);
+    tl.fromTo('#s1-sub', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0.55);
+    tl.fromTo('#s1-modules .mod-box', { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.08, ease: 'back.out(1.2)' }, 0.7);
+    tl.to('#scene-1', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 3.65);
 
-    // Scene 2: Track Inspector & 1-Click Filters (3.8s - 8.2s)
-    tl.to('#scene-2', { opacity: 1, duration: 0.25 }, 3.8);
-    tl.fromTo('#s2-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 3.9);
+    // Scene 2: Track Inspector & 1-Click Filters (4.0s - 8.2s)
+    tl.to('#scene-2', { opacity: 1, duration: 0.25 }, 4.0);
+    tl.fromTo('#s2-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 4.1);
     
     // Animate simulated cursor to click "No Commentary/SDH"
-    tl.fromTo('#cursor', { x: 1400, y: 700, opacity: 0 }, { x: 1380, y: 340, opacity: 1, duration: 0.5, ease: 'power2.out' }, 4.0);
-    tl.to('#cursor', { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 }, 4.5);
-    tl.to('#btn-no-commentary', { backgroundColor: 'rgba(99, 102, 241, 0.45)', duration: 0.15 }, 4.5);
+    tl.fromTo('#cursor', { x: 1400, y: 700, opacity: 0 }, { x: 1390, y: 345, opacity: 1, duration: 0.5, ease: 'power2.out' }, 4.2);
+    tl.to('#cursor', { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 }, 4.7);
+    tl.to('#btn-no-commentary', { backgroundColor: 'rgba(99, 102, 241, 0.45)', duration: 0.15 }, 4.7);
     
     // Rows 2 and 3 deselect
-    tl.to('#row-2', { opacity: 0.35, duration: 0.3 }, 4.6);
-    tl.to('#row-3', { opacity: 0.35, duration: 0.3 }, 4.6);
-    tl.to('#cursor', { opacity: 0, duration: 0.25 }, 4.9);
+    tl.to('#row-2', { opacity: 0.35, duration: 0.3 }, 4.8);
+    tl.to('#row-3', { opacity: 0.35, duration: 0.3 }, 4.8);
+    tl.to('#cursor', { opacity: 0, duration: 0.25 }, 5.1);
     tl.to('#scene-2', { opacity: 0, x: -30, duration: 0.35, ease: 'power2.in' }, 7.85);
 
-    // Scene 3: TV Episode Batch Matcher (8.2s - 12.6s)
+    // Scene 3: TV Episode Batch Matcher (8.2s - 12.4s)
     tl.to('#scene-3', { opacity: 1, duration: 0.25 }, 8.2);
     tl.fromTo('.matcher-container', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, 8.3);
     
@@ -862,34 +953,28 @@
     tl.to('#cursor', { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 }, 8.8);
     tl.to('#cursor', { opacity: 0, duration: 0.25 }, 9.0);
 
-    // Sources reorder smoothly with y transform:
-    // src-1 moves from row 2 (top: 62) to row 1 (0): y: -62
-    // src-2 moves from row 3 (top: 124) to row 2 (62): y: -62
-    // src-3 moves from row 1 (top: 0) to row 3 (124): y: 124
-    tl.to('#src-1', { y: -62, duration: 0.4, ease: 'power2.inOut' }, 8.8);
-    tl.to('#src-2', { y: -62, duration: 0.4, ease: 'power2.inOut' }, 8.8);
-    tl.to('#src-3', { y: 124, duration: 0.4, ease: 'power2.inOut' }, 8.8);
+    // Sources reorder smoothly with y transform
+    tl.to('#src-1', { y: -58, duration: 0.4, ease: 'power2.inOut' }, 8.8);
+    tl.to('#src-2', { y: -58, duration: 0.4, ease: 'power2.inOut' }, 8.8);
+    tl.to('#src-3', { y: 116, duration: 0.4, ease: 'power2.inOut' }, 8.8);
     tl.to('#match-badge', { opacity: 1, duration: 0.3 }, 9.2);
-    tl.to('#scene-3', { opacity: 0, y: -20, duration: 0.35, ease: 'power2.in' }, 12.25);
+    tl.to('#scene-3', { opacity: 0, y: -20, duration: 0.35, ease: 'power2.in' }, 12.05);
 
-    // Scene 4: WaveSync Pure-Rust FFT Engine (12.6s - 16.8s)
-    tl.to('#scene-4', { opacity: 1, duration: 0.25 }, 12.6);
-    tl.fromTo('.waveform-card', { scale: 0.96, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }, 12.7);
+    // Scene 4: mpv Preview & Redesigned Console (12.4s - 16.8s)
+    tl.to('#scene-4', { opacity: 1, duration: 0.25 }, 12.4);
+    tl.fromTo('#s4-mpv', { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 12.5);
+    tl.fromTo('#s4-console', { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 12.6);
     
-    // Waveform shifts into perfect alignment at 13.11s (strong cue) using fromTo for x
-    tl.fromTo('#wave-source', { x: -40 }, { x: 0, duration: 0.5, ease: 'power2.out' }, 12.8);
-    tl.fromTo('#res-delay', { scale: 1.08, color: '#F43F5E' }, { scale: 1, color: '#34D399', duration: 0.3, ease: 'power2.out' }, 13.11);
-    
-    // Remux progress bar fills from 0 to 100%
-    tl.fromTo('#progress-fill', { width: '0%' }, { width: '100%', duration: 1.2, ease: 'power1.inOut' }, 13.4);
+    // Nudge audio delay by +10ms (-120 -> -110ms)
+    tl.to('#metric-audio-val', { color: '#34D399', scale: 1.08, duration: 0.2, yoyo: true, repeat: 1 }, 13.11);
     tl.to('#global-status', { textContent: 'Complete', backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', borderColor: '#38BDF8', duration: 0.2 }, 14.6);
     tl.to('#scene-4', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 16.45);
 
-    // Scene 5: Outro & Punchline (16.8s - 20.0s)
+    // Scene 5: Clean Outro (16.8s - 20.0s)
     tl.to('#scene-5', { opacity: 1, duration: 0.3 }, 16.8);
     tl.fromTo('#outro-icon', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.5)' }, 16.9);
     tl.fromTo('#outro-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, 17.1);
-    tl.fromTo('#outro-pills .tech-pill', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.1 }, 17.4);
+    tl.fromTo('#outro-pills .tech-pill', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.08 }, 17.3);
     tl.fromTo('#outro-cta', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 17.8);
 
     // Register with Hyperframes
