@@ -151,7 +151,10 @@ function Sidebar({
                 justifyContent: 'center',
                 color: '#fff',
                 flexShrink: 0,
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.30)',
+                boxShadow: (theme) =>
+                  theme.palette.mode === 'light'
+                    ? '0 1px 3px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.08)'
+                    : '0 2px 4px rgba(0, 0, 0, 0.45)',
               }}
             >
               <GraphicEq fontSize="small" />
@@ -294,8 +297,8 @@ function Sidebar({
                           sx={{
                             ml: width < 280 ? 0.75 : 1.5,
                             fontFamily: 'monospace',
-                            fontSize: '0.66rem',
-                            color: active ? 'primary.main' : 'text.disabled',
+                            fontSize: '0.72rem',
+                            color: active ? 'primary.light' : 'text.secondary',
                             fontWeight: 600,
                             flexShrink: 0,
                           }}
@@ -449,8 +452,8 @@ function Sidebar({
                     sx={{
                       ml: 1.5,
                       fontFamily: 'monospace',
-                      fontSize: '0.66rem',
-                      color: 'text.disabled',
+                      fontSize: '0.72rem',
+                      color: 'text.secondary',
                       fontWeight: 700,
                       flexShrink: 0,
                     }}

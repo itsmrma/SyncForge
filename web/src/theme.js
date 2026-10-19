@@ -7,9 +7,9 @@ export function getAppTheme(mode = 'dark') {
     palette: {
       mode: isLight ? 'light' : 'dark',
       primary: {
-        main: isLight ? '#4F46E5' : '#6366F1',
+        main: '#4F46E5',
         light: isLight ? '#6366F1' : '#818CF8',
-        dark: isLight ? '#4338CA' : '#4F46E5',
+        dark: isLight ? '#4338CA' : '#3730A3',
         contrastText: '#F8FAFC',
       },
       secondary: {
@@ -79,14 +79,14 @@ export function getAppTheme(mode = 'dark') {
           containedPrimary: {
             background: isLight
               ? 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)'
-              : 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+              : 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
             border: isLight
               ? '1px solid rgba(67, 56, 202, 0.4)'
               : '1px solid rgba(129, 140, 248, 0.35)',
             '&:hover': {
               background: isLight
                 ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)'
-                : 'linear-gradient(135deg, #818CF8 0%, #6366F1 100%)',
+                : 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)',
             },
           },
           outlined: {

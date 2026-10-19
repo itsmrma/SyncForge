@@ -1812,6 +1812,7 @@ export default function App() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <TuneOutlined sx={{ fontSize: 17, color: 'primary.main' }} />
                       <Typography
+                        component="h4"
                         variant="subtitle2"
                         fontWeight={700}
                         sx={{
@@ -2038,7 +2039,7 @@ export default function App() {
                         variant="caption"
                         sx={{
                           fontFamily: 'monospace',
-                          fontSize: '0.68rem',
+                          fontSize: '0.72rem',
                           color: isRunning ? 'secondary.main' : 'text.secondary',
                         }}
                       >
@@ -2195,7 +2196,7 @@ export default function App() {
                         >
                           <Typography
                             variant="caption"
-                            sx={{ color: 'text.secondary', fontSize: '0.71rem' }}
+                            sx={{ color: 'text.secondary', fontSize: '0.72rem' }}
                           >
                             {sc.label}
                           </Typography>
@@ -2204,8 +2205,8 @@ export default function App() {
                             sx={{
                               fontFamily: 'monospace',
                               fontWeight: 700,
-                              fontSize: '0.68rem',
-                              color: sc.combo ? 'text.primary' : 'text.disabled',
+                              fontSize: '0.72rem',
+                              color: sc.combo ? 'text.primary' : 'text.secondary',
                             }}
                           >
                             {formatShortcutDisplay(sc.combo) || '—'}
