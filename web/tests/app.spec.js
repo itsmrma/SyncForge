@@ -1196,4 +1196,30 @@ test('OpenSubtitles API key and token settings configuration and persistence', a
   expect(savedSettings.opensubtitles_api_key).toBe('persisted-api-key-abc');
 });
 
+test('terminal drawer is immediately visible without scrolling on non-maximized window', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.goto('/');
+
+  // Show Terminal button must be visible in viewport without scrolling
+  const showBtn = page.getByRole('button', { name: 'Show Terminal' });
+  await expect(showBtn).toBeVisible();
+  const showBtnBox = await showBtn.boundingBox();
+  expect(showBtnBox).not.toBeNull();
+  expect(showBtnBox.y + showBtnBox.height).toBeLessThanOrEqual(700);
+
+  // Click Show Terminal
+  await showBtn.click();
+
+  // Terminal shell, header bar, and search input must be visible within viewport bounds
+  const terminalShell = page.getByTestId('terminal-shell');
+  await expect(terminalShell).toBeVisible();
+  await expect.poll(async () => {
+    const box = await terminalShell.boundingBox();
+    return Boolean(box && box.y > 0 && box.y + box.height <= 700);
+  }).toBe(true);
+
+  const searchInput = page.getByRole('textbox', { name: 'Search terminal logs' });
+  await expect(searchInput).toBeVisible();
+});
+
 

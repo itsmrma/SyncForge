@@ -438,8 +438,11 @@ export default function App() {
     const move = (e) => {
       if (!terminalDraggingRef.current) return;
       const dy = terminalDragStartYRef.current - e.clientY;
+      const maxAllowed = typeof window !== 'undefined'
+        ? Math.max(240, Math.min(520, Math.floor(window.innerHeight * 0.65)))
+        : 520;
       const nextHeight = Math.min(
-        520,
+        maxAllowed,
         Math.max(140, terminalDragStartHeightRef.current + dy)
       );
       setTerminalHeight(nextHeight);
@@ -1104,7 +1107,15 @@ export default function App() {
       onDownload={downloadTerminalLogs}
       onClear={() => setTerminal('')}
       expanded={terminalHeight > 280}
-      onToggleExpand={() => setTerminalHeight((h) => (h > 280 ? 230 : 400))}
+      onToggleExpand={() =>
+        setTerminalHeight((h) => {
+          const compactHeight = 230;
+          const maxExpand = typeof window !== 'undefined'
+            ? Math.max(260, Math.min(420, Math.floor(window.innerHeight * 0.55)))
+            : 380;
+          return h > 280 ? compactHeight : maxExpand;
+        })
+      }
       docked={isDockedRight}
       canDock={isLgUp}
       onToggleDock={() => setTerminalDocked((d) => !d)}
@@ -1166,12 +1177,22 @@ export default function App() {
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            px: { xs: 3, md: 4, xl: 5 },
-            py: 3,
-            overflowY: 'auto',
+            height: '100%',
+            overflow: 'hidden',
           }}
         >
-          <AnimatePresence mode="wait">
+          {/* Scrollable Workspace Content Area */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              px: { xs: 3, md: 4, xl: 5 },
+              pt: 3,
+              pb: showTerminal && !isDockedRight ? 1.5 : 3,
+            }}
+          >
+            <AnimatePresence mode="wait">
             <motion.div
               key={selectedMod.id}
               initial={{ opacity: 0, y: 10 }}
@@ -2252,9 +2273,25 @@ export default function App() {
               </Box>
             </motion.div>
           </AnimatePresence>
+        </Box>
 
-          {/* Developer Console Bottom Drawer (when not docked to right column) */}
-          {!isDockedRight && showTerminal && (
+        {/* Developer Console Bottom Drawer (pinned to bottom of viewport when not docked to right column) */}
+        {!isDockedRight && (
+          <Box
+            sx={{
+              height: showTerminal ? `calc(${terminalHeight}px + 14px)` : 0,
+              maxHeight: showTerminal ? '65vh' : 0,
+              overflow: 'hidden',
+              px: { xs: 3, md: 4, xl: 5 },
+              pb: showTerminal ? 2 : 0,
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              transition: isTerminalDragging
+                ? 'none'
+                : 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
             <Box
               role="separator"
               aria-label="Resize terminal"
@@ -2269,7 +2306,7 @@ export default function App() {
               }}
               sx={{
                 height: 6,
-                mt: 1.5,
+                mb: 0.75,
                 cursor: 'row-resize',
                 borderRadius: 1,
                 bgcolor: isLight
@@ -2279,50 +2316,53 @@ export default function App() {
                 '&:hover': { bgcolor: 'primary.main' },
               }}
             />
-          )}
-          {!isDockedRight && (
             <Box
               sx={{
-                height: showTerminal ? terminalHeight : 0,
-                transition: isTerminalDragging
-                  ? 'none'
-                  : 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                overflow: 'hidden',
-                mt: showTerminal ? 0.5 : 2,
+                height: terminalHeight,
+                minHeight: 140,
                 display: 'flex',
                 flexDirection: 'column',
+                flex: 1,
               }}
             >
               {terminalElement}
             </Box>
-          )}
+          </Box>
+        )}
 
-          {!showTerminal && (
-            <Box
+        {!isDockedRight && !showTerminal && (
+          <Box
+            sx={{
+              px: { xs: 3, md: 4, xl: 5 },
+              py: 0.85,
+              borderTop: isLight
+                ? '1px solid rgba(15, 23, 42, 0.08)'
+                : '1px solid rgba(148, 163, 184, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+              bgcolor: isLight
+                ? 'rgba(248, 250, 252, 0.85)'
+                : 'rgba(11, 15, 24, 0.75)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <Button
+              size="small"
+              startIcon={<TerminalIcon fontSize="small" />}
+              onClick={() => setShowTerminal(true)}
               sx={{
-                display: 'flex',
-                gap: 1.5,
-                mt: 1,
-                pt: 1,
-                borderTop: isLight
-                  ? '1px solid rgba(15, 23, 42, 0.08)'
-                  : '1px solid rgba(148, 163, 184, 0.08)',
-                alignSelf: 'stretch',
-                alignItems: 'center',
-                flexWrap: 'wrap',
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' },
+                fontSize: '0.75rem',
               }}
             >
-              <Button
-                size="small"
-                startIcon={<TerminalIcon fontSize="small" />}
-                onClick={() => setShowTerminal(true)}
-                sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
-              >
-                Show Terminal
-              </Button>
-            </Box>
-          )}
-        </Box>
+              Show Terminal
+            </Button>
+          </Box>
+        )}
+      </Box>
       </Box>
 
       {inputRequest && inputRequest.kind === 'sync_preview' && (
