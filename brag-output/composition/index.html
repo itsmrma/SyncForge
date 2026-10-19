@@ -510,7 +510,86 @@
       height: 180px;
     }
 
-    /* Scene 5: Outro */
+    /* Scene 5: MCP Server */
+    .mcp-container {
+      width: 1240px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .mcp-card {
+      background: #0F141F;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 24px 28px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .mcp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      padding-bottom: 12px;
+    }
+    .mcp-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mcp-code-block {
+      background: #070A10;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #CBD5E1;
+    }
+    .mcp-tool-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: #0B0F18;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    .mcp-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .mcp-desc {
+      font-size: 12px;
+      color: #CBD5E1;
+      margin-left: 10px;
+    }
+    .mcp-badge-ok {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    /* Scene 6: Outro */
     .outro-container {
       display: flex;
       flex-direction: column;
@@ -572,12 +651,13 @@
   <div id="root" data-composition-id="root" data-width="1920" data-height="1080">
 
     <!-- Audio Elements -->
-    <audio id="bg-music" data-start="0" data-duration="20.0" data-track-index="10" data-volume="0.35" data-fade-out="1.5" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+    <audio id="bg-music" data-start="0" data-duration="24.5" data-track-index="10" data-volume="0.35" data-fade-out="1.5" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
     <audio id="sfx-drop" data-start="0.3" data-duration="0.12" data-track-index="11" data-volume="0.75" src="assets/sfx/interface/drop_001.ogg"></audio>
     <audio id="sfx-click" data-start="4.5" data-duration="0.10" data-track-index="12" data-volume="0.75" src="assets/sfx/interface/click_001.ogg"></audio>
     <audio id="sfx-switch" data-start="8.8" data-duration="0.62" data-track-index="13" data-volume="0.75" src="assets/sfx/interface/switch_001.ogg"></audio>
     <audio id="sfx-bell" data-start="13.11" data-duration="1.48" data-track-index="14" data-volume="0.8" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
-    <audio id="sfx-impact" data-start="17.2" data-duration="0.12" data-track-index="15" data-volume="0.75" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
+    <audio id="sfx-mcp" data-start="17.0" data-duration="0.62" data-track-index="15" data-volume="0.75" src="assets/sfx/interface/switch_001.ogg"></audio>
+    <audio id="sfx-impact" data-start="21.2" data-duration="0.12" data-track-index="16" data-volume="0.75" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
 
     <!-- Top Navigation Header -->
     <div class="top-nav">
@@ -775,7 +855,7 @@
             <span>Source Audio / Subs (Unordered)</span>
             <span style="color: #A5B4FC; font-family: 'JetBrains Mono', monospace;">3 Files</span>
           </div>
-          <div id="sources-container" style="position: relative; height: 180px;">
+          <div id="sources-container" data-layout-allow-overlap="true" style="position: relative; height: 180px;">
             <div class="matcher-item source-item" id="src-3" style="position: absolute; width: 100%; top: 0px;">
               <span class="ep-pill" style="background: rgba(99, 102, 241, 0.25); color: #A5B4FC;">S01E03</span>
               <span>Audio_ITA_Ep03.mka</span>
@@ -803,8 +883,8 @@
       </div>
     </div>
 
-    <!-- SCENE 4: Pre-Mux mpv Preview & Redesigned Console (12.4s - 16.8s) -->
-    <div class="clip" id="scene-4" data-start="12.4" data-duration="4.4">
+    <!-- SCENE 4: Pre-Mux mpv Preview & Redesigned Console (12.4s - 16.6s) -->
+    <div class="clip" id="scene-4" data-start="12.4" data-duration="4.2">
       <div class="badge-tag">PRE-MUX VERIFICATION &amp; DEVELOPER CONSOLE</div>
       <h2 class="scene-title">Interactive mpv Preview &amp; Modern Console</h2>
       <p class="scene-subtitle">Verify audio and subtitle synchronization in external mpv before final muxing.</p>
@@ -889,8 +969,92 @@
       </div>
     </div>
 
-    <!-- SCENE 5: Clean Outro (16.8s - 20.0s) -->
-    <div class="clip" id="scene-5" data-start="16.8" data-duration="3.2">
+    <!-- SCENE 5: Native Model Context Protocol (MCP) Server (16.6s - 21.0s) -->
+    <div class="clip" id="scene-5" data-start="16.6" data-duration="4.4">
+      <div class="badge-tag" id="s5-tag">AI AGENT AUTOMATION // MODEL CONTEXT PROTOCOL</div>
+      <h2 class="scene-title" id="s5-title">Native MCP Server for AI Agents</h2>
+      <p class="scene-subtitle" id="s5-sub">Automate media inspection, stream filtering, and batch sync from Claude Desktop, Cursor &amp; Cline.</p>
+
+      <div class="mcp-container">
+        <!-- Client Setup & Tool Call Card -->
+        <div class="mcp-card" id="mcp-left">
+          <div class="mcp-header">
+            <div class="mcp-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+              Claude Desktop &amp; Cursor (stdio)
+            </div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #34D399; font-weight: 700;">mcp/index.js</span>
+          </div>
+
+          <div class="mcp-code-block">
+            <div style="color: #CBD5E1; font-size: 11px; margin-bottom: 4px;">// claude_desktop_config.json / .cursor/mcp.json</div>
+            <div><span style="color: #818CF8;">"syncforge"</span>: {</div>
+            <div style="padding-left: 16px;"><span style="color: #818CF8;">"command"</span>: <span style="color: #34D399;">"node"</span>,</div>
+            <div style="padding-left: 16px;"><span style="color: #818CF8;">"args"</span>: [<span style="color: #34D399;">"syncforge/mcp/index.js"</span>]</div>
+            <div>}</div>
+          </div>
+
+          <div class="mcp-code-block" style="border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.08);">
+            <div style="font-size: 11px; color: #A5B4FC; font-weight: 700; margin-bottom: 4px;">AI AGENT PROMPT:</div>
+            <div style="font-size: 12.5px; color: #F8FAFC; margin-bottom: 8px;">"Find Italian subtitles for S01E01 on OpenSubtitles, speech-sync, and inject into target MKV."</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; color: #CBD5E1; font-weight: 700;">TOOL CALL:</span>
+              <span class="mcp-chip" style="color: #34D399; border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.12);">syncforge_auto_fetch_and_sync_subtitle</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Media Tools & Output Card -->
+        <div class="mcp-card" id="mcp-right">
+          <div class="mcp-header">
+            <div class="mcp-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+              20 Autonomous Media Tools
+            </div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #38BDF8; font-weight: 700;">Lossless Engine</span>
+          </div>
+
+          <div class="mcp-tool-row">
+            <div style="display: flex; align-items: center;">
+              <span class="mcp-chip">inspect_media</span>
+              <span class="mcp-desc">Streams, track IDs, codecs &amp; flags</span>
+            </div>
+            <span class="mcp-badge-ok">Parsed</span>
+          </div>
+
+          <div class="mcp-tool-row">
+            <div style="display: flex; align-items: center;">
+              <span class="mcp-chip">calculate_audio_delay</span>
+              <span class="mcp-desc">Rust FFT cross-correlation</span>
+            </div>
+            <span class="mcp-badge-ok">-120 ms</span>
+          </div>
+
+          <div class="mcp-tool-row">
+            <div style="display: flex; align-items: center;">
+              <span class="mcp-chip">search_subtitles_online</span>
+              <span class="mcp-desc">OpenSubtitles 64-bit moviehash</span>
+            </div>
+            <span class="mcp-badge-ok">Matched</span>
+          </div>
+
+          <div class="mcp-tool-row">
+            <div style="display: flex; align-items: center;">
+              <span class="mcp-chip">wavesync_injection</span>
+              <span class="mcp-desc">Lossless remux + font attachments</span>
+            </div>
+            <span class="mcp-badge-ok">Done</span>
+          </div>
+
+          <div class="mcp-code-block" style="border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.08); padding: 8px 12px;">
+            <div style="color: #34D399; font-weight: 700; font-size: 11.5px;">✓ JSON-RPC response: {"status": "success", "tracks_muxed": 4, "offset_ms": -120}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 6: Clean Outro (21.0s - 24.5s) -->
+    <div class="clip" id="scene-6" data-start="21.0" data-duration="3.5">
       <div class="outro-container">
         <div class="outro-icon-big" id="outro-icon">
           <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -902,9 +1066,9 @@
 
         <div class="outro-pills" id="outro-pills">
           <div class="tech-pill">Rust + Tauri v2</div>
-          <div class="tech-pill">MKVToolNix</div>
-          <div class="tech-pill">FFmpeg</div>
+          <div class="tech-pill">MKVToolNix &amp; FFmpeg</div>
           <div class="tech-pill">ffsubsync</div>
+          <div class="tech-pill">MCP Server (stdio)</div>
           <div class="tech-pill">OpenSubtitles API</div>
           <div class="tech-pill">Local &amp; Private</div>
         </div>
@@ -960,7 +1124,7 @@
     tl.to('#match-badge', { opacity: 1, duration: 0.3 }, 9.2);
     tl.to('#scene-3', { opacity: 0, y: -20, duration: 0.35, ease: 'power2.in' }, 12.05);
 
-    // Scene 4: mpv Preview & Redesigned Console (12.4s - 16.8s)
+    // Scene 4: mpv Preview & Redesigned Console (12.4s - 16.6s)
     tl.to('#scene-4', { opacity: 1, duration: 0.25 }, 12.4);
     tl.fromTo('#s4-mpv', { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 12.5);
     tl.fromTo('#s4-console', { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 12.6);
@@ -968,14 +1132,25 @@
     // Nudge audio delay by +10ms (-120 -> -110ms)
     tl.to('#metric-audio-val', { color: '#34D399', scale: 1.08, duration: 0.2, yoyo: true, repeat: 1 }, 13.11);
     tl.to('#global-status', { textContent: 'Complete', backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', borderColor: '#38BDF8', duration: 0.2 }, 14.6);
-    tl.to('#scene-4', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 16.45);
+    tl.to('#scene-4', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 16.25);
 
-    // Scene 5: Clean Outro (16.8s - 20.0s)
-    tl.to('#scene-5', { opacity: 1, duration: 0.3 }, 16.8);
-    tl.fromTo('#outro-icon', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.5)' }, 16.9);
-    tl.fromTo('#outro-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, 17.1);
-    tl.fromTo('#outro-pills .tech-pill', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.08 }, 17.3);
-    tl.fromTo('#outro-cta', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 17.8);
+    // Scene 5: Native Model Context Protocol (MCP) Server (16.6s - 21.0s)
+    tl.to('#scene-5', { opacity: 1, duration: 0.25 }, 16.6);
+    tl.fromTo('#s5-tag', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: 'power2.out' }, 16.7);
+    tl.fromTo('#s5-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, 16.8);
+    tl.fromTo('#s5-sub', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 16.95);
+    tl.fromTo('#mcp-left', { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 17.0);
+    tl.fromTo('#mcp-right', { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 17.15);
+    tl.fromTo('.mcp-tool-row', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.08, ease: 'power2.out' }, 17.3);
+    tl.to('#global-status', { textContent: 'MCP Active', backgroundColor: 'rgba(99, 102, 241, 0.25)', color: '#A5B4FC', borderColor: '#818CF8', duration: 0.2 }, 17.5);
+    tl.to('#scene-5', { opacity: 0, scale: 0.97, duration: 0.35, ease: 'power2.in' }, 20.65);
+
+    // Scene 6: Clean Outro (21.0s - 24.5s)
+    tl.to('#scene-6', { opacity: 1, duration: 0.3 }, 21.0);
+    tl.fromTo('#outro-icon', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.5)' }, 21.1);
+    tl.fromTo('#outro-title', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, 21.3);
+    tl.fromTo('#outro-pills .tech-pill', { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, stagger: 0.08 }, 21.5);
+    tl.fromTo('#outro-cta', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 22.0);
 
     // Register with Hyperframes
     window.__timelines = window.__timelines || {};

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "historyId": "82e63eed-002a-4467-b70a-62801e620b7e",
-  "currentRevision": "4f2134b5-84b3-4618-87a5-72f8930b3147",
+  "currentRevision": "258c3007-b001-4fa4-9e9c-91f9b39f8026",
   "pendingChanges": false,
   "files": {
     "assets/sfx/impact/impactBell_heavy_000.ogg": {
@@ -25,8 +25,8 @@
       "content": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/3b/3b74efad87f1e69dbd1d05c5ad952ab90859b5a3d11da6ec5bd79b4f03b42afa"
     },
     "index.html": {
-      "hash": "2f89303bde0965afc77877e2f09c786047f061c39ac6f129a1fb89cb8b4c1d6d",
-      "content": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/2f/2f89303bde0965afc77877e2f09c786047f061c39ac6f129a1fb89cb8b4c1d6d"
+      "hash": "b346ec38330a7224b366266ab7ec181817f5e8d282a11b58aac5b4c194fc61f2",
+      "content": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/b3/b346ec38330a7224b366266ab7ec181817f5e8d282a11b58aac5b4c194fc61f2"
     },
     "assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3": {
       "hash": "5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1",
@@ -63,12 +63,42 @@
           "after": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/2f/2f89303bde0965afc77877e2f09c786047f061c39ac6f129a1fb89cb8b4c1d6d"
         }
       }
+    },
+    "a927b1d8-6091-419d-87b3-2070c4074300": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1792416079711,
+      "endedAt": 1792416079712,
+      "files": {
+        "index.html": {
+          "before": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/2f/2f89303bde0965afc77877e2f09c786047f061c39ac6f129a1fb89cb8b4c1d6d",
+          "after": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/c2/c23022c8e4b98c20ef127d59cb8201cfb4346ece817d46d423eb8e52ab96cc58"
+        }
+      }
+    },
+    "258c3007-b001-4fa4-9e9c-91f9b39f8026": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1792416129994,
+      "endedAt": 1792416129994,
+      "files": {
+        "index.html": {
+          "before": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/c2/c23022c8e4b98c20ef127d59cb8201cfb4346ece817d46d423eb8e52ab96cc58",
+          "after": "/Users/mbenassi/.cache/hyperframes/history/82e63eed-002a-4467-b70a-62801e620b7e/blobs/b3/b346ec38330a7224b366266ab7ec181817f5e8d282a11b58aac5b4c194fc61f2"
+        }
+      }
     }
   },
   "checks": {
     "latest": {
-      "revision": "4f2134b5-84b3-4618-87a5-72f8930b3147",
-      "id": "d6d1f266-5533-4502-9f9d-06827da17c3e"
+      "revision": "258c3007-b001-4fa4-9e9c-91f9b39f8026",
+      "id": "56350822-2208-48c3-868e-5857957941ea"
     },
     "revisions": {
       "8dc92062-6d74-48c8-80c3-12c669e5b2ce": [],
@@ -129,6 +159,92 @@
           "inputFingerprint": "b425cf9a8ae7ce95ae710d3a93fefea8cda2d58ec583f3886c90b0e93fb8d520",
           "inputScope": "local-project-files",
           "attribution": "recorded-revision"
+        },
+        {
+          "id": "fa7cd7cb-45e5-47a9-b6eb-8a6eabf15429",
+          "scope": "project",
+          "report": "/Users/mbenassi/Developer/projects/SyncForge/brag-output/composition/.hyperframes/artifacts/checks/fa7cd7cb-45e5-47a9-b6eb-8a6eabf15429.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 3000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1792415885121,
+          "contentHash": "7756306e6a2deb875f48228d59359ec737e0850958861a014282990c78c900af",
+          "revision": "4f2134b5-84b3-4618-87a5-72f8930b3147",
+          "inputFingerprint": "b425cf9a8ae7ce95ae710d3a93fefea8cda2d58ec583f3886c90b0e93fb8d520",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
+      ],
+      "a927b1d8-6091-419d-87b3-2070c4074300": [
+        {
+          "id": "727d6052-d697-4103-9d59-48ee4629e7f2",
+          "scope": "project",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 3000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1792416086291,
+          "contentHash": "933f2774e50e4ae3efe31853bfd3a19fb9c498d9ac261e2da42c825d05f78aaa",
+          "revision": "a927b1d8-6091-419d-87b3-2070c4074300",
+          "inputFingerprint": "0c28cbef255995332fee02a80c1e066fd1c197057a011c8cf7ec357cc2b1f574",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision",
+          "status": "cleaned",
+          "cleanedAfterRender": "6b58f496-fd41-4440-90c5-4024972e67bc"
+        }
+      ],
+      "258c3007-b001-4fa4-9e9c-91f9b39f8026": [
+        {
+          "id": "56350822-2208-48c3-868e-5857957941ea",
+          "scope": "project",
+          "report": "/Users/mbenassi/Developer/projects/SyncForge/brag-output/composition/.hyperframes/artifacts/checks/56350822-2208-48c3-868e-5857957941ea.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 3000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1792416136802,
+          "contentHash": "51c68641fca5a1cdefd92d493a91e07c5aeed719ebb801c9161a88ffba0221e4",
+          "revision": "258c3007-b001-4fa4-9e9c-91f9b39f8026",
+          "inputFingerprint": "afba64b650e4312442bd11a3f5b0def1dfcf00c89aa3193650d32427e5e86db0",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
         }
       ]
     },
@@ -169,15 +285,15 @@
   },
   "renders": {
     "latest": {
-      "id": "6cc5dfd9-d04f-473b-b0d0-080cbe560cf8",
-      "completedAt": 1792414955235,
+      "id": "6b58f496-fd41-4440-90c5-4024972e67bc",
+      "completedAt": 1792416182568,
       "output": "/Users/mbenassi/Developer/projects/SyncForge/brag-output/brag.mp4",
       "status": "completed",
-      "revision": "4f2134b5-84b3-4618-87a5-72f8930b3147"
+      "revision": "258c3007-b001-4fa4-9e9c-91f9b39f8026"
     },
     "retainedRevisions": [
-      "4f2134b5-84b3-4618-87a5-72f8930b3147",
-      "8dc92062-6d74-48c8-80c3-12c669e5b2ce"
+      "258c3007-b001-4fa4-9e9c-91f9b39f8026",
+      "4f2134b5-84b3-4618-87a5-72f8930b3147"
     ]
   },
   "pendingArtifactCleanup": []
