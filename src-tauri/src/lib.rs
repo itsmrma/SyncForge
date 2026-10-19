@@ -280,6 +280,11 @@ fn load_settings() -> Value {
     crate::core::config::load_user_config()
 }
 
+#[tauri::command]
+fn check_external_tools() -> std::collections::HashMap<String, crate::core::processes::ToolStatus> {
+    crate::core::processes::check_all_tools()
+}
+
 pub fn run() {
     crate::core::processes::setup_environment();
     let api = Api::new();
@@ -312,7 +317,8 @@ pub fn run() {
             inspect_media,
             preview_sync_mpv,
             save_settings,
-            load_settings
+            load_settings,
+            check_external_tools
         ])
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");

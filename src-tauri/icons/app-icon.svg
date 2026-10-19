@@ -1,34 +1,207 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
+    <!-- Background Gradient -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0F172A"/>
-      <stop offset="50%" stop-color="#1E1B4B"/>
-      <stop offset="100%" stop-color="#090D16"/>
+      <stop offset="0%" stop-color="#080C14"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#05080E"/>
     </linearGradient>
-    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38BDF8"/>
+
+    <!-- Glass Surface Gradient -->
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Outer Border Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#A855F7" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Video Track Film Gradient -->
+    <linearGradient id="videoTrackGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4F46E5"/>
       <stop offset="50%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#818CF8"/>
     </linearGradient>
-    <linearGradient id="sub" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#10B981"/>
-      <stop offset="100%" stop-color="#38BDF8"/>
+
+    <!-- Audio Track Wave Gradient -->
+    <linearGradient id="audioTrackGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
     </linearGradient>
+
+    <!-- Subtitle Track Gradient -->
+    <linearGradient id="subTrackGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+
+    <!-- Glow Filter for Playhead & Sync Needle -->
+    <filter id="playheadGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
+
+  <!-- App Canvas Base -->
   <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
-  <rect x="40" y="40" width="944" height="944" rx="192" fill="none" stroke="#6366F1" stroke-opacity="0.28" stroke-width="8"/>
-  <!-- Waveform bars -->
-  <g fill="url(#wave)">
-    <rect x="192" y="380" width="44" height="180" rx="22"/>
-    <rect x="276" y="290" width="44" height="360" rx="22"/>
-    <rect x="360" y="220" width="44" height="500" rx="22"/>
-    <rect x="444" y="320" width="44" height="300" rx="22"/>
-    <rect x="528" y="250" width="44" height="440" rx="22"/>
-    <rect x="612" y="190" width="44" height="560" rx="22"/>
-    <rect x="696" y="300" width="44" height="340" rx="22"/>
-    <rect x="780" y="390" width="44" height="160" rx="22"/>
+  <rect x="36" y="36" width="952" height="952" rx="196" fill="none" stroke="url(#borderGrad)" stroke-width="10"/>
+
+  <!-- Cinema / Video Frame Container: Top & Bottom Filmstrip Sprockets -->
+  <g fill="#334155" opacity="0.45">
+    <!-- Top Sprockets -->
+    <rect x="180" y="140" width="60" height="44" rx="10"/>
+    <rect x="280" y="140" width="60" height="44" rx="10"/>
+    <rect x="380" y="140" width="60" height="44" rx="10"/>
+    <rect x="480" y="140" width="60" height="44" rx="10"/>
+    <rect x="580" y="140" width="60" height="44" rx="10"/>
+    <rect x="680" y="140" width="60" height="44" rx="10"/>
+    <rect x="780" y="140" width="60" height="44" rx="10"/>
+
+    <!-- Bottom Sprockets -->
+    <rect x="180" y="840" width="60" height="44" rx="10"/>
+    <rect x="280" y="840" width="60" height="44" rx="10"/>
+    <rect x="380" y="840" width="60" height="44" rx="10"/>
+    <rect x="480" y="840" width="60" height="44" rx="10"/>
+    <rect x="580" y="840" width="60" height="44" rx="10"/>
+    <rect x="680" y="840" width="60" height="44" rx="10"/>
+    <rect x="780" y="840" width="60" height="44" rx="10"/>
   </g>
-  <!-- Subtitle / Sync bar at bottom -->
-  <rect x="230" y="790" width="320" height="40" rx="20" fill="url(#sub)"/>
-  <rect x="580" y="790" width="214" height="40" rx="20" fill="url(#sub)" opacity="0.8"/>
+
+  <!-- Timeline Workstation Editor Panel -->
+  <rect x="150" y="216" width="724" height="592" rx="28" fill="url(#panelGrad)" stroke="#475569" stroke-opacity="0.3" stroke-width="4"/>
+
+  <!-- Track 1: Video Track (V1) - Filmstrip Clips -->
+  <g>
+    <!-- Track Lane Background -->
+    <rect x="180" y="248" width="664" height="150" rx="16" fill="#0B1120" stroke="#334155" stroke-opacity="0.4" stroke-width="2"/>
+    
+    <!-- Video Clip A -->
+    <rect x="194" y="260" width="280" height="126" rx="12" fill="url(#videoTrackGrad)"/>
+    <!-- Film Frame Thumbnails inside Video Clip A -->
+    <rect x="210" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="240,315 252,323 240,331" fill="#FFFFFF" opacity="0.8"/>
+    <rect x="290" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="320,315 332,323 320,331" fill="#FFFFFF" opacity="0.8"/>
+    <rect x="370" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="400,315 412,323 400,331" fill="#FFFFFF" opacity="0.8"/>
+
+    <!-- Video Clip B (Next scene on timeline) -->
+    <rect x="484" y="260" width="344" height="126" rx="12" fill="url(#videoTrackGrad)" opacity="0.85"/>
+    <rect x="500" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="530,315 542,323 530,331" fill="#FFFFFF" opacity="0.8"/>
+    <rect x="580" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="610,315 622,323 610,331" fill="#FFFFFF" opacity="0.8"/>
+    <rect x="660" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="690,315 702,323 690,331" fill="#FFFFFF" opacity="0.8"/>
+    <rect x="740" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6"/>
+    <polygon points="770,315 782,323 770,331" fill="#FFFFFF" opacity="0.8"/>
+
+    <!-- Track label badge V1 -->
+    <rect x="194" y="260" width="36" height="22" rx="4" fill="#1E1B4B"/>
+    <text x="212" y="276" fill="#A5B4FC" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">V1</text>
+  </g>
+
+  <!-- Track 2: Audio Waveform Track (A1) -->
+  <g>
+    <!-- Track Lane Background -->
+    <rect x="180" y="422" width="664" height="150" rx="16" fill="#0B1120" stroke="#334155" stroke-opacity="0.4" stroke-width="2"/>
+    <!-- Audio Clip -->
+    <rect x="194" y="434" width="634" height="126" rx="12" fill="#082F49" stroke="#0284C7" stroke-opacity="0.5" stroke-width="2"/>
+    
+    <!-- Audio Waveform Peaks -->
+    <g fill="url(#audioTrackGrad)">
+      <rect x="212" y="482" width="10" height="30" rx="5"/>
+      <rect x="230" y="467" width="10" height="60" rx="5"/>
+      <rect x="248" y="455" width="10" height="84" rx="5"/>
+      <rect x="266" y="470" width="10" height="54" rx="5"/>
+      <rect x="284" y="460" width="10" height="74" rx="5"/>
+      <rect x="302" y="447" width="10" height="100" rx="5"/>
+      <rect x="320" y="465" width="10" height="64" rx="5"/>
+      <rect x="338" y="450" width="10" height="94" rx="5"/>
+      <rect x="356" y="462" width="10" height="70" rx="5"/>
+      <rect x="374" y="472" width="10" height="50" rx="5"/>
+      <rect x="392" y="452" width="10" height="90" rx="5"/>
+      <rect x="410" y="445" width="10" height="104" rx="5"/>
+      <rect x="428" y="460" width="10" height="74" rx="5"/>
+      <rect x="446" y="468" width="10" height="58" rx="5"/>
+      <rect x="464" y="454" width="10" height="86" rx="5"/>
+      <rect x="482" y="442" width="10" height="110" rx="5"/>
+      <rect x="500" y="450" width="10" height="94" rx="5"/>
+      <!-- Peak under playhead -->
+      <rect x="518" y="440" width="10" height="114" rx="5"/>
+      <rect x="536" y="448" width="10" height="98" rx="5"/>
+      <rect x="554" y="458" width="10" height="78" rx="5"/>
+      <rect x="572" y="445" width="10" height="104" rx="5"/>
+      <rect x="590" y="465" width="10" height="64" rx="5"/>
+      <rect x="608" y="452" width="10" height="90" rx="5"/>
+      <rect x="626" y="460" width="10" height="74" rx="5"/>
+      <rect x="644" y="470" width="10" height="54" rx="5"/>
+      <rect x="662" y="455" width="10" height="84" rx="5"/>
+      <rect x="680" y="448" width="10" height="98" rx="5"/>
+      <rect x="698" y="464" width="10" height="66" rx="5"/>
+      <rect x="716" y="452" width="10" height="90" rx="5"/>
+      <rect x="734" y="468" width="10" height="58" rx="5"/>
+      <rect x="752" y="458" width="10" height="78" rx="5"/>
+      <rect x="770" y="472" width="10" height="50" rx="5"/>
+      <rect x="788" y="482" width="10" height="30" rx="5"/>
+    </g>
+
+    <!-- Track label badge A1 -->
+    <rect x="194" y="434" width="36" height="22" rx="4" fill="#082F49"/>
+    <text x="212" y="450" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">A1</text>
+  </g>
+
+  <!-- Track 3: Subtitle Track (S1) - Dialogue Timed Blocks -->
+  <g>
+    <!-- Track Lane Background -->
+    <rect x="180" y="596" width="664" height="110" rx="16" fill="#0B1120" stroke="#334155" stroke-opacity="0.4" stroke-width="2"/>
+
+    <!-- Subtitle Block 1 -->
+    <rect x="230" y="612" width="260" height="78" rx="12" fill="url(#subTrackGrad)"/>
+    <rect x="250" y="632" width="160" height="14" rx="7" fill="#064E3B" opacity="0.6"/>
+    <rect x="250" y="654" width="200" height="14" rx="7" fill="#064E3B" opacity="0.6"/>
+
+    <!-- Subtitle Block 2 -->
+    <rect x="520" y="612" width="280" height="78" rx="12" fill="url(#subTrackGrad)" opacity="0.9"/>
+    <rect x="540" y="632" width="200" height="14" rx="7" fill="#064E3B" opacity="0.6"/>
+    <rect x="540" y="654" width="150" height="14" rx="7" fill="#064E3B" opacity="0.6"/>
+
+    <!-- Track label badge S1 -->
+    <rect x="194" y="608" width="36" height="22" rx="4" fill="#064E3B"/>
+    <text x="212" y="624" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">S1</text>
+  </g>
+
+  <!-- Video Timecode Bar at bottom of panel -->
+  <rect x="180" y="726" width="664" height="60" rx="12" fill="#090D16" stroke="#1E293B" stroke-width="2"/>
+  <text x="204" y="763" fill="#64748B" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="700">00:00:00.000</text>
+  <text x="523" y="763" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="800" text-anchor="middle">00:01:24.480 [IN SYNC]</text>
+  <text x="824" y="763" fill="#64748B" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="700" text-anchor="end">00:02:48.960</text>
+
+  <!-- THE PLAYHEAD & TIMELINE RAZOR SYNC CURSOR -->
+  <!-- Glowing Playhead Line through all tracks -->
+  <line x1="523" y1="216" x2="523" y2="786" stroke="#38BDF8" stroke-width="6" filter="url(#playheadGlow)"/>
+  <line x1="523" y1="216" x2="523" y2="786" stroke="#FFFFFF" stroke-width="3"/>
+
+  <!-- Playhead Head Indicator (Top Diamond / Flag) -->
+  <g filter="url(#playheadGlow)">
+    <polygon points="503,196 543,196 543,222 523,242 503,222" fill="#38BDF8"/>
+    <polygon points="507,200 539,200 539,220 523,236 507,220" fill="#FFFFFF"/>
+    <circle cx="523" cy="214" r="5" fill="#0284C7"/>
+  </g>
+
+  <!-- Playhead Sync Spark (at Audio / Subtitle Boundary) -->
+  <g filter="url(#playheadGlow)">
+    <circle cx="523" cy="584" r="14" fill="#F59E0B" opacity="0.9"/>
+    <path d="M 523 560 Q 523 584 547 584 Q 523 584 523 608 Q 523 584 499 584 Q 523 584 523 560 Z" fill="#FFFFFF"/>
+    <circle cx="523" cy="584" r="4" fill="#FEF08A"/>
+  </g>
 </svg>

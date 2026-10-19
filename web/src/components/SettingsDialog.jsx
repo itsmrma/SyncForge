@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
+  Dialog,
   Typography,
   FormControlLabel,
   Checkbox,
@@ -10,8 +11,8 @@ import {
   IconButton,
   InputAdornment,
   Tooltip,
-  Divider,
   Chip,
+  Collapse,
 } from '@mui/material';
 import Settings from '@mui/icons-material/Settings';
 import Close from '@mui/icons-material/Close';
@@ -34,6 +35,11 @@ import KeyOutlined from '@mui/icons-material/KeyOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
 import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import UnfoldMoreOutlined from '@mui/icons-material/UnfoldMoreOutlined';
+import UnfoldLessOutlined from '@mui/icons-material/UnfoldLessOutlined';
 import { desktopBridge } from '../bridge';
 import {
   DEFAULT_SHORTCUTS,
@@ -43,6 +49,246 @@ import {
   splitShortcutKeys,
   formatShortcutDisplay,
 } from '../shortcuts';
+
+function SectionCard({
+  icon: IconComponent,
+  title,
+  tag,
+  iconColor = 'primary.main',
+  children,
+  testId,
+  headerAction,
+  expanded = true,
+  onToggle,
+}) {
+  return (
+    <Box
+      data-testid={testId}
+      sx={(theme) => ({
+        flexShrink: 0,
+        borderRadius: 2.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor:
+          theme.palette.mode === 'light'
+            ? '#FFFFFF'
+            : '#111622',
+        overflow: 'hidden',
+        boxShadow:
+          theme.palette.mode === 'light'
+            ? '0 1px 3px rgba(15, 23, 42, 0.05)'
+            : '0 2px 6px rgba(0, 0, 0, 0.35)',
+        transition: 'border-color 0.15s ease',
+        '&:hover': {
+          borderColor:
+            theme.palette.mode === 'light'
+              ? 'rgba(99, 102, 241, 0.35)'
+              : 'rgba(99, 102, 241, 0.30)',
+        },
+      })}
+    >
+      <Box
+        role={onToggle ? 'button' : undefined}
+        tabIndex={onToggle ? 0 : undefined}
+        aria-expanded={onToggle ? expanded : undefined}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (onToggle && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        sx={(theme) => ({
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1.2,
+          cursor: onToggle ? 'pointer' : 'default',
+          userSelect: 'none',
+          borderBottom: expanded ? '1px solid' : 'none',
+          borderColor: 'divider',
+          bgcolor:
+            theme.palette.mode === 'light'
+              ? '#F4F6F9'
+              : '#0B0F18',
+          transition: 'background-color 0.15s ease',
+          '&:hover': onToggle
+            ? {
+                bgcolor:
+                  theme.palette.mode === 'light'
+                    ? '#ECEFF4'
+                    : '#0E1320',
+              }
+            : {},
+        })}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          {IconComponent && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 26,
+                height: 26,
+                borderRadius: 1.5,
+                bgcolor: (theme) =>
+                  theme.palette.mode === 'light'
+                    ? 'rgba(15, 23, 42, 0.05)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                color: iconColor,
+              }}
+            >
+              <IconComponent sx={{ fontSize: 16 }} />
+            </Box>
+          )}
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+            sx={{
+              fontSize: '0.84rem',
+              letterSpacing: '-0.01em',
+              color: 'text.primary',
+            }}
+          >
+            {title}
+          </Typography>
+        </Box>
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+          onClick={(e) => {
+            if (e.target.closest('a, button')) {
+              e.stopPropagation();
+            }
+          }}
+        >
+          {tag && (
+            <Chip
+              size="small"
+              label={tag}
+              sx={{
+                height: 20,
+                fontSize: '0.66rem',
+                fontWeight: 700,
+                bgcolor: 'action.hover',
+                color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            />
+          )}
+          {headerAction}
+          {onToggle && (
+            <Box
+              aria-hidden="true"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 0.25,
+                color: 'text.secondary',
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}
+            >
+              <KeyboardArrowDown sx={{ fontSize: 18 }} />
+            </Box>
+          )}
+        </Box>
+      </Box>
+      <Collapse in={expanded} timeout="auto" unmountOnExit={false}>
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>{children}</Box>
+      </Collapse>
+    </Box>
+  );
+}
+
+function SettingToggleRow({
+  title,
+  description,
+  icon: RowIcon,
+  checked,
+  onChange,
+  disabled = false,
+  divider = false,
+}) {
+  return (
+    <Box
+      sx={(theme) => ({
+        borderBottom: divider ? '1px solid' : 'none',
+        borderColor: 'divider',
+        transition: 'background-color 0.12s ease',
+        '&:hover': {
+          bgcolor: disabled
+            ? 'transparent'
+            : theme.palette.mode === 'light'
+            ? 'rgba(15, 23, 42, 0.02)'
+            : 'rgba(255, 255, 255, 0.02)',
+        },
+      })}
+    >
+      <FormControlLabel
+        labelPlacement="start"
+        disabled={disabled}
+        control={
+          <Checkbox
+            size="small"
+            checked={Boolean(checked)}
+            onChange={(e) => onChange(e.target.checked)}
+            disabled={disabled}
+            sx={{
+              p: 0.75,
+              color: 'text.secondary',
+              '&.Mui-checked': {
+                color: 'primary.main',
+              },
+            }}
+          />
+        }
+        label={
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, pr: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              {RowIcon && <RowIcon sx={{ fontSize: 16, color: 'secondary.main' }} />}
+              <Typography
+                sx={{
+                  fontSize: '0.83rem',
+                  fontWeight: 600,
+                  color: disabled ? 'text.disabled' : 'text.primary',
+                  lineHeight: 1.3,
+                }}
+              >
+                {title}
+              </Typography>
+            </Box>
+            {description && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: disabled ? 'text.disabled' : 'text.secondary',
+                  fontSize: '0.71rem',
+                  lineHeight: 1.35,
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+        }
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          m: 0,
+          px: 2.25,
+          py: 1.25,
+          cursor: disabled ? 'default' : 'pointer',
+        }}
+      />
+    </Box>
+  );
+}
 
 export default function SettingsDialog({
   open,
@@ -61,8 +307,102 @@ export default function SettingsDialog({
   const [conflictState, setConflictState] = useState(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showApiToken, setShowApiToken] = useState(false);
+  const [shortcutFilter, setShortcutFilter] = useState('');
+  const scrollRef = useRef(null);
 
-  if ((open && !prevOpen) || (initialTab !== prevInitialTab)) {
+  const [expandedSections, setExpandedSections] = useState({
+    appearance: true,
+    audio: true,
+    subtitles: true,
+    opensubtitles: true,
+    output: true,
+    notifications: true,
+    portable: true,
+  });
+
+  const toggleSection = (key) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const allGeneralExpanded = useMemo(() => {
+    return Object.values(expandedSections).every(Boolean);
+  }, [expandedSections]);
+
+  const toggleAllGeneral = () => {
+    const nextVal = !allGeneralExpanded;
+    setExpandedSections({
+      appearance: nextVal,
+      audio: nextVal,
+      subtitles: nextVal,
+      opensubtitles: nextVal,
+      output: nextVal,
+      notifications: nextVal,
+      portable: nextVal,
+    });
+  };
+
+  const [expandedShortcutGroups, setExpandedShortcutGroups] = useState({
+    'Task Execution & Merging': true,
+    'Workspace & Diagnostics': true,
+    'Quick Module Switching': true,
+  });
+
+  const toggleShortcutGroup = (cat) => {
+    setExpandedShortcutGroups((prev) => ({
+      ...prev,
+      [cat]: prev[cat] === undefined ? false : !prev[cat],
+    }));
+  };
+
+  const allShortcutsExpanded = useMemo(() => {
+    return Object.values(expandedShortcutGroups).every(Boolean);
+  }, [expandedShortcutGroups]);
+
+  const toggleAllShortcuts = () => {
+    const nextVal = !allShortcutsExpanded;
+    const next = {};
+    SHORTCUT_GROUPS.forEach((g) => {
+      next[g.category] = nextVal;
+    });
+    setExpandedShortcutGroups(next);
+  };
+
+  const [toolsStatus, setToolsStatus] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let isCurrent = true;
+    desktopBridge
+      .checkExternalTools()
+      .then((res) => {
+        if (isCurrent && res) {
+          setToolsStatus(res);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to check external tools:', err);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [open]);
+
+  const toolsFoundCount = useMemo(() => {
+    if (!toolsStatus) return null;
+    const tools = ['mkvmerge', 'mkvextract', 'mkvpropedit', 'ffmpeg', 'ffsubsync', 'mpv'];
+    return tools.filter((t) => toolsStatus[t]?.found).length;
+  }, [toolsStatus]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [activeTab, open]);
+
+  if ((open && !prevOpen) || initialTab !== prevInitialTab) {
     setPrevOpen(open);
     setPrevInitialTab(initialTab);
     setActiveTab(initialTab || 'general');
@@ -80,7 +420,12 @@ export default function SettingsDialog({
     if (!open || editingShortcut || conflictState) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         setActiveTab('general');
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
         onClose();
       }
     };
@@ -121,8 +466,6 @@ export default function SettingsDialog({
     window.addEventListener('keydown', handleCaptureKeyDown, true);
     return () => window.removeEventListener('keydown', handleCaptureKeyDown, true);
   }, [open, editingShortcut, conflictState, shortcuts, onShortcutsChange]);
-
-  if (!open) return null;
 
   const handlePickDefaultOutputDir = async () => {
     try {
@@ -174,77 +517,93 @@ export default function SettingsDialog({
 
   const currentThemeMode = settings.theme_mode || 'dark';
 
+  const filteredShortcutGroups = useMemo(() => {
+    const q = shortcutFilter.trim().toLowerCase();
+    if (!q) return SHORTCUT_GROUPS;
+
+    return SHORTCUT_GROUPS.map((group) => {
+      const matchedItems = group.items.filter((item) => {
+        const combo = (shortcuts[item.id] ?? DEFAULT_SHORTCUTS[item.id] ?? '').toLowerCase();
+        return (
+          item.label.toLowerCase().includes(q) ||
+          combo.includes(q) ||
+          group.category.toLowerCase().includes(q)
+        );
+      });
+      return {
+        ...group,
+        items: matchedItems,
+      };
+    }).filter((group) => group.items.length > 0);
+  }, [shortcutFilter, shortcuts]);
+
+  if (!open) return null;
+
   return (
-    <Box
-      role="dialog"
-      aria-label="Settings"
-      aria-modal="true"
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1300,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(8px)',
-        p: 2,
-        animation: 'fadeIn 0.15s ease-out',
-        '@keyframes fadeIn': {
-          from: { opacity: 0 },
-          to: { opacity: 1 },
-        },
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !editingShortcut && !conflictState) {
-          onClose();
-        }
-      }}
-    >
-      <Box
-        sx={(theme) => ({
-          width: '100%',
-          maxWidth: 620,
-          maxHeight: '88vh',
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 3,
-          boxShadow:
-            theme.palette.mode === 'light'
-              ? '0 24px 64px rgba(15, 23, 42, 0.22)'
-              : '0 24px 64px rgba(0, 0, 0, 0.85)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-          '@keyframes scaleUp': {
-            from: { transform: 'scale(0.96)', opacity: 0 },
-            to: { transform: 'scale(1)', opacity: 1 },
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        restoreFocus={false}
+        disableRestoreFocus={true}
+        aria-label="Settings"
+        aria-labelledby="settings-dialog-title"
+        maxWidth={false}
+        fullWidth
+        slotProps={{
+          paper: {
+            'aria-label': 'Settings',
+            sx: (theme) => ({
+              width: '100%',
+              maxWidth: 720,
+              maxHeight: 'min(88vh, 780px)',
+              bgcolor: theme.palette.mode === 'light' ? '#FAFAFC' : '#0F141F',
+              backgroundImage: 'none',
+              color: 'text.primary',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 3,
+              boxShadow:
+                theme.palette.mode === 'light'
+                  ? '0 24px 64px rgba(15, 23, 42, 0.22)'
+                  : '0 24px 64px rgba(0, 0, 0, 0.95)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              m: { xs: 1.5, sm: 2 },
+            }),
           },
-        })}
+          backdrop: {
+            sx: (theme) => ({
+              bgcolor:
+                theme.palette.mode === 'light'
+                  ? 'rgba(15, 23, 42, 0.45)'
+                  : 'rgba(0, 0, 0, 0.78)',
+              backdropFilter: 'blur(8px)',
+            }),
+          },
+        }}
       >
-        {/* Unified Header & Segmented Tab Bar */}
+        {/* Header & Segmented Tab Navigation */}
         <Box
-          sx={{
+          sx={(theme) => ({
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.75,
-            px: 3,
+            gap: 1.5,
+            px: { xs: 2.5, sm: 3 },
             pt: 2.25,
-            pb: 2,
+            pb: 1.75,
             borderBottom: '1px solid',
             borderColor: 'divider',
-            bgcolor: 'background.paper',
-          }}
+            bgcolor: theme.palette.mode === 'light' ? '#FAFAFC' : '#0F141F',
+          })}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box
                 sx={{
-                  width: 34,
-                  height: 34,
+                  width: 36,
+                  height: 36,
                   borderRadius: 2,
                   bgcolor: 'rgba(99, 102, 241, 0.14)',
                   border: '1px solid rgba(99, 102, 241, 0.28)',
@@ -257,10 +616,10 @@ export default function SettingsDialog({
                 <Settings fontSize="small" />
               </Box>
               <Box>
-                <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.05rem', lineHeight: 1.2 }}>
+                <Typography id="settings-dialog-title" variant="h6" fontWeight={800} sx={{ fontSize: '1.10rem', lineHeight: 1.2 }}>
                   Settings
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.73rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.74rem' }}>
                   Global preferences, appearance, mpv sync preview, and keyboard shortcuts
                 </Typography>
               </Box>
@@ -269,13 +628,16 @@ export default function SettingsDialog({
               size="small"
               aria-label="Close settings"
               onClick={onClose}
-              sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+              }}
             >
               <Close fontSize="small" />
             </IconButton>
           </Box>
 
-          {/* Uniform Segmented Tab Control */}
+          {/* Segmented Tab Bar */}
           <Box
             role="tablist"
             aria-label="Settings pages"
@@ -379,29 +741,79 @@ export default function SettingsDialog({
           </Box>
         </Box>
 
-        {/* Content */}
-        <Box sx={{ p: 3, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Scrollable Content Area */}
+        <Box
+          ref={scrollRef}
+          data-testid="settings-scroll-container"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            p: { xs: 2, sm: 2.5 },
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.75,
+          }}
+        >
           {activeTab === 'general' ? (
             <>
-              {/* Section 0: Appearance & Theme */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <SettingsBrightnessOutlined sx={{ color: 'primary.main', fontSize: 18 }} />
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={700}
-                    sx={{
-                      color: 'primary.main',
-                      fontSize: '0.82rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Appearance & Theme
-                  </Typography>
-                </Box>
+              {/* Section Accordion Controls */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.secondary', fontSize: '0.72rem', fontWeight: 600 }}
+                >
+                  {Object.values(expandedSections).filter(Boolean).length} of{' '}
+                  {Object.keys(expandedSections).length} sections expanded
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={toggleAllGeneral}
+                  startIcon={
+                    allGeneralExpanded ? (
+                      <UnfoldLessOutlined sx={{ fontSize: 14 }} />
+                    ) : (
+                      <UnfoldMoreOutlined sx={{ fontSize: 14 }} />
+                    )
+                  }
+                  sx={{
+                    fontSize: '0.72rem',
+                    py: 0.2,
+                    px: 0.75,
+                    color: 'primary.light',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  {allGeneralExpanded ? 'Collapse All' : 'Expand All'}
+                </Button>
+              </Box>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 0.5 }}>
+              {/* Card 1: Appearance & Theme */}
+              <SectionCard
+                icon={SettingsBrightnessOutlined}
+                title="Appearance & Theme"
+                tag={
+                  currentThemeMode === 'dark'
+                    ? 'Dark Mode'
+                    : currentThemeMode === 'light'
+                    ? 'Light Mode'
+                    : 'System Default'
+                }
+                iconColor="primary.main"
+                expanded={expandedSections.appearance}
+                onToggle={() => toggleSection('appearance')}
+              >
+                <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                   <Box
                     data-testid="theme-selector"
                     role="group"
@@ -415,7 +827,7 @@ export default function SettingsDialog({
                       bgcolor:
                         theme.palette.mode === 'light'
                           ? '#E8ECF2'
-                          : 'rgba(15, 23, 42, 0.55)',
+                          : '#0B0F18',
                       border: '1px solid',
                       borderColor: 'divider',
                     })}
@@ -457,59 +869,71 @@ export default function SettingsDialog({
                       );
                     })}
                   </Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.70rem' }}>
-                    Choose between Carbon-Slate Dark, Anodized Slate Light, or follow OS preference. The live CLI console stays dark for optimal ANSI readability.
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.71rem' }}>
+                    Choose between Carbon-Slate Dark, Anodized Slate Light, or follow OS preference.
+                    The live CLI console stays dark for optimal ANSI readability.
                   </Typography>
                 </Box>
-              </Box>
+              </SectionCard>
 
-              <Divider sx={{ borderColor: 'divider' }} />
-
-              {/* Section 1: Audio & Transcoding */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <HeadphonesOutlined sx={{ color: 'success.main', fontSize: 18 }} />
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={700}
+              {/* Card 2: Audio & Transcoding */}
+              <SectionCard
+                icon={HeadphonesOutlined}
+                title="Audio & Transcoding"
+                tag={
+                  settings.opus_mode === 'always'
+                    ? `Opus: Always (${settings.opus_bitrate || 128}k)`
+                    : settings.opus_mode === 'prompt'
+                    ? 'Opus: Prompt'
+                    : 'Opus: Disabled'
+                }
+                iconColor="success.main"
+                expanded={expandedSections.audio}
+                onToggle={() => toggleSection('audio')}
+              >
+                <Box
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.75,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    label="Opus Audio Encoding"
+                    value={settings.opus_mode || 'off'}
+                    onChange={(e) => onChange({ ...settings, opus_mode: e.target.value })}
+                    helperText="Re-encode kept and merged audio tracks to Opus to save space (applied to audio muxing modes)"
                     sx={{
-                      color: 'success.main',
-                      fontSize: '0.82rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
+                      '& .MuiFormHelperText-root': {
+                        color: 'text.secondary',
+                        fontSize: '0.70rem',
+                      },
                     }}
                   >
-                    Audio & Transcoding
-                  </Typography>
-                </Box>
+                    <MenuItem value="off">Disabled (Keep original audio lossless)</MenuItem>
+                    <MenuItem value="prompt">Ask per batch (Interactive prompt with preview)</MenuItem>
+                    <MenuItem value="always">Always convert to Opus</MenuItem>
+                  </TextField>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 0.5 }}>
-                  <Box>
-                    <TextField
-                      select
-                      size="small"
-                      fullWidth
-                      label="Opus Audio Encoding"
-                      value={settings.opus_mode || 'off'}
-                      onChange={(e) => onChange({ ...settings, opus_mode: e.target.value })}
-                      helperText="Re-encode kept and merged audio tracks to Opus to save space (applied to audio muxing modes)"
-                      sx={{
-                        '& .MuiFormHelperText-root': {
-                          color: 'text.secondary',
-                          fontSize: '0.70rem',
-                        },
-                      }}
-                    >
-                      <MenuItem value="off">Disabled (Keep original audio lossless)</MenuItem>
-                      <MenuItem value="prompt">Ask per batch (Interactive prompt with preview)</MenuItem>
-                      <MenuItem value="always">Always convert to Opus</MenuItem>
-                    </TextField>
-                  </Box>
-
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  {/* Aligned 2-column parameters */}
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                      gap: 1.75,
+                      alignItems: 'stretch',
+                    }}
+                  >
                     <TextField
                       type="number"
                       size="small"
+                      fullWidth
                       label="Opus Bitrate (kbps)"
                       value={settings.opus_bitrate ?? 128}
                       onChange={(e) => {
@@ -526,7 +950,24 @@ export default function SettingsDialog({
                         },
                       }}
                     />
-                    <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+
+                    <Box
+                      sx={(theme) => ({
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.25,
+                        bgcolor:
+                          theme.palette.mode === 'light'
+                            ? '#E8ECF2'
+                            : '#0B0F18',
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: 62,
+                        opacity: settings.opus_mode === 'off' ? 0.6 : 1,
+                        transition: 'opacity 0.15s ease',
+                      })}
+                    >
                       <FormControlLabel
                         control={
                           <Checkbox
@@ -540,137 +981,74 @@ export default function SettingsDialog({
                         }
                         label={
                           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                            <Typography fontSize="0.82rem">Downmix to stereo (2.0)</Typography>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                              Downmix to stereo (2.0)
+                            </Typography>
                             <Typography
                               variant="caption"
                               sx={{
                                 color: 'text.secondary',
                                 fontSize: '0.70rem',
-                                lineHeight: 1.2,
+                                lineHeight: 1.25,
                               }}
                             >
                               Uncheck to preserve original channels (e.g. 5.1 / 7.1)
                             </Typography>
                           </Box>
                         }
-                        sx={{ width: '100%', mr: 0 }}
+                        sx={{ width: '100%', m: 0 }}
                       />
                     </Box>
                   </Box>
-
-                  <Box component="span" sx={{ display: 'block' }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={Boolean(settings.auto_audio ?? true)}
-                          onChange={(e) =>
-                            onChange({ ...settings, auto_audio: e.target.checked })
-                          }
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Typography fontSize="0.82rem">Auto-sync Audio</Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontSize: '0.70rem',
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            Waveform cross-correlation delay calculation (applied when merging audio)
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ width: '100%', mr: 0 }}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-
-              <Divider sx={{ borderColor: 'divider' }} />
-
-              {/* Section 2: Subtitles & Timing */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <SubtitlesOutlined sx={{ color: 'secondary.main', fontSize: 18 }} />
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={700}
-                    sx={{
-                      color: 'secondary.main',
-                      fontSize: '0.82rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Subtitles & Synchronization
-                  </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, pl: 0.5 }}>
-                  <Box component="span" sx={{ display: 'block' }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={Boolean(settings.auto_subs ?? true)}
-                          onChange={(e) =>
-                            onChange({ ...settings, auto_subs: e.target.checked })
-                          }
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Typography fontSize="0.82rem">Auto-sync Subs</Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontSize: '0.70rem',
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            Align subtitles to audio speech with FFsubsync (applied to subtitle modes)
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ width: '100%', mr: 0 }}
-                    />
-                  </Box>
+                <SettingToggleRow
+                  title="Auto-sync Audio"
+                  description="Waveform cross-correlation delay calculation (applied when merging audio)"
+                  checked={settings.auto_audio ?? true}
+                  onChange={(val) => onChange({ ...settings, auto_audio: val })}
+                />
+              </SectionCard>
 
-                  <Box component="span" sx={{ display: 'block' }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={Boolean(settings.enable_max_offset)}
-                          onChange={(e) =>
-                            onChange({ ...settings, enable_max_offset: e.target.checked })
-                          }
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Typography fontSize="0.82rem">Enable Max Offset limit</Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontSize: '0.70rem',
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            Cap maximum alignment search window in seconds (applied to subtitle modes)
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ width: '100%', mr: 0 }}
-                    />
-                  </Box>
+              {/* Card 3: Subtitles & Synchronization */}
+              <SectionCard
+                icon={SubtitlesOutlined}
+                title="Subtitles & Synchronization"
+                tag={
+                  settings.preview_mpv
+                    ? 'mpv Audition'
+                    : settings.auto_subs
+                    ? 'FFsubsync Auto'
+                    : 'FFsubsync Off'
+                }
+                iconColor="secondary.main"
+                expanded={expandedSections.subtitles}
+                onToggle={() => toggleSection('subtitles')}
+              >
+                <SettingToggleRow
+                  title="Auto-sync Subs"
+                  description="Align subtitles to audio speech with FFsubsync (applied to subtitle modes)"
+                  checked={settings.auto_subs ?? true}
+                  onChange={(val) => onChange({ ...settings, auto_subs: val })}
+                  divider
+                />
 
+                <SettingToggleRow
+                  title="Enable Max Offset limit"
+                  description="Cap maximum alignment search window in seconds (applied to subtitle modes)"
+                  checked={settings.enable_max_offset}
+                  onChange={(val) => onChange({ ...settings, enable_max_offset: val })}
+                />
+
+                <Box
+                  sx={{
+                    px: 2.25,
+                    pb: 2,
+                    pt: 0.5,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
                   <TextField
                     label="FFsubsync Max Offset (seconds)"
                     type="number"
@@ -684,229 +1062,210 @@ export default function SettingsDialog({
                       '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
                     }}
                   />
+                </Box>
 
-                  <Box component="span" sx={{ display: 'block', pt: 0.5 }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={Boolean(settings.preview_mpv)}
-                          onChange={(e) =>
-                            onChange({ ...settings, preview_mpv: e.target.checked })
-                          }
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <PlayArrow sx={{ fontSize: 16, color: 'secondary.main' }} />
-                            <Typography fontSize="0.82rem" fontWeight={600}>
-                              Preview sync with mpv before muxing
-                            </Typography>
-                          </Box>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontSize: '0.70rem',
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            Open an interactive verification dialog after delay calculation to audition and nudge audio/subtitle offsets in mpv before final remuxing
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ width: '100%', mr: 0 }}
-                    />
-                  </Box>
+                <SettingToggleRow
+                  icon={PlayArrow}
+                  title="Preview sync with mpv before muxing"
+                  description="Open an interactive verification dialog after delay calculation to audition and nudge audio/subtitle offsets in mpv before final remuxing"
+                  checked={settings.preview_mpv}
+                  onChange={(val) => onChange({ ...settings, preview_mpv: val })}
+                />
+              </SectionCard>
 
-                  {/* OpenSubtitles.com API Integration */}
-                  <Box
-                    data-testid="opensubtitles-settings-card"
-                    sx={{
-                      mt: 1,
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: (theme) =>
-                        theme.palette.mode === 'light'
-                          ? 'rgba(99, 102, 241, 0.05)'
-                          : 'rgba(99, 102, 241, 0.08)',
-                      border: '1px solid',
-                      borderColor: (theme) =>
-                        theme.palette.mode === 'light'
-                          ? 'rgba(99, 102, 241, 0.20)'
-                          : 'rgba(99, 102, 241, 0.25)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 1.5,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <KeyOutlined sx={{ fontSize: 18, color: 'primary.main' }} />
-                        <Typography fontSize="0.82rem" fontWeight={700}>
-                          OpenSubtitles.com API Integration
-                        </Typography>
-                      </Box>
-                      <Button
+              {/* Card 4: OpenSubtitles.com API Integration */}
+              <SectionCard
+                testId="opensubtitles-settings-card"
+                icon={KeyOutlined}
+                title="OpenSubtitles.com API Integration"
+                iconColor="primary.main"
+                expanded={expandedSections.opensubtitles}
+                onToggle={() => toggleSection('opensubtitles')}
+                headerAction={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {settings.opensubtitles_api_key ? (
+                      <Chip
                         size="small"
-                        variant="text"
-                        component="a"
-                        href="https://www.opensubtitles.com/en/consumers"
-                        target="_blank"
-                        rel="noreferrer"
-                        endIcon={<OpenInNewOutlined sx={{ fontSize: 14 }} />}
+                        icon={<CheckCircleOutlined sx={{ fontSize: '13px !important' }} />}
+                        label="Configured"
+                        color="success"
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: '0.66rem', fontWeight: 700 }}
+                      />
+                    ) : (
+                      <Chip
+                        size="small"
+                        label="Optional"
+                        variant="outlined"
                         sx={{
-                          fontSize: '0.72rem',
-                          textTransform: 'none',
-                          py: 0.25,
-                          px: 0.75,
-                          color: 'primary.main',
+                          height: 20,
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          color: 'text.secondary',
                         }}
-                      >
-                        Get Free API Key
-                      </Button>
-                    </Box>
-
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.35 }}>
-                      Required for searching and downloading missing subtitles directly through AI agents and MCP tools.
-                      The key is stored in your local configuration and shared across the GUI and AI assistants.
-                    </Typography>
-
-                    <TextField
-                      label="OpenSubtitles API Key"
-                      data-testid="opensubtitles-api-key-input"
-                      type={showApiKey ? 'text' : 'password'}
+                      />
+                    )}
+                    <Button
                       size="small"
-                      fullWidth
-                      value={settings.opensubtitles_api_key || ''}
-                      placeholder="Enter your OpenSubtitles API Consumer Key"
-                      onChange={(e) =>
-                        onChange({ ...settings, opensubtitles_api_key: e.target.value.trim() })
-                      }
-                      helperText={
-                        settings.opensubtitles_api_key
-                          ? 'Stored in shared user configuration (~/.config/syncforge/config.json)'
-                          : 'Leave empty if you do not use online subtitle search tools'
-                      }
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                size="small"
-                                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                                onClick={() => setShowApiKey(!showApiKey)}
-                                edge="end"
-                                sx={{ p: 0.5, color: 'text.secondary', mr: settings.opensubtitles_api_key ? 0.5 : 0 }}
-                              >
-                                {showApiKey ? (
-                                  <VisibilityOffOutlined sx={{ fontSize: 16 }} />
-                                ) : (
-                                  <VisibilityOutlined sx={{ fontSize: 16 }} />
-                                )}
-                              </IconButton>
-                              {settings.opensubtitles_api_key ? (
-                                <Tooltip title="Clear OpenSubtitles API Key" arrow>
-                                  <IconButton
-                                    size="small"
-                                    aria-label="Clear API key"
-                                    onClick={() =>
-                                      onChange({ ...settings, opensubtitles_api_key: '' })
-                                    }
-                                    edge="end"
-                                    sx={{ p: 0.5, color: 'text.secondary' }}
-                                  >
-                                    <ClearIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
-                                </Tooltip>
-                              ) : null}
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
+                      variant="text"
+                      component="a"
+                      href="https://www.opensubtitles.com/en/consumers"
+                      target="_blank"
+                      rel="noreferrer"
+                      endIcon={<OpenInNewOutlined sx={{ fontSize: 13 }} />}
                       sx={{
-                        '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
+                        fontSize: '0.72rem',
+                        textTransform: 'none',
+                        py: 0.25,
+                        px: 0.75,
+                        color: 'primary.main',
                       }}
-                    />
-
-                    <TextField
-                      label="OpenSubtitles User Token (Optional VIP / JWT)"
-                      type={showApiToken ? 'text' : 'password'}
-                      size="small"
-                      fullWidth
-                      value={settings.opensubtitles_token || ''}
-                      placeholder="Optional User VIP / Bearer Token"
-                      onChange={(e) =>
-                        onChange({ ...settings, opensubtitles_token: e.target.value.trim() })
-                      }
-                      helperText="Optional: increases daily download quotas for registered or VIP accounts"
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                size="small"
-                                aria-label={showApiToken ? 'Hide token' : 'Show token'}
-                                onClick={() => setShowApiToken(!showApiToken)}
-                                edge="end"
-                                sx={{ p: 0.5, color: 'text.secondary', mr: settings.opensubtitles_token ? 0.5 : 0 }}
-                              >
-                                {showApiToken ? (
-                                  <VisibilityOffOutlined sx={{ fontSize: 16 }} />
-                                ) : (
-                                  <VisibilityOutlined sx={{ fontSize: 16 }} />
-                                )}
-                              </IconButton>
-                              {settings.opensubtitles_token ? (
-                                <Tooltip title="Clear User Token" arrow>
-                                  <IconButton
-                                    size="small"
-                                    aria-label="Clear user token"
-                                    onClick={() =>
-                                      onChange({ ...settings, opensubtitles_token: '' })
-                                    }
-                                    edge="end"
-                                    sx={{ p: 0.5, color: 'text.secondary' }}
-                                  >
-                                    <ClearIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
-                                </Tooltip>
-                              ) : null}
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                      sx={{
-                        '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
-                      }}
-                    />
+                    >
+                      Get Free API Key
+                    </Button>
                   </Box>
-                </Box>
-              </Box>
-
-              <Divider sx={{ borderColor: 'divider' }} />
-
-              {/* Section 3: Output Directory */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <FolderOpenOutlined sx={{ color: 'warning.main', fontSize: 18 }} />
+                }
+              >
+                <Box sx={{ p: 2.25, display: 'flex', flexDirection: 'column', gap: 1.75 }}>
                   <Typography
-                    variant="subtitle2"
-                    fontWeight={700}
-                    sx={{
-                      color: 'warning.main',
-                      fontSize: '0.82rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}
+                    variant="caption"
+                    sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1.4 }}
                   >
-                    Default Output Directory
+                    Required for searching and downloading missing subtitles directly through AI
+                    agents and MCP tools. The key is stored in your local configuration and shared
+                    across the GUI and AI assistants.
                   </Typography>
-                </Box>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 0.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                  <TextField
+                    label="OpenSubtitles API Key"
+                    data-testid="opensubtitles-api-key-input"
+                    type={showApiKey ? 'text' : 'password'}
+                    size="small"
+                    fullWidth
+                    value={settings.opensubtitles_api_key || ''}
+                    placeholder="Enter your OpenSubtitles API Consumer Key"
+                    onChange={(e) =>
+                      onChange({ ...settings, opensubtitles_api_key: e.target.value.trim() })
+                    }
+                    helperText={
+                      settings.opensubtitles_api_key
+                        ? 'Stored in shared user configuration (~/.config/syncforge/config.json)'
+                        : 'Leave empty if you do not use online subtitle search tools'
+                    }
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                              onClick={() => setShowApiKey(!showApiKey)}
+                              edge="end"
+                              sx={{
+                                p: 0.5,
+                                color: 'text.secondary',
+                                mr: settings.opensubtitles_api_key ? 0.5 : 0,
+                              }}
+                            >
+                              {showApiKey ? (
+                                <VisibilityOffOutlined sx={{ fontSize: 16 }} />
+                              ) : (
+                                <VisibilityOutlined sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                            {settings.opensubtitles_api_key ? (
+                              <Tooltip title="Clear OpenSubtitles API Key" arrow>
+                                <IconButton
+                                  size="small"
+                                  aria-label="Clear API key"
+                                  onClick={() =>
+                                    onChange({ ...settings, opensubtitles_api_key: '' })
+                                  }
+                                  edge="end"
+                                  sx={{ p: 0.5, color: 'text.secondary' }}
+                                >
+                                  <ClearIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                            ) : null}
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                    sx={{
+                      '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
+                    }}
+                  />
+
+                  <TextField
+                    label="OpenSubtitles User Token (Optional VIP / JWT)"
+                    type={showApiToken ? 'text' : 'password'}
+                    size="small"
+                    fullWidth
+                    value={settings.opensubtitles_token || ''}
+                    placeholder="Optional User VIP / Bearer Token"
+                    onChange={(e) =>
+                      onChange({ ...settings, opensubtitles_token: e.target.value.trim() })
+                    }
+                    helperText="Optional: increases daily download quotas for registered or VIP accounts"
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              aria-label={showApiToken ? 'Hide token' : 'Show token'}
+                              onClick={() => setShowApiToken(!showApiToken)}
+                              edge="end"
+                              sx={{
+                                p: 0.5,
+                                color: 'text.secondary',
+                                mr: settings.opensubtitles_token ? 0.5 : 0,
+                              }}
+                            >
+                              {showApiToken ? (
+                                <VisibilityOffOutlined sx={{ fontSize: 16 }} />
+                              ) : (
+                                <VisibilityOutlined sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                            {settings.opensubtitles_token ? (
+                              <Tooltip title="Clear User Token" arrow>
+                                <IconButton
+                                  size="small"
+                                  aria-label="Clear user token"
+                                  onClick={() =>
+                                    onChange({ ...settings, opensubtitles_token: '' })
+                                  }
+                                  edge="end"
+                                  sx={{ p: 0.5, color: 'text.secondary' }}
+                                >
+                                  <ClearIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                            ) : null}
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                    sx={{
+                      '& .MuiFormHelperText-root': { fontSize: '0.70rem' },
+                    }}
+                  />
+                </Box>
+              </SectionCard>
+
+              {/* Card 5: Default Output Directory */}
+              <SectionCard
+                icon={FolderOpenOutlined}
+                title="Default Output Directory"
+                tag={settings.default_output_dir ? 'Custom Directory' : 'Source Directory'}
+                iconColor="warning.main"
+                expanded={expandedSections.output}
+                onToggle={() => toggleSection('output')}
+              >
+                <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
                     <TextField
                       size="small"
                       fullWidth
@@ -946,354 +1305,562 @@ export default function SettingsDialog({
                     />
                     <Button
                       variant="outlined"
+                      size="small"
                       startIcon={<FolderOpenOutlined fontSize="small" />}
                       onClick={handlePickDefaultOutputDir}
-                      sx={{ flexShrink: 0, height: 40, px: 2 }}
+                      sx={{ flexShrink: 0, height: 40, px: 2.25, fontWeight: 600, borderRadius: 1.5 }}
                     >
                       Browse
                     </Button>
                   </Box>
                 </Box>
-              </Box>
+              </SectionCard>
 
-              <Divider sx={{ borderColor: 'divider' }} />
-
-              {/* Section 4: Notifications & Feedback */}
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <NotificationsActiveOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={700}
-                    sx={{
-                      color: 'text.secondary',
-                      fontSize: '0.82rem',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Notifications & Sound
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pl: 0.5 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={Boolean(settings.notify_on_finish ?? true)}
-                        onChange={(e) =>
-                          onChange({ ...settings, notify_on_finish: e.target.checked })
-                        }
-                      />
-                    }
-                    label={
-                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography fontSize="0.82rem">Notify when task finishes</Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'text.secondary', fontSize: '0.70rem' }}
-                        >
-                          Displays a desktop notification when processing completes
-                        </Typography>
-                      </Box>
-                    }
-                    sx={{ width: '100%', mr: 0 }}
-                  />
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={Boolean(settings.sound_on_finish ?? true)}
-                        onChange={(e) =>
-                          onChange({ ...settings, sound_on_finish: e.target.checked })
-                        }
-                      />
-                    }
-                    label={
-                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography fontSize="0.82rem">Play sound on completion</Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'text.secondary', fontSize: '0.70rem' }}
-                        >
-                          Plays a gentle chime on success or alert sound on error
-                        </Typography>
-                      </Box>
-                    }
-                    sx={{ width: '100%', mr: 0 }}
-                  />
-                </Box>
-              </Box>
-
-              {/* Portable Mode Note */}
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 1.5,
-                  bgcolor: 'rgba(56, 189, 248, 0.06)',
-                  border: '1px solid rgba(56, 189, 248, 0.20)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5,
-                }}
+              {/* Card 6: Notifications & Sound */}
+              <SectionCard
+                icon={NotificationsActiveOutlined}
+                title="Notifications & Feedback"
+                tag={
+                  settings.notify_on_finish && settings.sound_on_finish
+                    ? 'Toast & Chime'
+                    : settings.notify_on_finish
+                    ? 'Toast Only'
+                    : settings.sound_on_finish
+                    ? 'Chime Only'
+                    : 'Muted'
+                }
+                iconColor="info.main"
+                expanded={expandedSections.notifications}
+                onToggle={() => toggleSection('notifications')}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <InfoOutlined sx={{ color: 'secondary.main', fontSize: 16 }} />
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'secondary.main' }}>
-                    Portable Mode & External Tools
+                <SettingToggleRow
+                  title="Notify when task finishes"
+                  description="Displays a desktop notification when processing completes"
+                  checked={settings.notify_on_finish ?? true}
+                  onChange={(val) => onChange({ ...settings, notify_on_finish: val })}
+                  divider
+                />
+
+                <SettingToggleRow
+                  title="Play sound on completion"
+                  description="Plays a gentle chime on success or alert sound on error"
+                  checked={settings.sound_on_finish ?? true}
+                  onChange={(val) => onChange({ ...settings, sound_on_finish: val })}
+                />
+              </SectionCard>
+
+              {/* Card 7: Portable Mode & External Tools */}
+              <SectionCard
+                icon={InfoOutlined}
+                title="Portable Mode & External Tools"
+                tag={
+                  toolsFoundCount !== null
+                    ? `${toolsFoundCount}/6 Ready`
+                    : 'Tools & Binaries'
+                }
+                iconColor="secondary.main"
+                expanded={expandedSections.portable}
+                onToggle={() => toggleSection('portable')}
+              >
+                <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                    {['mkvmerge', 'mkvextract', 'mkvpropedit', 'ffmpeg', 'ffsubsync', 'mpv'].map((tool) => {
+                      const info = toolsStatus ? toolsStatus[tool] : null;
+                      const isGreen = info ? info.found === true : false;
+                      const isRed = info ? info.found === false : false;
+
+                      const tooltipText = isGreen
+                        ? info.path
+                          ? `Found: ${info.path}`
+                          : `${tool} detected in PATH or application directory`
+                        : isRed
+                        ? `${tool} not found in PATH or application directory`
+                        : `Checking ${tool}...`;
+
+                      return (
+                        <Tooltip key={tool} title={tooltipText} arrow>
+                          <Box
+                            component="span"
+                            data-testid={`tool-status-${tool}`}
+                            data-status={isGreen ? 'found' : isRed ? 'missing' : 'checking'}
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.6,
+                              px: 1,
+                              py: 0.35,
+                              borderRadius: 1.25,
+                              bgcolor: isGreen
+                                ? 'rgba(34, 197, 94, 0.12)'
+                                : isRed
+                                ? 'rgba(239, 68, 68, 0.12)'
+                                : 'action.hover',
+                              border: '1px solid',
+                              borderColor: isGreen
+                                ? 'rgba(34, 197, 94, 0.38)'
+                                : isRed
+                                ? 'rgba(239, 68, 68, 0.38)'
+                                : 'divider',
+                              fontFamily: 'monospace',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: isGreen
+                                ? '#4ADE80'
+                                : isRed
+                                ? '#F87171'
+                                : 'text.secondary',
+                              transition: 'all 0.15s ease',
+                              cursor: 'default',
+                            }}
+                          >
+                            <Box
+                              component="span"
+                              sx={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                bgcolor: isGreen
+                                  ? '#22C55E'
+                                  : isRed
+                                  ? '#EF4444'
+                                  : 'text.disabled',
+                                flexShrink: 0,
+                              }}
+                            />
+                            {tool}
+                          </Box>
+                        </Tooltip>
+                      );
+                    })}
+                  </Box>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.5 }}>
+                    SyncForge automatically detects MKVToolNix (<code>mkvmerge</code>, <code>mkvextract</code>,{' '}
+                    <code>mkvpropedit</code>), FFmpeg (<code>ffmpeg</code>), ffsubsync (<code>ffsubsync</code>),
+                    and mpv (<code>mpv</code>). You can install them system-wide or place their executables directly
+                    in the application folder (or a <code>tools/</code> or <code>bin/</code> subfolder) for full
+                    portability.
                   </Typography>
                 </Box>
-                <Typography
-                  sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4 }}
-                >
-                  SyncForge automatically detects MKVToolNix (
-                  <code>mkvmerge</code>, <code>mkvextract</code>, <code>mkvpropedit</code>),
-                  FFmpeg (<code>ffmpeg</code>), ffsubsync (<code>ffsubsync</code>), and mpv (
-                  <code>mpv</code>). You can install them system-wide or place their executables
-                  directly in the application folder (or a <code>tools/</code> or{' '}
-                  <code>bin/</code> subfolder) for full portability.
-                </Typography>
-              </Box>
+              </SectionCard>
             </>
           ) : (
             <Box
-              sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}
+              sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
               data-testid="shortcuts-page"
             >
-              {/* Shortcuts Toolbar */}
+              {/* Shortcuts Toolbar & Search */}
               <Box
-                sx={{
+                sx={(theme) => ({
+                  flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 1.5,
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: 2,
-                  bgcolor: 'rgba(15, 23, 42, 0.55)',
-                  border: '1px solid rgba(148, 163, 184, 0.12)',
-                }}
+                  p: 1.5,
+                  borderRadius: 2.5,
+                  bgcolor:
+                    theme.palette.mode === 'light'
+                      ? '#FFFFFF'
+                      : '#111622',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                })}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <EditOutlined sx={{ fontSize: 16, color: '#818CF8' }} />
-                  <Typography sx={{ fontSize: '0.76rem', color: 'text.secondary' }}>
-                    Click any shortcut row to remap it.
-                    {modifiedCount > 0 ? ` (${modifiedCount} customized)` : ''}
-                  </Typography>
-                </Box>
-                <Button
+                <TextField
                   size="small"
-                  variant="outlined"
-                  aria-label="Reset all shortcuts"
-                  disabled={modifiedCount === 0}
-                  startIcon={<RestartAlt fontSize="small" />}
-                  onClick={handleResetAllShortcuts}
-                  sx={{
-                    fontSize: '0.73rem',
-                    py: 0.35,
-                    px: 1.25,
-                    flexShrink: 0,
+                  placeholder="Filter shortcuts..."
+                  value={shortcutFilter}
+                  onChange={(e) => setShortcutFilter(e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: shortcutFilter ? (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            aria-label="Clear filter"
+                            onClick={() => setShortcutFilter('')}
+                            edge="end"
+                            sx={{ p: 0.5 }}
+                          >
+                            <ClearIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        </InputAdornment>
+                      ) : null,
+                    },
                   }}
-                >
-                  Reset All
-                </Button>
-              </Box>
+                  sx={{
+                    flex: 1,
+                    maxWidth: 320,
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.78rem',
+                      height: 34,
+                    },
+                  }}
+                />
 
-              {SHORTCUT_GROUPS.map((group) => (
-                <Box key={group.category}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <KeyboardOutlined sx={{ color: group.color, fontSize: 18 }} />
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={700}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {modifiedCount > 0 && (
+                    <Chip
+                      size="small"
+                      label={`${modifiedCount} customized`}
                       sx={{
-                        color: group.color,
-                        fontSize: '0.80rem',
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
+                        height: 22,
+                        fontSize: '0.70rem',
+                        fontWeight: 700,
+                        bgcolor: 'rgba(245, 158, 11, 0.16)',
+                        color: 'warning.main',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
                       }}
-                    >
-                      {group.category}
-                    </Typography>
-                  </Box>
-                  <Box
+                    />
+                  )}
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={toggleAllShortcuts}
+                    startIcon={
+                      allShortcutsExpanded ? (
+                        <UnfoldLessOutlined sx={{ fontSize: 14 }} />
+                      ) : (
+                        <UnfoldMoreOutlined sx={{ fontSize: 14 }} />
+                      )
+                    }
                     sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.6,
-                      bgcolor: 'rgba(11, 15, 24, 0.7)',
-                      border: '1px solid rgba(148, 163, 184, 0.12)',
-                      borderRadius: 2,
-                      p: 1,
+                      fontSize: '0.74rem',
+                      height: 34,
+                      px: 1,
+                      color: 'primary.light',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      flexShrink: 0,
                     }}
                   >
-                    {group.items.map((item) => {
-                      const combo = shortcuts[item.id] ?? DEFAULT_SHORTCUTS[item.id];
-                      const isModified = combo !== DEFAULT_SHORTCUTS[item.id];
-                      const keys = splitShortcutKeys(combo);
-                      return (
-                        <Box
-                          key={item.id}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Change shortcut for ${item.label}`}
-                          data-testid={`shortcut-row-${item.id}`}
-                          onClick={() => {
-                            setConflictState(null);
-                            setEditingShortcut(item);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setConflictState(null);
-                              setEditingShortcut(item);
-                            }
-                          }}
+                    {allShortcutsExpanded ? 'Collapse All' : 'Expand All'}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    aria-label="Reset all shortcuts"
+                    disabled={modifiedCount === 0}
+                    startIcon={<RestartAlt fontSize="small" />}
+                    onClick={handleResetAllShortcuts}
+                    sx={{
+                      fontSize: '0.74rem',
+                      height: 34,
+                      px: 1.5,
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    Reset All
+                  </Button>
+                </Box>
+              </Box>
+
+              {filteredShortcutGroups.length === 0 ? (
+                <Box
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    borderRadius: 2,
+                    border: '1px dashed',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No shortcuts matched &ldquo;{shortcutFilter}&rdquo;
+                  </Typography>
+                </Box>
+              ) : (
+                filteredShortcutGroups.map((group) => (
+                  <Box
+                    key={group.category}
+                    sx={(theme) => ({
+                      flexShrink: 0,
+                      borderRadius: 2.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor:
+                        theme.palette.mode === 'light'
+                          ? '#FFFFFF'
+                          : '#111622',
+                      overflow: 'hidden',
+                    })}
+                  >
+                    {/* Category Header */}
+                    <Box
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={expandedShortcutGroups[group.category] !== false}
+                      onClick={() => toggleShortcutGroup(group.category)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleShortcutGroup(group.category);
+                        }
+                      }}
+                      sx={(theme) => ({
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        px: 2,
+                        py: 1.15,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        borderBottom:
+                          expandedShortcutGroups[group.category] !== false ? '1px solid' : 'none',
+                        borderColor: 'divider',
+                        bgcolor:
+                          theme.palette.mode === 'light'
+                            ? '#F4F6F9'
+                            : '#0B0F18',
+                        transition: 'background-color 0.15s ease',
+                        '&:hover': {
+                          bgcolor:
+                            theme.palette.mode === 'light'
+                              ? '#ECEFF4'
+                              : '#0E1320',
+                        },
+                      })}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <KeyboardOutlined sx={{ color: group.color, fontSize: 17 }} />
+                        <Typography
+                          variant="subtitle2"
+                          fontWeight={700}
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            py: 0.75,
-                            px: 1.25,
-                            borderRadius: 1.5,
-                            cursor: 'pointer',
-                            border: '1px solid',
-                            borderColor: isModified
-                              ? 'rgba(245, 158, 11, 0.28)'
-                              : 'transparent',
-                            bgcolor: isModified
-                              ? 'rgba(245, 158, 11, 0.05)'
-                              : 'transparent',
-                            transition: 'all 0.14s ease',
-                            '&:hover': {
-                              bgcolor: isModified
-                                ? 'rgba(245, 158, 11, 0.10)'
-                                : 'rgba(99, 102, 241, 0.08)',
-                              borderColor: isModified
-                                ? 'rgba(245, 158, 11, 0.45)'
-                                : 'rgba(99, 102, 241, 0.25)',
-                            },
+                            color: group.color,
+                            fontSize: '0.80rem',
+                            letterSpacing: '0.03em',
+                            textTransform: 'uppercase',
                           }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                            <Typography
-                              sx={{
-                                fontSize: '0.84rem',
-                                color: 'text.primary',
-                                fontWeight: isModified ? 600 : 500,
-                              }}
-                            >
-                              {item.label}
-                            </Typography>
-                            {isModified && (
-                              <Tooltip
-                                title={`Modified (Default: ${formatShortcutDisplay(DEFAULT_SHORTCUTS[item.id])})`}
-                                arrow
-                              >
-                                <Box
-                                  component="span"
-                                  data-testid={`shortcut-modified-${item.id}`}
-                                  sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 0.4,
-                                    px: 0.75,
-                                    py: 0.15,
-                                    borderRadius: 1,
-                                    bgcolor: 'rgba(245, 158, 11, 0.16)',
-                                    border: '1px solid rgba(245, 158, 11, 0.35)',
-                                    color: '#FBBF24',
-                                    fontSize: '0.66rem',
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  <EditOutlined sx={{ fontSize: 12 }} />
-                                  Edited
-                                </Box>
-                              </Tooltip>
-                            )}
-                          </Box>
+                          {group.category}
+                        </Typography>
+                      </Box>
 
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            {keys.length > 0 ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                {keys.map((key, kIdx) => (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          size="small"
+                          label={`${group.items.length} shortcut${group.items.length === 1 ? '' : 's'}`}
+                          sx={{
+                            height: 20,
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            bgcolor: 'action.hover',
+                            color: 'text.secondary',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        />
+                        <Box
+                          aria-hidden="true"
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: 0.25,
+                            color: 'text.secondary',
+                            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform:
+                              expandedShortcutGroups[group.category] !== false
+                                ? 'rotate(180deg)'
+                                : 'rotate(0deg)',
+                          }}
+                        >
+                          <KeyboardArrowDown sx={{ fontSize: 18 }} />
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Collapse
+                      in={expandedShortcutGroups[group.category] !== false}
+                      timeout="auto"
+                      unmountOnExit={false}
+                    >
+                      {/* Shortcut Items */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      {group.items.map((item, index) => {
+                        const combo = shortcuts[item.id] ?? DEFAULT_SHORTCUTS[item.id];
+                        const isModified = combo !== DEFAULT_SHORTCUTS[item.id];
+                        const keys = splitShortcutKeys(combo);
+                        const isLast = index === group.items.length - 1;
+
+                        return (
+                          <Box
+                            key={item.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Change shortcut for ${item.label}`}
+                            data-testid={`shortcut-row-${item.id}`}
+                            onClick={() => {
+                              setConflictState(null);
+                              setEditingShortcut(item);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setConflictState(null);
+                                setEditingShortcut(item);
+                              }
+                            }}
+                            sx={(theme) => ({
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              py: 1,
+                              px: 2,
+                              cursor: 'pointer',
+                              borderBottom: isLast ? 'none' : '1px solid',
+                              borderColor: 'divider',
+                              bgcolor: isModified
+                                ? 'rgba(245, 158, 11, 0.05)'
+                                : 'transparent',
+                              transition: 'all 0.12s ease',
+                              '&:hover': {
+                                bgcolor: isModified
+                                  ? 'rgba(245, 158, 11, 0.10)'
+                                  : theme.palette.mode === 'light'
+                                  ? 'rgba(99, 102, 241, 0.05)'
+                                  : 'rgba(99, 102, 241, 0.08)',
+                              },
+                            })}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: '0.83rem',
+                                  color: 'text.primary',
+                                  fontWeight: isModified ? 600 : 500,
+                                }}
+                              >
+                                {item.label}
+                              </Typography>
+                              {isModified && (
+                                <Tooltip
+                                  title={`Modified (Default: ${formatShortcutDisplay(
+                                    DEFAULT_SHORTCUTS[item.id]
+                                  )})`}
+                                  arrow
+                                >
                                   <Box
-                                    component="kbd"
-                                    key={kIdx}
+                                    component="span"
+                                    data-testid={`shortcut-modified-${item.id}`}
                                     sx={{
-                                      px: 1,
-                                      py: 0.28,
-                                      minWidth: 28,
-                                      textAlign: 'center',
-                                      fontFamily: 'monospace',
-                                      fontSize: '0.74rem',
-                                      fontWeight: 700,
-                                      color: isModified ? '#FDE68A' : '#E2E8F0',
-                                      bgcolor: '#161E2E',
-                                      border: '1px solid',
-                                      borderColor: isModified
-                                        ? 'rgba(245, 158, 11, 0.45)'
-                                        : 'rgba(148, 163, 184, 0.28)',
-                                      borderBottomWidth: '2px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 0.4,
+                                      px: 0.75,
+                                      py: 0.15,
                                       borderRadius: 1,
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                                      bgcolor: 'rgba(245, 158, 11, 0.16)',
+                                      border: '1px solid rgba(245, 158, 11, 0.35)',
+                                      color: '#FBBF24',
+                                      fontSize: '0.66rem',
+                                      fontWeight: 700,
                                     }}
                                   >
-                                    {key}
+                                    <EditOutlined sx={{ fontSize: 12 }} />
+                                    Edited
                                   </Box>
-                                ))}
-                              </Box>
-                            ) : (
-                              <Chip
-                                size="small"
-                                label="Unassigned"
-                                sx={{
-                                  height: 22,
-                                  fontSize: '0.70rem',
-                                  fontFamily: 'monospace',
-                                  bgcolor: 'rgba(239, 68, 68, 0.12)',
-                                  color: '#F87171',
-                                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                                }}
-                              />
-                            )}
+                                </Tooltip>
+                              )}
+                            </Box>
 
-                            {isModified && (
-                              <Tooltip
-                                title={`Reset to default (${DEFAULT_SHORTCUTS[item.id]})`}
-                                arrow
-                              >
-                                <IconButton
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              {keys.length > 0 ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  {keys.map((key, kIdx) => (
+                                    <Box
+                                      component="kbd"
+                                      key={kIdx}
+                                      sx={(theme) => ({
+                                        px: 1,
+                                        py: 0.28,
+                                        minWidth: 28,
+                                        textAlign: 'center',
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.74rem',
+                                        fontWeight: 700,
+                                        color: isModified
+                                          ? '#FBBF24'
+                                          : theme.palette.mode === 'light'
+                                          ? '#0F172A'
+                                          : '#E2E8F0',
+                                        bgcolor:
+                                          theme.palette.mode === 'light'
+                                            ? '#F1F3F7'
+                                            : '#161E2E',
+                                        border: '1px solid',
+                                        borderColor: isModified
+                                          ? 'rgba(245, 158, 11, 0.45)'
+                                          : 'divider',
+                                        borderBottomWidth: '2px',
+                                        borderRadius: 1,
+                                        boxShadow:
+                                          theme.palette.mode === 'light'
+                                            ? '0 1px 2px rgba(15, 23, 42, 0.08)'
+                                            : '0 1px 2px rgba(0,0,0,0.4)',
+                                      })}
+                                    >
+                                      {key}
+                                    </Box>
+                                  ))}
+                                </Box>
+                              ) : (
+                                <Chip
                                   size="small"
-                                  aria-label={`Reset shortcut for ${item.label}`}
-                                  data-testid={`reset-shortcut-${item.id}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleResetSingleShortcut(item);
-                                  }}
+                                  label="Unassigned"
                                   sx={{
-                                    p: 0.4,
-                                    color: '#FBBF24',
-                                    bgcolor: 'rgba(245, 158, 11, 0.10)',
-                                    '&:hover': {
-                                      bgcolor: 'rgba(245, 158, 11, 0.22)',
-                                    },
+                                    height: 22,
+                                    fontSize: '0.70rem',
+                                    fontFamily: 'monospace',
+                                    bgcolor: 'rgba(239, 68, 68, 0.12)',
+                                    color: '#F87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
                                   }}
+                                />
+                              )}
+
+                              {isModified && (
+                                <Tooltip
+                                  title={`Reset to default (${DEFAULT_SHORTCUTS[item.id]})`}
+                                  arrow
                                 >
-                                  <RestartAlt sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                                  <IconButton
+                                    size="small"
+                                    aria-label={`Reset shortcut for ${item.label}`}
+                                    data-testid={`reset-shortcut-${item.id}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleResetSingleShortcut(item);
+                                    }}
+                                    sx={{
+                                      p: 0.4,
+                                      color: '#FBBF24',
+                                      bgcolor: 'rgba(245, 158, 11, 0.10)',
+                                      '&:hover': {
+                                        bgcolor: 'rgba(245, 158, 11, 0.22)',
+                                      },
+                                    }}
+                                  >
+                                    <RestartAlt sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           </Box>
-                        </Box>
-                      );
-                    })}
-                  </Box>
+                        );
+                      })}
+                    </Box>
+                  </Collapse>
                 </Box>
-              ))}
+                ))
+              )}
 
               <Box
                 sx={{
@@ -1308,227 +1875,251 @@ export default function SettingsDialog({
               >
                 <InfoOutlined sx={{ color: '#818CF8', fontSize: 16, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.73rem', color: 'text.secondary' }}>
-                  On macOS, you can use <code style={{ color: '#E2E8F0' }}>Cmd (⌘)</code> in place of{' '}
-                  <code style={{ color: '#E2E8F0' }}>Ctrl</code> for all global shortcuts.
+                  On macOS, you can use <code style={{ color: 'inherit', fontWeight: 700 }}>Cmd (⌘)</code>{' '}
+                  in place of <code style={{ color: 'inherit', fontWeight: 700 }}>Ctrl</code> for all
+                  global shortcuts.
                 </Typography>
               </Box>
             </Box>
           )}
         </Box>
 
-        {/* Footer / Actions */}
+        {/* Footer Actions */}
         <Box
-          sx={{
-            px: 3,
-            py: 2,
+          sx={(theme) => ({
+            px: { xs: 2.5, sm: 3 },
+            py: 1.5,
             borderTop: '1px solid',
             borderColor: 'divider',
-            bgcolor: 'background.paper',
+            bgcolor: theme.palette.mode === 'light' ? '#FAFAFC' : '#0F141F',
             display: 'flex',
-            justifyContent: 'flex-end',
-          }}
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          })}
         >
-          <Button variant="contained" onClick={onClose} sx={{ px: 3.5, fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box
+              component="kbd"
+              sx={(theme) => ({
+                px: 0.75,
+                py: 0.2,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor:
+                  theme.palette.mode === 'light'
+                    ? '#E8ECF2'
+                    : '#111827',
+                fontFamily: 'monospace',
+                fontSize: '0.68rem',
+                color: 'text.secondary',
+              })}
+            >
+              Esc
+            </Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+              to close
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            onClick={onClose}
+            sx={{ px: 3.5, fontWeight: 700, borderRadius: 2 }}
+          >
             Done
           </Button>
         </Box>
-      </Box>
+      </Dialog>
 
       {/* Sub-dialog 1: Capture New Shortcut */}
-      {editingShortcut && !conflictState && (
-        <Box
-          role="dialog"
-          aria-label="Change Shortcut"
-          aria-modal="true"
-          data-testid="shortcut-capture-dialog"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEditingShortcut(null);
-          }}
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1400,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'rgba(0, 0, 0, 0.72)',
-            backdropFilter: 'blur(6px)',
-            p: 2,
-          }}
-        >
-          <Box
-            sx={{
-              width: '100%',
-              maxWidth: 420,
-              bgcolor: '#111827',
+      <Dialog
+        open={Boolean(editingShortcut && !conflictState)}
+        onClose={() => setEditingShortcut(null)}
+        aria-label="Change Shortcut"
+        data-testid="shortcut-capture-dialog"
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: (theme) => ({
+              bgcolor: theme.palette.mode === 'light' ? '#FFFFFF' : '#111827',
+              backgroundImage: 'none',
               border: '1px solid rgba(99, 102, 241, 0.4)',
               borderRadius: 2.5,
-              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.9)',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.95)',
               p: 2.5,
               display: 'flex',
               flexDirection: 'column',
               gap: 2,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <KeyboardOutlined sx={{ color: '#818CF8' }} />
-              <Typography variant="h6" fontWeight={700} fontSize="1rem">
-                Change Shortcut
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-              Press the new key combination for{' '}
-              <strong style={{ color: '#F8FAFC' }}>{editingShortcut.label}</strong>:
-            </Typography>
-            <Box
-              sx={{
-                py: 2.25,
-                px: 2,
-                borderRadius: 2,
-                bgcolor: 'rgba(7, 10, 16, 0.85)',
-                border: '1px dashed rgba(99, 102, 241, 0.5)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  color: '#818CF8',
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Listening for key combination...
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Current:{' '}
-                <code style={{ color: '#E2E8F0' }}>
-                  {shortcuts[editingShortcut.id] || 'Unassigned'}
-                </code>
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-              <Button
-                size="small"
-                color="warning"
-                variant="outlined"
-                onClick={() => {
-                  updateShortcuts({
-                    ...shortcuts,
-                    [editingShortcut.id]: '',
-                  });
-                  setEditingShortcut(null);
-                }}
-              >
-                Unbind
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => setEditingShortcut(null)}
-              >
-                Cancel
-              </Button>
-            </Box>
-          </Box>
+            }),
+          },
+          backdrop: {
+            sx: {
+              bgcolor: 'rgba(0, 0, 0, 0.76)',
+              backdropFilter: 'blur(6px)',
+            },
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <KeyboardOutlined sx={{ color: '#818CF8' }} />
+          <Typography variant="h6" fontWeight={700} fontSize="1rem">
+            Change Shortcut
+          </Typography>
         </Box>
-      )}
-
-      {/* Sub-dialog 2: Conflict Resolution */}
-      {conflictState && (
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+          Press the new key combination for{' '}
+          <strong style={{ color: 'inherit' }}>{editingShortcut?.label}</strong>:
+        </Typography>
         <Box
-          role="dialog"
-          aria-label="Shortcut Conflict"
-          aria-modal="true"
-          data-testid="shortcut-conflict-dialog"
           sx={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1450,
+            py: 2.25,
+            px: 2,
+            borderRadius: 2,
+            bgcolor: 'rgba(7, 10, 16, 0.85)',
+            border: '1px dashed rgba(99, 102, 241, 0.5)',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'rgba(0, 0, 0, 0.76)',
-            backdropFilter: 'blur(6px)',
-            p: 2,
+            gap: 1,
           }}
         >
-          <Box
+          <Typography
+            variant="caption"
             sx={{
-              width: '100%',
-              maxWidth: 440,
-              bgcolor: '#111827',
+              color: '#818CF8',
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Listening for key combination...
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Current:{' '}
+            <code style={{ color: '#E2E8F0' }}>
+              {(editingShortcut && shortcuts[editingShortcut.id]) || 'Unassigned'}
+            </code>
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+          <Button
+            size="small"
+            color="warning"
+            variant="outlined"
+            onClick={() => {
+              if (editingShortcut) {
+                updateShortcuts({
+                  ...shortcuts,
+                  [editingShortcut.id]: '',
+                });
+                setEditingShortcut(null);
+              }
+            }}
+          >
+            Unbind
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setEditingShortcut(null)}
+          >
+            Cancel
+          </Button>
+        </Box>
+      </Dialog>
+
+      {/* Sub-dialog 2: Conflict Resolution */}
+      <Dialog
+        open={Boolean(conflictState)}
+        onClose={() => {
+          setConflictState(null);
+          setEditingShortcut(null);
+        }}
+        aria-label="Shortcut Conflict"
+        data-testid="shortcut-conflict-dialog"
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: (theme) => ({
+              bgcolor: theme.palette.mode === 'light' ? '#FFFFFF' : '#111827',
+              backgroundImage: 'none',
               border: '1px solid rgba(245, 158, 11, 0.45)',
               borderRadius: 2.5,
-              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.9)',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.95)',
               p: 2.5,
               display: 'flex',
               flexDirection: 'column',
               gap: 2,
+            }),
+          },
+          backdrop: {
+            sx: {
+              bgcolor: 'rgba(0, 0, 0, 0.80)',
+              backdropFilter: 'blur(6px)',
+            },
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <WarningAmberRounded sx={{ color: '#F59E0B' }} />
+          <Typography variant="h6" fontWeight={700} fontSize="1rem">
+            Shortcut Already Mapped
+          </Typography>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+          The shortcut{' '}
+          <code
+            style={{
+              color: '#FBBF24',
+              fontWeight: 700,
+              background: 'rgba(245, 158, 11, 0.14)',
+              padding: '2px 6px',
+              borderRadius: 4,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <WarningAmberRounded sx={{ color: '#F59E0B' }} />
-              <Typography variant="h6" fontWeight={700} fontSize="1rem">
-                Shortcut Already Mapped
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.55 }}>
-              The shortcut{' '}
-              <code
-                style={{
-                  color: '#FBBF24',
-                  fontWeight: 700,
-                  background: 'rgba(245, 158, 11, 0.14)',
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                }}
-              >
-                {conflictState.combo}
-              </code>{' '}
-              is already assigned to{' '}
-              <strong style={{ color: '#F8FAFC' }}>{conflictState.conflictingLabel}</strong>. Do you
-              want to cancel or assign it to{' '}
-              <strong style={{ color: '#F8FAFC' }}>{conflictState.targetLabel}</strong> and remove
-              it from <strong style={{ color: '#F8FAFC' }}>{conflictState.conflictingLabel}</strong>
-              ?
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.25 }}>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => {
-                  setConflictState(null);
-                  setEditingShortcut(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="warning"
-                onClick={() => {
-                  updateShortcuts({
-                    ...shortcuts,
-                    [conflictState.conflictingId]: '',
-                    [conflictState.targetId]: conflictState.combo,
-                  });
-                  setConflictState(null);
-                  setEditingShortcut(null);
-                }}
-              >
-                Reassign Shortcut
-              </Button>
-            </Box>
-          </Box>
+            {conflictState?.combo}
+          </code>{' '}
+          is already assigned to{' '}
+          <strong style={{ color: 'inherit' }}>{conflictState?.conflictingLabel}</strong>. Do you
+          want to cancel or assign it to{' '}
+          <strong style={{ color: 'inherit' }}>{conflictState?.targetLabel}</strong> and remove
+          it from <strong style={{ color: 'inherit' }}>{conflictState?.conflictingLabel}</strong>
+          ?
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.25 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setConflictState(null);
+              setEditingShortcut(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              if (conflictState) {
+                updateShortcuts({
+                  ...shortcuts,
+                  [conflictState.conflictingId]: '',
+                  [conflictState.targetId]: conflictState.combo,
+                });
+                setConflictState(null);
+                setEditingShortcut(null);
+              }
+            }}
+          >
+            Reassign Shortcut
+          </Button>
         </Box>
-      )}
-    </Box>
+      </Dialog>
+    </>
   );
 }

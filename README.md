@@ -21,7 +21,8 @@ introduces a decluttered icon-first developer console with unified segmented log
 - **Extract & Sync Subs from MKV:** extract, synchronize, and inject subtitles from another video.
 - **Waveform Audio Sync & Merge:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
 - **Direct Track Merge (No Sync):** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
-- **Self-Sync Audio & Subtitles:** synchronize audio or subtitles within a standalone video file against reference audio/speech without external muxing.
+- **Self-Sync Audio & Subtitles (In-Place):** synchronize audio delay, subtitle tracks, or both within an existing standalone video file against reference dialogue/speech in-place, without requiring external video files or secondary muxing.
+- **Live Tool Detection (Portable Mode):** real-time indicators in Settings (**Settings → Portable Mode & External Tools**) showing whether external CLI tools (`mkvmerge`, `mkvextract`, `mkvpropedit`, `ffmpeg`, `ffsubsync`, `mpv`) are found in `PATH` or the local app directory, with green/red status badges and detected path tooltips.
 - **Online Subtitle Search (OpenSubtitles):** find and download missing subtitles directly by title, IMDb/TMDb ID, episode, or exact 64-bit video `moviehash`, and automatically align them to audio speech.
 - **AI Agent Automation (MCP Server):** full Model Context Protocol server giving AI agents (Claude Desktop, Cursor, Claude Code, Cline) 100% functional parity with the GUI (see [MCP.md](MCP.md)).
 

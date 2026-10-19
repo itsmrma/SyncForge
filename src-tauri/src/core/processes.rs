@@ -258,7 +258,7 @@ pub fn resolve_executable(name: &str) -> String {
 
     let dirs = get_search_directories();
     #[cfg(windows)]
-    let extensions = ["", ".exe", ".cmd", ".bat"];
+    let extensions = ["", ".exe", ".com", ".cmd", ".bat"];
     #[cfg(not(windows))]
     let extensions = [""];
 
@@ -272,6 +272,40 @@ pub fn resolve_executable(name: &str) -> String {
     }
 
     name.to_string()
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ToolStatus {
+    pub name: String,
+    pub found: bool,
+    pub path: Option<String>,
+}
+
+pub fn check_tool_status(name: &str) -> ToolStatus {
+    let resolved = resolve_executable(name);
+    let p = Path::new(&resolved);
+    if p.is_file() {
+        ToolStatus {
+            name: name.to_string(),
+            found: true,
+            path: Some(p.to_string_lossy().to_string()),
+        }
+    } else {
+        ToolStatus {
+            name: name.to_string(),
+            found: false,
+            path: None,
+        }
+    }
+}
+
+pub fn check_all_tools() -> HashMap<String, ToolStatus> {
+    let tools = ["mkvmerge", "mkvextract", "mkvpropedit", "ffmpeg", "ffsubsync", "mpv"];
+    let mut map = HashMap::new();
+    for tool in &tools {
+        map.insert(tool.to_string(), check_tool_status(tool));
+    }
+    map
 }
 
 /// Initializes process PATH by prepending all known tool directories.

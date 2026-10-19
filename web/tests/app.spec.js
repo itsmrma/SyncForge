@@ -1223,4 +1223,37 @@ test('terminal drawer is immediately visible without scrolling on non-maximized 
   await expect(searchInput).toBeVisible();
 });
 
+test('settings sections and shortcuts categories can be expanded and collapsed', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settingsModal).toBeVisible();
+
+  // Initially sections are expanded
+  const collapseAllBtn = page.getByRole('button', { name: 'Collapse All' });
+  await expect(collapseAllBtn).toBeVisible();
+
+  // Test Collapse All
+  await collapseAllBtn.click();
+  const expandAllBtn = page.getByRole('button', { name: 'Expand All' });
+  await expect(expandAllBtn).toBeVisible();
+
+  // Click on "Audio & Transcoding" to expand just this section
+  await page.getByRole('button', { name: /Audio & Transcoding/i }).click();
+  const opusSelect = page.getByRole('combobox');
+  await expect(opusSelect).toBeVisible();
+
+  // Switch to Keyboard Shortcuts tab
+  await page.getByRole('tab', { name: 'Keyboard Shortcuts' }).click();
+  const shortcutsCollapseAll = page.getByRole('button', { name: 'Collapse All' });
+  await expect(shortcutsCollapseAll).toBeVisible();
+
+  // Collapse all shortcut groups
+  await shortcutsCollapseAll.click();
+  const shortcutsExpandAll = page.getByRole('button', { name: 'Expand All' });
+  await expect(shortcutsExpandAll).toBeVisible();
+});
+
+
+
 

@@ -170,4 +170,22 @@ export const desktopBridge = {
     }
     return null;
   },
+
+  async checkExternalTools() {
+    const mock = getMockApi();
+    if (mock && mock.check_external_tools) {
+      return await mock.check_external_tools();
+    }
+    if (hasTauri()) {
+      return await invoke('check_external_tools');
+    }
+    return {
+      mkvmerge: { name: 'mkvmerge', found: true, path: 'mkvmerge' },
+      mkvextract: { name: 'mkvextract', found: true, path: 'mkvextract' },
+      mkvpropedit: { name: 'mkvpropedit', found: true, path: 'mkvpropedit' },
+      ffmpeg: { name: 'ffmpeg', found: true, path: 'ffmpeg' },
+      ffsubsync: { name: 'ffsubsync', found: true, path: 'ffsubsync' },
+      mpv: { name: 'mpv', found: true, path: 'mpv' },
+    };
+  },
 };
