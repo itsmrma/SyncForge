@@ -56,6 +56,16 @@ SyncForge interfaces with external CLI tools. You have two convenient options:
 
 *(Note: Audio delay cross-correlation in WaveSync Injection is computed natively by SyncForge's built-in Rust FFT engine without external dependencies).*
 
+## Headless CLI & Script Automation (`syncforge-cli`)
+
+SyncForge provides a lightweight, standalone CLI binary (**`syncforge-cli`**) compiled without GUI or WebView dependencies (`--no-default-features`), alongside an integrated **CLI Command** generator inside the desktop GUI.
+
+- **All 7 Modules Supported**: Run `stream_manager`, `set_default`, `sync_subs`, `sync_subs_mkv`, `injection`, `custom_merge`, and `internal_sync` directly from the terminal.
+- **Automated & Interactive Modes**: Pass semantic CLI flags (by track ID `1,2` or language code `ita,eng,jpn`) with `-y` (`--yes`) for 100% unattended scripting, or omit flags to use interactive `stdin` prompts.
+- **JSON Workflow Scripts**: Execute single tasks or multi-step pipelines with `syncforge-cli script workflow.json`.
+- **Diagnostic Subcommands**: Inspect media (`syncforge-cli inspect`), calculate FFT audio delay (`syncforge-cli delay`), preview sync in `mpv` (`syncforge-cli preview`), and verify external tools (`syncforge-cli tools`).
+- See **[CLI.md](CLI.md)** for the complete CLI guide, flag reference, and JSON script examples.
+
 ## AI Agent Automation & MCP Server
 
 SyncForge includes a native **Model Context Protocol (MCP)** server on stdio (`mcp/index.js`), enabling AI agents in **Claude Desktop**, **Claude Code**, **Cursor**, **Windsurf**, and **Cline** to execute all media operations programmatically.
