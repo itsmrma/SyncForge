@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.4.1 — Self-Sync Audio & Subtitles, Live External Tools Detection & Video Timeline Logo](https://github.com/itsmrma/SyncForge/releases/tag/v3.4.1)**
-introduces the 7th core processing mode for in-place self-synchronization, real-time external tool detection in Settings, a video-editing timeline logo, and unified skills. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.0 — Headless CLI (`syncforge-cli`), JSON Workflow Scripting & GUI CLI Generator](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.0)**
+introduces the lightweight standalone `syncforge-cli` binary (zero GUI overhead), multi-job JSON workflow scripting, interactive/non-interactive terminal execution across all 7 modules, and an integrated CLI command generator in the desktop app. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
@@ -22,6 +22,7 @@ introduces the 7th core processing mode for in-place self-synchronization, real-
 - **Waveform Audio Sync & Merge:** synchronize and merge source audio/subtitles using native Rust FFT waveform analysis.
 - **Direct Track Merge (No Sync):** combine selected tracks from two videos or batches of videos (direct lossless remux without sync).
 - **Self-Sync Audio & Subtitles (In-Place):** synchronize audio delay, subtitle tracks, or both within an existing standalone video file against reference dialogue/speech in-place, without requiring external video files or secondary muxing.
+- **Headless CLI & Script Automation (`syncforge-cli`):** lightweight standalone CLI tool (compiled without WebView/GUI dependencies) supporting all 7 modules via CLI flags or `.json` workflow scripts, plus a built-in **CLI Command** generator in the GUI.
 - **Live Tool Detection (Portable Mode):** real-time indicators in Settings (**Settings → Portable Mode & External Tools**) showing whether external CLI tools (`mkvmerge`, `mkvextract`, `mkvpropedit`, `ffmpeg`, `ffsubsync`, `mpv`) are found in `PATH` or the local app directory, with green/red status badges and detected path tooltips.
 - **Online Subtitle Search (OpenSubtitles):** find and download missing subtitles directly by title, IMDb/TMDb ID, episode, or exact 64-bit video `moviehash`, and automatically align them to audio speech.
 - **AI Agent Automation (MCP Server):** full Model Context Protocol server giving AI agents (Claude Desktop, Cursor, Claude Code, Cline) 100% functional parity with the GUI (see [MCP.md](MCP.md)).

@@ -22,7 +22,8 @@ SyncForge is a native desktop media application written in **Rust** with **Tauri
     - `custom_merge.rs`: Custom Track Merge (direct lossless muxing of selected tracks without re-syncing).
     - `internal_sync.rs`: Self-Sync Audio & Subtitles (waveform delay calculation and subtitle synchronization within an existing video file without external muxing).
   - `ui/backend.rs`: Thread-safe `Api` state manager, callback coordination, and repeat-last state.
-  - `lib.rs` & `main.rs`: Tauri v2 application setup, IPC commands (`#[tauri::command]`), and native window/dialog bridge (`rfd`).
+  - `cli.rs` & `bin/syncforge-cli.rs`: Headless CLI runner and standalone binary (`syncforge-cli`, compiled with `--no-default-features` to omit GUI/WebView dependencies) supporting CLI flags, JSON workflow scripts (`syncforge-cli script`), and interactive `stdin` fallback.
+  - `lib.rs` & `main.rs`: Tauri v2 application setup, IPC commands (`#[tauri::command]`), native window/dialog bridge (`rfd`), and automatic headless CLI dispatch when CLI arguments are passed to `SyncForge`.
 
 - **Frontend (`web/`)**:
   - `web/src/`: React 19 + MUI v9 + Framer Motion styled with a modern Rust/Tauri dark carbon-slate desktop theme.
@@ -31,6 +32,7 @@ SyncForge is a native desktop media application written in **Rust** with **Tauri
   - `web/src/components/`:
     - `Sidebar.jsx`: Collapsible and resizable navigation rail.
     - `SettingsDialog.jsx`: Tabbed and collapsible application settings dialog (General, Opus Audio, OpenSubtitles, Keyboard Shortcuts, Portable Mode & External Tools).
+    - `CliExportDialog.jsx`: Interactive CLI command generator and `.json` workflow script exporter.
     - `Terminal.jsx`: Live developer console with auto-follow pause/resume.
     - `InputDialog.jsx` & `MatcherDialog.jsx`: Interactive track selection and drag-and-drop batch file matching.
   - `web/vite.config.js`: Builds distribution bundle into `web/dist/` consumed by Tauri v2.

@@ -26,11 +26,13 @@ import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import KeyboardOutlined from '@mui/icons-material/KeyboardOutlined';
 import GraphicEq from '@mui/icons-material/GraphicEq';
 import ViewSidebarOutlined from '@mui/icons-material/ViewSidebarOutlined';
+import CodeOutlined from '@mui/icons-material/CodeOutlined';
 import { motion, AnimatePresence } from 'framer-motion';
 import Terminal from './components/Terminal';
 import InputDialog from './components/InputDialog';
 import MatcherDialog from './components/MatcherDialog';
 import SyncPreviewDialog from './components/SyncPreviewDialog';
+import CliExportDialog from './components/CliExportDialog';
 import Sidebar from './components/Sidebar';
 import PathInput from './components/PathInput';
 import { getAppTheme } from './theme';
@@ -251,6 +253,7 @@ export default function App() {
   const terminalDragStartHeightRef = useRef(230);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState('general');
+  const [cliExportOpen, setCliExportOpen] = useState(false);
   const [copiedLogs, setCopiedLogs] = useState(false);
   const [notice, setNotice] = useState(null);
   const [toastRemainingMs, setToastRemainingMs] = useState(TOAST_DURATION_MS);
@@ -1572,6 +1575,29 @@ export default function App() {
                         }}
                       />
                     )}
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      data-testid="open-cli-export-btn"
+                      startIcon={<CodeOutlined />}
+                      onClick={() => setCliExportOpen(true)}
+                      sx={{
+                        px: 2.25,
+                        py: 1.2,
+                        fontWeight: 600,
+                        fontSize: '0.86rem',
+                        color: 'text.secondary',
+                        borderColor: isLight
+                          ? 'rgba(15, 23, 42, 0.18)'
+                          : 'rgba(148, 163, 184, 0.22)',
+                        '&:hover': {
+                          color: 'text.primary',
+                          borderColor: 'primary.main',
+                        },
+                      }}
+                    >
+                      CLI Command
+                    </Button>
                     {isRunning && (
                       <Button
                         variant="outlined"
@@ -2392,6 +2418,13 @@ export default function App() {
         onConfirm={handleMatcherConfirm}
         onStop={handleStop}
         stopping={isStopping}
+      />
+      <CliExportDialog
+        open={cliExportOpen}
+        onClose={() => setCliExportOpen(false)}
+        selectedMod={selectedMod}
+        paths={paths}
+        settings={settings}
       />
 
       {/* Non-blocking Foreground-Aware Toast for Successful Task Completion */}

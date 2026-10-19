@@ -90,7 +90,7 @@ jobs:
     - name: Run Rust regression and integration tests
       run: cargo test --workspace
 
-    - name: Build Tauri application
+    - name: Build Tauri application and standalone syncforge-cli
       shell: bash
       run: |
         if [ "${{ runner.os }}" = "macOS" ]; then
@@ -98,6 +98,7 @@ jobs:
         else
           npx --prefix web tauri build --no-bundle
         fi
+        cargo build --release --no-default-features --bin syncforge-cli
 
     - name: Package direct standalone executables (No installer)
       shell: bash
@@ -110,17 +111,26 @@ jobs:
         if [ "${{ runner.os }}" = "macOS" ]; then
           # Ad-hoc sign the entire app bundle to seal Info.plist and Resources
           codesign --force --deep -s - target/release/bundle/macos/SyncForge.app
+          codesign --force -s - target/release/syncforge-cli
           # Package .app preserving macOS permissions and resource forks
           ditto -c -k --sequesterRsrc --keepParent target/release/bundle/macos/SyncForge.app "dist/SyncForge-macOS-${VERSION}-app.zip"
           tar -czvf "dist/SyncForge-macOS-${VERSION}.tar.gz" -C target/release/bundle/macos SyncForge.app
+          # Standalone headless CLI binary for macOS
+          cp target/release/syncforge-cli "dist/syncforge-cli-macOS-${VERSION}"
+          chmod +x "dist/syncforge-cli-macOS-${VERSION}"
+          tar -czvf "dist/syncforge-cli-macOS-${VERSION}.tar.gz" -C target/release syncforge-cli
         elif [ "${{ runner.os }}" = "Windows" ]; then
-          # Standalone direct .exe
+          # Standalone direct .exe (GUI + Headless CLI)
           cp target/release/SyncForge.exe "dist/SyncForge-Windows-${VERSION}.exe"
+          cp target/release/syncforge-cli.exe "dist/syncforge-cli-Windows-${VERSION}.exe"
         else
-          # Standalone direct Linux binary
+          # Standalone direct Linux binaries (GUI + Headless CLI)
           cp target/release/SyncForge "dist/SyncForge-Linux-${VERSION}"
           chmod +x "dist/SyncForge-Linux-${VERSION}"
           tar -czvf "dist/SyncForge-Linux-${VERSION}.tar.gz" -C target/release SyncForge
+          cp target/release/syncforge-cli "dist/syncforge-cli-Linux-${VERSION}"
+          chmod +x "dist/syncforge-cli-Linux-${VERSION}"
+          tar -czvf "dist/syncforge-cli-Linux-${VERSION}.tar.gz" -C target/release syncforge-cli
         fi
 
     - name: Save release assets

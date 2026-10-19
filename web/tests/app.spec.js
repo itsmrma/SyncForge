@@ -1254,6 +1254,34 @@ test('settings sections and shortcuts categories can be expanded and collapsed',
   await expect(shortcutsExpandAll).toBeVisible();
 });
 
+test('CLI Command generator dialog builds syncforge-cli command and JSON script from active module', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Waveform Audio Sync & Merge', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Target File or Folder (High Quality)', exact: true }).fill('/media/bdrip');
+  await page.getByRole('textbox', { name: 'Source File or Folder (Audio/Subs)', exact: true }).fill('/media/webdl');
+  await page.getByRole('textbox', { name: 'Output Folder', exact: true }).fill('/media/out');
+
+  await page.getByTestId('open-cli-export-btn').click();
+  const dialog = page.getByTestId('cli-export-dialog');
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByLabel('Source Audio Track (--audio-track)').fill('ita');
+  await dialog.getByLabel('Source Subtitle Track (--sub-track)').fill('ita');
+
+  const cmdPreview = page.getByTestId('cli-command-preview');
+  await expect(cmdPreview).toContainText('syncforge-cli run injection -v /media/bdrip -s /media/webdl -o /media/out');
+  await expect(cmdPreview).toContainText('--import-audio --audio-track ita');
+  await expect(cmdPreview).toContainText('--import-subs --sub-track ita -y');
+
+  const jsonPreview = page.getByTestId('cli-json-preview');
+  await expect(jsonPreview).toContainText('"module": "injection"');
+  await expect(jsonPreview).toContainText('"audio_track": "ita"');
+
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+});
+
+
 
 
 

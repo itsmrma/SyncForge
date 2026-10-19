@@ -1,18 +1,21 @@
+pub mod cli;
 pub mod core;
 pub mod features;
 pub mod ui;
 
-use std::sync::Arc;
-use serde_json::Value;
-use tauri::{AppHandle, Manager, State, WindowEvent};
+#[cfg(feature = "gui")]
+mod gui_app {
+    use std::sync::Arc;
+    use serde_json::Value;
+    use tauri::{AppHandle, Manager, State, WindowEvent};
 
-use crate::ui::backend::{Api, FrontendBridge, PathsInput, RunResult};
+    use crate::ui::backend::{Api, FrontendBridge, PathsInput, RunResult};
 
-struct TauriWindowBridge {
-    app: AppHandle,
-}
+    struct TauriWindowBridge {
+        app: AppHandle,
+    }
 
-impl FrontendBridge for TauriWindowBridge {
+    impl FrontendBridge for TauriWindowBridge {
     fn append_terminal(&self, text: &str) {
         if let Some(win) = self.app.get_webview_window("main") {
             if let Ok(encoded) = serde_json::to_string(text) {
@@ -323,3 +326,8 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");
 }
+}
+
+#[cfg(feature = "gui")]
+pub use gui_app::run;
+

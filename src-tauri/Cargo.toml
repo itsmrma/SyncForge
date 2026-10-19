@@ -1,10 +1,15 @@
 [package]
 name = "syncforge"
-version = "3.4.1"
-description = "Batch merge and synchronize audio and subtitle tracks in a native Rust + Tauri v2 desktop GUI"
+version = "3.5.0"
+description = "Batch merge and synchronize audio and subtitle tracks in a native Rust + Tauri v2 desktop GUI and CLI"
 authors = ["itsmrma <m.benassi30@gmail.com>"]
 edition = "2021"
 rust-version = "1.77.2"
+default-run = "SyncForge"
+
+[features]
+default = ["gui"]
+gui = ["dep:tauri", "dep:rfd", "dep:tauri-build"]
 
 [lib]
 name = "syncforge_lib"
@@ -13,15 +18,20 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [[bin]]
 name = "SyncForge"
 path = "src/main.rs"
+required-features = ["gui"]
+
+[[bin]]
+name = "syncforge-cli"
+path = "src/bin/syncforge-cli.rs"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2", features = [], optional = true }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = [], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rfd = "0.15"
+rfd = { version = "0.15", optional = true }
 hound = "3.5"
 rustfft = "6.2"
 tempfile = "3.12"

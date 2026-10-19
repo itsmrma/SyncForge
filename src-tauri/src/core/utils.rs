@@ -155,13 +155,23 @@ pub fn set_subprocess_hook(hook: Option<SubprocessHook>) {
     *SUBPROCESS_HOOK.write().unwrap() = hook;
 }
 
+static LOG_TO_STDERR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_log_to_stderr(to_stderr: bool) {
+    LOG_TO_STDERR.store(to_stderr, std::sync::atomic::Ordering::SeqCst);
+}
+
 pub fn log_line(text: &str) {
     let formatted = format!("{}\n", text);
     log_raw(&formatted);
 }
 
 pub fn log_raw(text: &str) {
-    print!("{}", text);
+    if LOG_TO_STDERR.load(std::sync::atomic::Ordering::SeqCst) {
+        eprint!("{}", text);
+    } else {
+        print!("{}", text);
+    }
     if let Some(cb) = LOG_CB.read().unwrap().clone() {
         cb(text);
     }
