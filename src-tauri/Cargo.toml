@@ -1,6 +1,6 @@
 [package]
 name = "syncforge"
-version = "3.3.0"
+version = "3.3.1"
 description = "Batch merge and synchronize audio and subtitle tracks in a native Rust + Tauri v2 desktop GUI"
 authors = ["itsmrma <m.benassi30@gmail.com>"]
 edition = "2021"

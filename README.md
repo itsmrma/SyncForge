@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.3 — Side-by-Side Workstation, Dual-Theme Anti-Slop & mpv Sync Preview](https://github.com/itsmrma/SyncForge/releases/tag/v3.3)**
-adds interactive pre-mux audio & subtitle synchronization previewing in `mpv` with millisecond micro-nudge controls and sample window recalculation, a side-by-side dockable Developer Console and live Stream & Telemetry Inspector, inline CLI sub-task transparency (`[ffmpeg]`, `[rustfft]`, `[ffsubsync]`), a Dual-Theme system (*Carbon-Slate Dark*, *Anodized Slate Light*, and *System*), RAF-batched terminal streaming, and inline pre-flight form validation. See [CHANGELOG.md](CHANGELOG.md).
+**[3.3.1 — Impeccable Design Quality, Contrast & Heading Hierarchy Polish](https://github.com/itsmrma/SyncForge/releases/tag/v3.3.1)**
+eliminates AI-slop chromatic halos, refines WCAG AA text contrast ratios across all buttons and shortcut badges, enforces an 11px typographic legibility floor, and restores semantic heading hierarchy. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
