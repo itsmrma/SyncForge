@@ -1911,7 +1911,7 @@ export default function App() {
                   </Box>
 
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {['stream_manager', 'injection', 'custom_merge'].includes(
+                    {['stream_manager', 'injection', 'custom_merge', 'internal_sync'].includes(
                       selectedMod.id
                     ) && (
                       <Chip
@@ -1944,7 +1944,7 @@ export default function App() {
                         }}
                       />
                     )}
-                    {selectedMod.id === 'injection' && (
+                    {['injection', 'internal_sync'].includes(selectedMod.id) && (
                       <Chip
                         size="small"
                         label={`Audio Sync: ${settings.auto_audio ? 'Auto' : 'Manual'}`}
@@ -1967,7 +1967,7 @@ export default function App() {
                         }}
                       />
                     )}
-                    {['injection', 'sync_subs', 'sync_subs_mkv'].includes(
+                    {['injection', 'sync_subs', 'sync_subs_mkv', 'internal_sync'].includes(
                       selectedMod.id
                     ) && (
                       <>

@@ -20,13 +20,14 @@ SyncForge is a native desktop media application written in **Rust** with **Tauri
     - `sub_sync.rs`: Subtitle synchronization from external files (`run_sync_subs`) or extracted from MKV (`run_sync_subs_from_mkv`) using the `ffsubsync` executable.
     - `injection.rs`: WaveSync Injection (audio waveform delay calculation + subtitle alignment + font attachment import + muxing).
     - `custom_merge.rs`: Custom Track Merge (direct lossless muxing of selected tracks without re-syncing).
+    - `internal_sync.rs`: Self-Sync Audio & Subtitles (waveform delay calculation and subtitle synchronization within an existing video file without external muxing).
   - `ui/backend.rs`: Thread-safe `Api` state manager, callback coordination, and repeat-last state.
   - `lib.rs` & `main.rs`: Tauri v2 application setup, IPC commands (`#[tauri::command]`), and native window/dialog bridge (`rfd`).
 
 - **Frontend (`web/`)**:
   - `web/src/`: React 19 + MUI v9 + Framer Motion styled with a modern Rust/Tauri dark carbon-slate desktop theme.
   - `web/src/bridge.js`: Unified IPC bridge supporting Tauri v2 (`@tauri-apps/api/core` `invoke`) and Playwright test mocks.
-  - `web/src/modules.js`: Definitions of the six core modules, requirements, and labels.
+  - `web/src/modules.js`: Definitions of the seven core modules, requirements, and labels.
   - `web/src/components/`:
     - `Sidebar.jsx`: Collapsible and resizable navigation rail.
     - `SettingsPanel.jsx`: Contextual application settings accordion (disabled/annotated based on active module).
@@ -48,6 +49,7 @@ Never assume a setting applies to all modules. The backend only reads specific f
 | `sync_subs_mkv` | Extract & Sync Subs from MKV | Extract + align subtitles from MKV | `auto_subs`, `enable_max_offset`, `max_offset`, `notify_on_finish` |
 | `injection` | Waveform Audio Sync & Merge | Full audio delay sync + subtitle sync | `auto_audio`, `auto_subs`, `enable_max_offset`, `max_offset`, `opus_mode`, `opus_bitrate`, `opus_downmix`, `notify_on_finish` |
 | `custom_merge` | Direct Track Merge (No Sync) | Direct lossless remux of chosen tracks | `opus_mode`, `opus_bitrate`, `opus_downmix`, `notify_on_finish` |
+| `internal_sync` | Self-Sync Audio & Subtitles | Sync audio/subtitles within an existing video | `auto_audio`, `auto_subs`, `enable_max_offset`, `max_offset`, `opus_mode`, `opus_bitrate`, `opus_downmix`, `notify_on_finish` |
 
 > [!IMPORTANT]
 > **Direct Track Merge vs. Waveform Audio Sync & Merge**:

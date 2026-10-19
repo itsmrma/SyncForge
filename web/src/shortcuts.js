@@ -10,6 +10,7 @@ export const DEFAULT_SHORTCUTS = {
   module_4: 'Ctrl+4',
   module_5: 'Ctrl+5',
   module_6: 'Ctrl+6',
+  module_7: 'Ctrl+7',
 };
 
 export const SHORTCUT_GROUPS = [
@@ -40,6 +41,7 @@ export const SHORTCUT_GROUPS = [
       { id: 'module_4', label: 'Extract & Sync Subs from MKV' },
       { id: 'module_5', label: 'Waveform Audio Sync & Merge' },
       { id: 'module_6', label: 'Direct Track Merge (No Sync)' },
+      { id: 'module_7', label: 'Self-Sync Audio & Subtitles' },
     ],
   },
 ];

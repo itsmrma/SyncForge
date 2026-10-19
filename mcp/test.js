@@ -95,10 +95,10 @@ async function runTests() {
     arguments: {},
   });
   const modulesData = JSON.parse(modulesResult.content[0].text);
-  if (modulesData.length !== 6) {
-    throw new Error(`Expected 6 modules, got ${modulesData.length}`);
+  if (modulesData.length !== 7) {
+    throw new Error(`Expected 7 modules, got ${modulesData.length}`);
   }
-  console.log(`✓ list_modules returned 6 modules: ${modulesData.map(m => m.id).join(', ')}`);
+  console.log(`✓ list_modules returned 7 modules: ${modulesData.map(m => m.id).join(', ')}`);
 
   // 4. Test Tool Execution: syncforge_inspect_media on directory
   console.log('Testing callTool: syncforge_inspect_media on project root...');

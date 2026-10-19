@@ -66,7 +66,8 @@ fn test_all_six_processing_modes_end_to_end() {
                 "tracks": [
                     {"id": 0, "type": "video", "codec": "AVC"},
                     {"id": 1, "type": "audio", "codec": "AAC", "properties": {"language": "ita", "default_track": true}},
-                    {"id": 2, "type": "subtitles", "codec": "SubRip/SRT", "properties": {"language": "ita", "codec_id": "S_TEXT/UTF8", "forced_track": false}}
+                    {"id": 2, "type": "subtitles", "codec": "SubRip/SRT", "properties": {"language": "ita", "codec_id": "S_TEXT/UTF8", "forced_track": false}},
+                    {"id": 3, "type": "audio", "codec": "AAC", "properties": {"language": "jpn", "default_track": false}}
                 ],
                 "attachments": [{"id": 1}]
             }"#
@@ -208,10 +209,20 @@ fn test_all_six_processing_modes_end_to_end() {
         "custom_merge",
         vec!["n", "n", "", ""],
         default_paths(),
-        base_settings,
+        base_settings.clone(),
     );
     assert_eq!(res.status, "ok");
     assert!(output_dir.join("video_merged.mkv").exists());
+
+    // 7. Internal Track Sync (Self-Sync Audio & Subtitles)
+    let res = run_mode(
+        "internal_sync",
+        vec!["y", "y", "3", "1", "2"],
+        default_paths(),
+        base_settings,
+    );
+    assert_eq!(res.status, "ok");
+    assert!(output_dir.join("video_synced.mkv").exists());
 
     set_subprocess_hook(None);
     set_capture_hook(None);

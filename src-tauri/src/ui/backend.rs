@@ -18,6 +18,7 @@ use crate::core::utils::{
 };
 use crate::features::custom_merge::run_custom_merge;
 use crate::features::injection::run_injection;
+use crate::features::internal_sync::run_internal_sync;
 use crate::features::stream_manager::{run_set_default_tracks, run_stream_manager};
 use crate::features::sub_sync::{run_sync_subs, run_sync_subs_from_mkv};
 
@@ -811,6 +812,7 @@ impl Api {
             ("sync_subs_mkv", "Extract & Sync Subs from MKV"),
             ("injection", "Waveform Audio Sync & Merge"),
             ("custom_merge", "Direct Track Merge (No Sync)"),
+            ("internal_sync", "Self-Sync Audio & Subtitles"),
         ];
 
         let mut module_name = requested_module.to_string();
@@ -961,7 +963,7 @@ impl Api {
 
                     if module_name == "set_default" {
                         st.last_directory_choices = vec![p_vid];
-                    } else if module_name == "stream_manager" {
+                    } else if module_name == "stream_manager" || module_name == "internal_sync" {
                         st.last_directory_choices = vec![p_vid, p_out];
                     } else {
                         st.last_directory_choices = vec![p_vid, p_sub, p_out];
@@ -991,6 +993,7 @@ impl Api {
                     "sync_subs_mkv" => run_sync_subs_from_mkv()?,
                     "injection" => run_injection()?,
                     "custom_merge" => run_custom_merge()?,
+                    "internal_sync" => run_internal_sync()?,
                     _ => return Err(TaskError::Message("Unknown module.".to_string())),
                 }
             }

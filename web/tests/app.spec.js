@@ -18,6 +18,7 @@ for (const [title, id, targetLabel, sourceLabel, sourceType] of [
   ['Extract & Sync Subs from MKV', 'sync_subs_mkv', 'Target Video File or Folder', 'Source Video File or Folder', 'video'],
   ['Waveform Audio Sync & Merge', 'injection', 'Target File or Folder (High Quality)', 'Source File or Folder (Audio/Subs)', 'video'],
   ['Direct Track Merge (No Sync)', 'custom_merge', 'File or Folder A (Base Video)', 'File or Folder B (Additional Audio/Subs)', 'video'],
+  ['Self-Sync Audio & Subtitles', 'internal_sync', 'Video File or Folder'],
 ]) {
   test(`${title} accepts individual files through native pickers`, async ({ page }) => {
     await page.setViewportSize({ width: 1000, height: 750 });

@@ -480,7 +480,7 @@ export const TOOLS_DEFINITIONS = [
       properties: {
         module_id: {
           type: 'string',
-          enum: ['stream_manager', 'set_default', 'sync_subs', 'sync_subs_mkv', 'injection', 'custom_merge'],
+          enum: ['stream_manager', 'set_default', 'sync_subs', 'sync_subs_mkv', 'injection', 'custom_merge', 'internal_sync'],
           description: 'Module ID to execute in batch',
         },
         target_folder: {

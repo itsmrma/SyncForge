@@ -1041,7 +1041,94 @@ export async function waveSyncInjection(targetVideo, sourceMedia, outputMkv, opt
 }
 
 /**
- * Execute any of the 6 modules on an entire batch directory.
+ * Self-Sync Audio & Subtitles within a single video file without external muxing.
+ */
+export async function selfSyncTracks(videoFile, outputMkv, options = {}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syncforge-selfsync-'));
+  try {
+    const meta = await inspectMedia(videoFile);
+    const audioTracks = meta.tracks?.filter(t => t.type === 'audio') || [];
+    const subTracks = meta.tracks?.filter(t => t.type === 'subtitles') || [];
+
+    let audioDelayMs = 0;
+    let syncedSubFile = null;
+    let targetSubTrack = null;
+    let targetAudioTrack = null;
+
+    if (options.sync_audio !== false && audioTracks.length >= 2) {
+      const refAudioId = options.ref_audio_id ?? audioTracks[0].id;
+      const targetAudioId = options.target_audio_id ?? audioTracks[1].id;
+      targetAudioTrack = audioTracks.find(t => t.id === targetAudioId) || audioTracks[1];
+
+      const refMka = path.join(tempDir, 'ref_audio.mka');
+      const tgtMka = path.join(tempDir, 'tgt_audio.mka');
+      await extractTrack(videoFile, refAudioId, refMka);
+      await extractTrack(videoFile, targetAudioId, tgtMka);
+
+      const delayInfo = await calculateAudioDelay(
+        refMka,
+        tgtMka,
+        options.start_time || '00:02:00',
+        options.duration || '00:03:00'
+      );
+      audioDelayMs = delayInfo.delay_ms;
+    }
+
+    if (options.sync_subs !== false && subTracks.length > 0) {
+      const subId = options.target_sub_id ?? subTracks[0].id;
+      targetSubTrack = subTracks.find(t => t.id === subId) || subTracks[0];
+      const isAss = (targetSubTrack.codec || '').toLowerCase().includes('ass');
+      const ext = isAss ? '.ass' : '.srt';
+      const rawSub = path.join(tempDir, `raw_sub${ext}`);
+      syncedSubFile = path.join(tempDir, `synced_sub${ext}`);
+
+      await extractTrack(videoFile, subId, rawSub);
+      await syncSubtitles(videoFile, rawSub, syncedSubFile, options.max_offset_seconds);
+    }
+
+    const mkvmergeBin = findBinary('mkvmerge');
+    const cmd = ['-o', outputMkv];
+
+    if (syncedSubFile && targetSubTrack) {
+      const otherSubs = subTracks.filter(t => t.id !== targetSubTrack.id).map(t => t.id);
+      if (otherSubs.length === 0) {
+        cmd.push('--no-subtitles');
+      } else {
+        cmd.push('--subtitle-tracks', otherSubs.join(','));
+      }
+    }
+
+    if (targetAudioTrack && audioDelayMs !== 0) {
+      cmd.push('--sync', `${targetAudioTrack.id}:${audioDelayMs}`);
+    }
+
+    cmd.push(videoFile);
+
+    if (syncedSubFile && targetSubTrack) {
+      const lang = targetSubTrack.properties?.language || 'und';
+      cmd.push('--language', `0:${lang}`);
+      if (targetSubTrack.properties?.track_name) {
+        cmd.push('--track-name', `0:${targetSubTrack.properties.track_name}`);
+      }
+      cmd.push(syncedSubFile);
+    }
+
+    await execFileAsync(mkvmergeBin, cmd);
+    return {
+      status: 'ok',
+      output: outputMkv,
+      audio_delay_ms: audioDelayMs,
+      subtitle_synced: Boolean(syncedSubFile),
+    };
+  } finally {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch {}
+  }
+}
+
+/**
+ * Execute any of the 7 modules on an entire batch directory.
  */
 export async function runBatch(moduleId, targetFolder, sourceFolder = null, outputFolder = null, options = {}) {
   const outDir = outputFolder || path.join(targetFolder, 'SyncForge_Output');
@@ -1125,6 +1212,16 @@ export async function runBatch(moduleId, targetFolder, sourceFolder = null, outp
         const outMkv = path.join(outDir, path.basename(pair.target).replace(/\.[^.]+$/, '.mkv'));
         const r = await mergeTracks(pair.target, pair.source, outMkv, options);
         results.push({ episode: pair.episode, target: path.basename(pair.target), source: path.basename(pair.source), output: outMkv });
+      }
+      break;
+    }
+
+    case 'internal_sync': {
+      for (const t of targets) {
+        const outName = path.basename(t);
+        const outMkv = path.join(outDir, outName.replace(/\.[^.]+$/, '_synced.mkv'));
+        const r = await selfSyncTracks(t, outMkv, options);
+        results.push({ file: path.basename(t), output: outMkv, status: r.status, audio_delay_ms: r.audio_delay_ms });
       }
       break;
     }

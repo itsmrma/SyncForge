@@ -44,6 +44,13 @@ export const MODULES_INFO = [
     inputs: ['file or folder A', 'file or folder B', 'output (folder)'],
     applicable_settings: ['opus_mode', 'opus_bitrate', 'opus_downmix', 'notify_on_finish'],
   },
+  {
+    id: 'internal_sync',
+    title: 'Self-Sync Audio & Subtitles',
+    description: 'Synchronize audio tracks, subtitle tracks, or both within an existing video against reference audio/speech without external files.',
+    inputs: ['video (file or folder)', 'output (folder)'],
+    applicable_settings: ['auto_audio', 'auto_subs', 'enable_max_offset', 'max_offset', 'opus_mode', 'opus_bitrate', 'opus_downmix', 'notify_on_finish'],
+  },
 ];
 
 export async function getResource(uri) {
