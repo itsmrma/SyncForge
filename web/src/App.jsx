@@ -80,7 +80,7 @@ function parseSubTaskFromLog(text) {
   if (/Opus conversion|Converting audio to Opus/i.test(text)) {
     return 'Encoding audio stream to Opus (libopus)...';
   }
-  if (/\[mkvmerge\]|Writing MKV file/i.test(text)) {
+  if (/\[mkvmerge\]|Writing MKV file|^mkvmerge v\d|^The file .+ has been opened for writing\./im.test(text)) {
     return 'Muxing streams into Matroska container (mkvmerge)...';
   }
   if (/\[mpv\]/i.test(text)) {
@@ -1008,14 +1008,13 @@ export default function App() {
     );
   };
 
-  const downloadTerminalLogs = () => {
-    const blob = new Blob([terminal], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `syncforge_logs_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const downloadTerminalLogs = async () => {
+    try {
+      const defaultName = `syncforge_logs_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+      await desktopBridge.saveLogs(terminal, defaultName);
+    } catch (error) {
+      setNotice({ severity: 'error', message: error.message || String(error) });
+    }
   };
 
   const copyTerminalLogs = async () => {
@@ -1890,7 +1889,21 @@ export default function App() {
                         Active Profile
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      '& .MuiButton-root': {
+                        height: 28,
+                        fontSize: '0.72rem',
+                        lineHeight: 1,
+                        py: 0,
+                        px: 1,
+                        minWidth: 0,
+                        whiteSpace: 'nowrap',
+                      },
+                      '& .MuiButton-startIcon > svg': { fontSize: 14 },
+                    }}>
                       {isLgUp && (
                         <Button
                           size="small"
@@ -1905,10 +1918,6 @@ export default function App() {
                             }
                           }}
                           sx={{
-                            fontSize: '0.71rem',
-                            py: 0.25,
-                            px: 0.85,
-                            minWidth: 0,
                             color: isDockedRight ? 'secondary.main' : 'text.secondary',
                           }}
                         >
@@ -1923,10 +1932,6 @@ export default function App() {
                           setSettingsOpen(true);
                         }}
                         sx={{
-                          fontSize: '0.72rem',
-                          py: 0.25,
-                          px: 1,
-                          minWidth: 0,
                           color: 'text.secondary',
                           '&:hover': { color: 'text.primary' },
                         }}

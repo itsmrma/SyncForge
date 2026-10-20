@@ -231,6 +231,25 @@ async fn pick_file(
 }
 
 #[tauri::command]
+async fn save_logs(content: String, default_name: String) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(path) = rfd::FileDialog::new()
+            .set_title("Save logs")
+            .add_filter("Text files", &["txt"])
+            .set_file_name(default_name)
+            .save_file()
+        else {
+            return Ok(false);
+        };
+        std::fs::write(&path, content)
+            .map_err(|e| format!("Could not save logs: {}", e))?;
+        Ok(true)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 fn show_in_folder(state: State<'_, Api>, path: String) -> Result<(), String> {
     state.show_in_folder(&path)
 }
@@ -315,6 +334,7 @@ pub fn run() {
             resolve_matcher,
             pick_folder,
             pick_file,
+            save_logs,
             show_in_folder,
             get_version,
             inspect_media,

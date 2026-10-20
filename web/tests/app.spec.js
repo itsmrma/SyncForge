@@ -63,6 +63,35 @@ for (const [title, id, targetLabel, sourceLabel, sourceType] of [
   });
 }
 
+for (const outcome of ['saved', 'cancelled', 'failed']) {
+  test(`log save dialog handles ${outcome} exports`, async ({ page }) => {
+    await page.evaluate(outcome => {
+      window.__TAURI_INTERNALS__ = { invoke: async (command, args) => {
+        if (command !== 'save_logs') return null;
+        window.savedLogs = args;
+        if (outcome === 'failed') throw new Error('Could not save logs: access denied');
+        return outcome === 'saved';
+      } };
+    }, outcome);
+    await page.getByRole('button', { name: 'Show Terminal' }).click();
+    await append(page, 'Normal output\n[ERROR] Mux failed\n');
+    await page.getByRole('button', { name: 'Errors', exact: true }).click();
+    await page.getByRole('button', { name: 'Download Logs' }).click();
+    await expect.poll(() => page.evaluate(() => window.savedLogs)).toBeTruthy();
+    const saved = await page.evaluate(() => window.savedLogs);
+    expect(saved.content).toContain('Normal output\n[ERROR] Mux failed\n');
+    expect(saved.defaultName).toMatch(/^syncforge_logs_.*\.txt$/);
+    if (outcome === 'failed') {
+      await expect(page.getByRole('alert')).toContainText('Could not save logs: access denied');
+      await page.getByRole('button', { name: 'OK', exact: true }).click();
+    } else {
+      await expect(page.getByRole('alert')).toHaveCount(0);
+    }
+    await page.getByRole('button', { name: 'All', exact: true }).click();
+    await expect(page.getByRole('log')).toContainText('Normal output');
+  });
+}
+
 test('folder selection and cancelled file selection preserve the chosen path', async ({ page }) => {
   await page.evaluate(() => {
     window.pywebview = { api: { pick_folder: async () => '/media/batch', pick_file: async () => '' } };
@@ -381,6 +410,28 @@ test('sidebar does not display the rust badge', async ({ page }) => {
   await expect(page.getByText('SyncForge', { exact: true })).toBeVisible();
 });
 
+test('stream manager shows muxing status for native mkvmerge output', async ({ page }) => {
+  await page.evaluate(() => {
+    window.pywebview = { api: {
+      run_module: () => new Promise(resolve => { window._resolveTask = resolve; }),
+    } };
+  });
+  await page.getByRole('button', { name: 'Launch Module' }).click();
+  const subtask = page.getByTestId('subtask-label');
+  await expect(subtask).toContainText('Initializing media pipeline...');
+
+  for (const line of [
+    "mkvmerge v102.0 ('Little Houses') 64-bit\n",
+    "The file 'V:\\output\\.syncforge-part-test.mkv' has been opened for writing.\n",
+    'Progress: 77%\n',
+  ]) {
+    await page.evaluate(text => window.frontend_api.append_terminal(text), line);
+    await expect(subtask).toContainText('Muxing streams into Matroska container (mkvmerge)...');
+  }
+  await expect(page.getByTestId('file-progress-label')).toContainText('77%');
+  await page.evaluate(() => window._resolveTask({ status: 'ok', message: 'Done' }));
+});
+
 test('dual progress bars display overall progress and current file progress while running', async ({ page }) => {
   await page.evaluate(() => {
     window.pywebview = {
@@ -576,7 +627,7 @@ test('QoL: drag-and-drop animation activates visual cue on textboxes and tqdm pr
   await page.getByRole('button', { name: 'OK', exact: true }).click();
 });
 
-test('QoL: track selection separates audio/subtitles, displays group files, and does not select French for Only ENG/Original', async ({ page }) => {
+test('track selection keeps compact presets, group files, and language search', async ({ page }) => {
   const testTracks = [
     { id: 1, type: 'audio', codec: 'AAC', properties: { language: 'jpn', track_name: 'Japanese', default_track: true } },
     { id: 2, type: 'subtitles', codec: 'SubStationAlpha', properties: { language: 'eng', track_name: 'English' } },
@@ -613,16 +664,17 @@ test('QoL: track selection separates audio/subtitles, displays group files, and 
   await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
 
-  // 4. Test "Only JPN": MUST select ID 1 (Japanese) and NOT ID 2..5
-  await dialog.getByRole('button', { name: 'Only JPN' }).click();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 1' })).toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).not.toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 4' })).not.toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Select track ID 5' })).not.toBeChecked();
+  for (const name of ['Select all', 'Select none', 'Invert selection', 'Only Default', 'System + Original', 'No Commentary/SDH']) {
+    await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+  }
+  await expect(dialog.getByRole('button', { name: /^Only (?!Default$)/ })).toHaveCount(0);
 
-  // 5. Test "Only ENG": MUST select only ID 2 (English) and NOT ID 3 (French)
-  await dialog.getByRole('button', { name: 'Only ENG' }).click();
+  // Language search still allows selecting an individual English track.
+  await dialog.getByRole('button', { name: 'Select none', exact: true }).click();
+  await dialog.getByPlaceholder('Filter tracks by language, name, codec, or ID...').fill('English');
+  await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).toHaveCount(0);
+  await page.getByRole('checkbox', { name: 'Select track ID 2' }).check();
+  await dialog.getByRole('button', { name: 'Clear track filter' }).click();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 2' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Select track ID 3' })).not.toBeChecked();
 

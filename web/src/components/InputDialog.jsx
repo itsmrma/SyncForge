@@ -186,13 +186,6 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
     }
   };
 
-  const selectOnlyLang = (codes) => {
-    const matching = tracks
-      .filter((t) => trackMatchesLang(t, codes))
-      .map((t) => t.id);
-    setSelected(matching);
-  };
-
   const deselectCommentarySdh = () => {
     const pattern =
       /\b(commentary|commento|sdh|hearing impaired|non udenti|descriptions|descriptive)\b/i;
@@ -651,28 +644,6 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     disabled={submitting || stopping}
                   >
                     System + Original
-                  </Button>
-                )}
-                {detectedLanguages.length > 0 ? (
-                  detectedLanguages.map((l) => (
-                    <Button
-                      key={l.label}
-                      size="small"
-                      variant="outlined"
-                      onClick={() => selectOnlyLang(l.codes)}
-                      disabled={submitting || stopping}
-                    >
-                      Only {l.label}
-                    </Button>
-                  ))
-                ) : (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => selectOnlyLang(sysLang.codes)}
-                    disabled={submitting || stopping}
-                  >
-                    Only {sysLang.label}
                   </Button>
                 )}
                 <Button

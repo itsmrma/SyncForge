@@ -97,6 +97,17 @@ export const desktopBridge = {
     return '';
   },
 
+  async saveLogs(content, defaultName) {
+    const mock = getMockApi();
+    if (mock && mock.save_logs) {
+      return await mock.save_logs(content, defaultName);
+    }
+    if (hasTauri()) {
+      return await invoke('save_logs', { content, defaultName });
+    }
+    throw new Error('The desktop backend is not connected.');
+  },
+
   async showInFolder(path) {
     const mock = getMockApi();
     if (mock && mock.show_in_folder) {
