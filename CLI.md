@@ -69,13 +69,21 @@ Filters audio and subtitle tracks in a single video or batch folder, with option
 |---|---|
 | `-v, --video <PATH>` | Input video file or folder. |
 | `-o, --output <PATH>` | Output folder (optional; defaults to configured output dir or input folder). |
-| `--keep-tracks <SPEC>` | Comma-separated track IDs (`1,3`), language codes (`ita,eng`), `all`, `none`, or `skip`. |
+| `--keep-tracks <SPEC>` | Comma-separated track IDs (`1,3`), language codes (`ita,eng`), inline prefixes (`a:jpn,s:ita`), `all`, `none`, or `skip`. |
+| `--keep-audio <SPEC>` | Audio tracks to keep by language code (`jpn`, `ita`) or IDs (`1,2`), `all`, `none`. |
+| `--keep-subs <SPEC>` | Subtitle tracks to keep by language code (`ita`, `eng`) or IDs (`10`), `all`, `none`. |
 | `--opus <off\|always\|prompt>` | Convert kept audio tracks to Opus (`--convert-opus` is shorthand for `--opus always`). |
 | `--opus-bitrate <KBPS>` | Opus bitrate in kbps (default: `128`). |
 | `--opus-downmix` / `--no-opus-downmix` | Downmix to 2.0 stereo (default) or preserve original channels. |
 
 **Examples:**
 ```bash
+# Keep only Japanese audio and Italian subtitles across a folder (regardless of track IDs):
+syncforge-cli run stream_manager -v ./Anime_Raw -o ./Anime_Clean --keep-audio jpn --keep-subs ita --opus off -y
+
+# Inline type prefixes in --keep-tracks:
+syncforge-cli run stream_manager -v ./Anime_Raw -o ./Anime_Clean --keep-tracks a:jpn,s:ita -y
+
 # Keep only Italian and Japanese tracks, convert audio to 160k stereo Opus, non-interactive:
 syncforge-cli run stream_manager -v ./Anime_Raw -o ./Anime_Clean --keep-tracks jpn,ita --opus always --opus-bitrate 160 -y
 

@@ -87,10 +87,22 @@ function buildCliCommandAndScript(selectedMod, paths, settings, extraOpts = {}) 
   }
 
   // Module-specific optional flags
-  if (modId === 'stream_manager' && extraOpts.keepTracks?.trim()) {
-    const kt = extraOpts.keepTracks.trim();
-    args.push('--keep-tracks', quoteShellArg(kt));
-    scriptObj.keep_tracks = kt;
+  if (modId === 'stream_manager') {
+    if (extraOpts.keepTracks?.trim()) {
+      const kt = extraOpts.keepTracks.trim();
+      args.push('--keep-tracks', quoteShellArg(kt));
+      scriptObj.keep_tracks = kt;
+    }
+    if (extraOpts.keepAudio?.trim()) {
+      const ka = extraOpts.keepAudio.trim();
+      args.push('--keep-audio', quoteShellArg(ka));
+      scriptObj.keep_audio = ka;
+    }
+    if (extraOpts.keepSubs?.trim()) {
+      const ks = extraOpts.keepSubs.trim();
+      args.push('--keep-subs', quoteShellArg(ks));
+      scriptObj.keep_subs = ks;
+    }
   }
 
   if (modId === 'set_default') {
@@ -184,6 +196,8 @@ function buildCliCommandAndScript(selectedMod, paths, settings, extraOpts = {}) 
 export default function CliExportDialog({ open, onClose, selectedMod, paths, settings }) {
   const [yesMode, setYesMode] = useState(true);
   const [keepTracks, setKeepTracks] = useState('');
+  const [keepAudio, setKeepAudio] = useState('');
+  const [keepSubs, setKeepSubs] = useState('');
   const [defaultAudio, setDefaultAudio] = useState('');
   const [defaultSub, setDefaultSub] = useState('');
   const [forcedSub, setForcedSub] = useState('');
@@ -205,6 +219,8 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
       buildCliCommandAndScript(selectedMod, paths, settings, {
         yes: yesMode,
         keepTracks,
+        keepAudio,
+        keepSubs,
         defaultAudio,
         defaultSub,
         forcedSub,
@@ -224,6 +240,8 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
       settings,
       yesMode,
       keepTracks,
+      keepAudio,
+      keepSubs,
       defaultAudio,
       defaultSub,
       forcedSub,
@@ -356,14 +374,29 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
           </Box>
 
           {modId === 'stream_manager' && (
-            <TextField
-              size="small"
-              label="Tracks to keep (--keep-tracks)"
-              placeholder="e.g. 1,2 or ita,eng or all"
-              value={keepTracks}
-              onChange={(e) => setKeepTracks(e.target.value)}
-              fullWidth
-            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 1.5 }}>
+              <TextField
+                size="small"
+                label="Keep Audio (--keep-audio)"
+                placeholder="e.g. jpn or 1"
+                value={keepAudio}
+                onChange={(e) => setKeepAudio(e.target.value)}
+              />
+              <TextField
+                size="small"
+                label="Keep Subtitles (--keep-subs)"
+                placeholder="e.g. ita or 10"
+                value={keepSubs}
+                onChange={(e) => setKeepSubs(e.target.value)}
+              />
+              <TextField
+                size="small"
+                label="All Tracks (--keep-tracks)"
+                placeholder="e.g. 1,2 or ita,eng"
+                value={keepTracks}
+                onChange={(e) => setKeepTracks(e.target.value)}
+              />
+            </Box>
           )}
 
           {modId === 'set_default' && (

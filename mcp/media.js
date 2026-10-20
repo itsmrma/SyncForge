@@ -616,20 +616,71 @@ export async function filterAndCleanTracks(inputMkv, outputMkv, options = {}) {
   const outDir = path.dirname(outputMkv);
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
+  let audioIds = options.audio_ids;
+  let subIds = options.sub_ids;
+
+  if ((options.keep_audio !== undefined || options.keep_subs !== undefined) && (!audioIds || !subIds)) {
+    try {
+      const { stdout: jsonOut } = await execFileAsync(mkvmerge, ['-J', inputMkv]);
+      const meta = JSON.parse(jsonOut);
+      const allTracks = meta.tracks || [];
+
+      if (options.keep_audio !== undefined && !audioIds) {
+        const ka = String(options.keep_audio).trim().toLowerCase();
+        if (ka === 'none' || ka === 'n') {
+          audioIds = [];
+        } else if (ka === 'all' || ka === '*') {
+          audioIds = allTracks.filter(t => t.type === 'audio').map(t => t.id);
+        } else {
+          const tokens = ka.split(',').map(s => s.trim().toLowerCase());
+          audioIds = allTracks
+            .filter(t => {
+              if (t.type !== 'audio') return false;
+              const tid = String(t.id);
+              const lang = (t.properties?.language || '').toLowerCase();
+              const name = (t.properties?.track_name || '').toLowerCase();
+              return tokens.some(tok => tok === tid || tok === lang || (tok === 'ita' && lang === 'it') || (tok === 'jpn' && (lang === 'ja' || lang === 'jp')) || name.includes(tok));
+            })
+            .map(t => t.id);
+        }
+      }
+
+      if (options.keep_subs !== undefined && !subIds) {
+        const ks = String(options.keep_subs).trim().toLowerCase();
+        if (ks === 'none' || ks === 'n') {
+          subIds = [];
+        } else if (ks === 'all' || ks === '*') {
+          subIds = allTracks.filter(t => t.type === 'subtitles').map(t => t.id);
+        } else {
+          const tokens = ks.split(',').map(s => s.trim().toLowerCase());
+          subIds = allTracks
+            .filter(t => {
+              if (t.type !== 'subtitles') return false;
+              const tid = String(t.id);
+              const lang = (t.properties?.language || '').toLowerCase();
+              const name = (t.properties?.track_name || '').toLowerCase();
+              return tokens.some(tok => tok === tid || tok === lang || (tok === 'ita' && lang === 'it') || (tok === 'jpn' && (lang === 'ja' || lang === 'jp')) || name.includes(tok));
+            })
+            .map(t => t.id);
+        }
+      }
+    } catch {}
+  }
+
   const args = ['-o', outputMkv];
 
   if (options.video_ids && options.video_ids.length > 0) {
     args.push('-d', options.video_ids.join(','));
   }
-  if (options.audio_ids && options.audio_ids.length > 0) {
-    args.push('-a', options.audio_ids.join(','));
-  } else if (options.audio_ids && options.audio_ids.length === 0) {
+  if (audioIds && audioIds.length > 0) {
+    args.push('-a', audioIds.join(','));
+  } else if (audioIds && audioIds.length === 0) {
     args.push('-A'); // No audio
   }
 
-  if (options.sub_ids && options.sub_ids.length > 0) {
-    args.push('-s', options.sub_ids.join(','));
-  } else if (options.sub_ids && options.sub_ids.length === 0) {
+  if (subIds && subIds.length > 0) {
+    args.push('-s', subIds.join(','));
+  } else if (subIds && subIds.length === 0) {
     args.push('-S'); // No subtitles
   }
 

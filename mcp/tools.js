@@ -198,6 +198,14 @@ export const TOOLS_DEFINITIONS = [
           items: { type: 'number' },
           description: 'Array of subtitle track IDs to keep (empty array = strip all subtitles)',
         },
+        keep_audio: {
+          type: 'string',
+          description: 'Audio language code or comma-separated track IDs/languages to keep (e.g. "jpn", "1,2", "all", "none")',
+        },
+        keep_subs: {
+          type: 'string',
+          description: 'Subtitle language code or comma-separated track IDs/languages to keep (e.g. "ita", "10", "all", "none")',
+        },
       },
       required: ['input_mkv', 'output_mkv'],
       additionalProperties: false,
@@ -742,6 +750,8 @@ export async function handleToolCall(name, args) {
         video_ids: args.video_ids,
         audio_ids: args.audio_ids,
         sub_ids: args.sub_ids,
+        keep_audio: args.keep_audio,
+        keep_subs: args.keep_subs,
       });
       return {
         content: [

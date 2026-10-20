@@ -60,6 +60,10 @@ pub struct CliRunOptions {
     #[serde(default)]
     pub keep_tracks: Option<String>,
     #[serde(default)]
+    pub keep_audio: Option<String>,
+    #[serde(default)]
+    pub keep_subs: Option<String>,
+    #[serde(default)]
     pub default_audio: Option<String>,
     #[serde(default)]
     pub default_sub: Option<String>,
@@ -113,12 +117,36 @@ pub fn normalize_module_id(raw: &str) -> Option<&'static str> {
 }
 
 pub fn resolve_track_spec(spec: &str, tracks: &[Value], is_multiple: bool) -> String {
+    resolve_track_spec_filtered(spec, tracks, is_multiple, None)
+}
+
+pub fn resolve_track_spec_filtered(
+    spec: &str,
+    tracks: &[Value],
+    is_multiple: bool,
+    default_type_filter: Option<&str>,
+) -> String {
     let trimmed = spec.trim();
     if trimmed.is_empty() {
         return String::new();
     }
     let lower = trimmed.to_lowercase();
     if lower == "all" || lower == "*" {
+        if let Some(filter) = default_type_filter {
+            let ids: Vec<String> = tracks
+                .iter()
+                .filter(|t| {
+                    let t_type = t
+                        .get("type")
+                        .or_else(|| t.get("track_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    t_type == filter || (filter == "subtitles" && (t_type == "sub" || t_type == "subs"))
+                })
+                .filter_map(|t| t.get("id").and_then(|v| v.as_i64()).map(|i| i.to_string()))
+                .collect();
+            return ids.join(",");
+        }
         return String::new();
     }
     if lower == "none" || lower == "n" {
@@ -134,17 +162,92 @@ pub fn resolve_track_spec(spec: &str, tracks: &[Value], is_multiple: bool) -> St
 
     let mut resolved_ids: Vec<String> = Vec::new();
     for token in trimmed.split(',') {
-        let tok = token.trim();
+        let raw_tok = token.trim();
+        if raw_tok.is_empty() {
+            continue;
+        }
+
+        // Inline type prefix support: a:, audio:, s:, sub:, subs:, v:, video:
+        let (tok_str, effective_filter) = {
+            let raw_lower = raw_tok.to_lowercase();
+            if let Some(rest) = raw_lower.strip_prefix("a:").or_else(|| raw_lower.strip_prefix("audio:")) {
+                (rest.trim().to_string(), Some("audio"))
+            } else if let Some(rest) = raw_lower.strip_prefix("s:").or_else(|| raw_lower.strip_prefix("sub:")).or_else(|| raw_lower.strip_prefix("subs:")) {
+                (rest.trim().to_string(), Some("subtitles"))
+            } else if let Some(rest) = raw_lower.strip_prefix("v:").or_else(|| raw_lower.strip_prefix("video:")) {
+                (rest.trim().to_string(), Some("video"))
+            } else {
+                (raw_tok.to_string(), default_type_filter)
+            }
+        };
+        let tok = tok_str.as_str();
+
         if tok.is_empty() {
             continue;
         }
+
         if tok.chars().all(|c| c.is_ascii_digit()) {
-            resolved_ids.push(tok.to_string());
+            if let Some(filter) = effective_filter {
+                let matches_type = tracks.iter().any(|t| {
+                    let tid = t.get("id").and_then(|v| v.as_i64());
+                    let t_type = t
+                        .get("type")
+                        .or_else(|| t.get("track_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    tid.map(|i| i.to_string()) == Some(tok.to_string())
+                        && (t_type == filter || (filter == "subtitles" && (t_type == "sub" || t_type == "subs")))
+                });
+                if matches_type || tracks.is_empty() {
+                    resolved_ids.push(tok.to_string());
+                }
+            } else {
+                resolved_ids.push(tok.to_string());
+            }
             continue;
         }
+
         let tok_lower = tok.to_lowercase();
+        if tok_lower == "all" || tok_lower == "*" {
+            if let Some(filter) = effective_filter {
+                for t in tracks {
+                    let t_type = t
+                        .get("type")
+                        .or_else(|| t.get("track_type"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if t_type == filter || (filter == "subtitles" && (t_type == "sub" || t_type == "subs")) {
+                        if let Some(id) = t.get("id").and_then(|v| v.as_i64()) {
+                            let id_str = id.to_string();
+                            if !resolved_ids.contains(&id_str) {
+                                resolved_ids.push(id_str);
+                            }
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+
+        if tok_lower == "none" || tok_lower == "n" {
+            continue;
+        }
+
         let mut matched_for_tok = Vec::new();
         for t in tracks {
+            let t_type = t
+                .get("type")
+                .or_else(|| t.get("track_type"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            if let Some(filter) = effective_filter {
+                let is_match = t_type == filter || (filter == "subtitles" && (t_type == "sub" || t_type == "subs"));
+                if !is_match {
+                    continue;
+                }
+            }
+
             let id = t.get("id").and_then(|v| v.as_i64());
             let lang = t
                 .get("properties")
@@ -228,6 +331,90 @@ impl CliBridge {
         // 2. Module-specific semantic flags
         // stream_manager
         if p_lower.contains("choose the audio and subtitle tracks to keep") {
+            if self.opts.keep_audio.is_some() || self.opts.keep_subs.is_some() {
+                let mut kept_ids: Vec<String> = Vec::new();
+
+                let audio_specified = self.opts.keep_audio.is_some();
+                let subs_specified = self.opts.keep_subs.is_some();
+
+                if let Some(ref ka) = self.opts.keep_audio {
+                    let a_ids = resolve_track_spec_filtered(ka, &tracks, true, Some("audio"));
+                    if !a_ids.is_empty() && a_ids != "n" {
+                        for id in a_ids.split(',') {
+                            let id_t = id.trim();
+                            if !id_t.is_empty() && !kept_ids.contains(&id_t.to_string()) {
+                                kept_ids.push(id_t.to_string());
+                            }
+                        }
+                    }
+                } else if subs_specified {
+                    // Only keep_subs was specified; keep all audio tracks by default
+                    for t in &tracks {
+                        let t_type = t
+                            .get("type")
+                            .or_else(|| t.get("track_type"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        if t_type == "audio" {
+                            if let Some(id) = t.get("id").and_then(|v| v.as_i64()) {
+                                let id_str = id.to_string();
+                                if !kept_ids.contains(&id_str) {
+                                    kept_ids.push(id_str);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if let Some(ref ks) = self.opts.keep_subs {
+                    let s_ids = resolve_track_spec_filtered(ks, &tracks, true, Some("subtitles"));
+                    if !s_ids.is_empty() && s_ids != "n" {
+                        for id in s_ids.split(',') {
+                            let id_t = id.trim();
+                            if !id_t.is_empty() && !kept_ids.contains(&id_t.to_string()) {
+                                kept_ids.push(id_t.to_string());
+                            }
+                        }
+                    }
+                } else if audio_specified {
+                    // Only keep_audio was specified; keep all subtitle tracks by default
+                    for t in &tracks {
+                        let t_type = t
+                            .get("type")
+                            .or_else(|| t.get("track_type"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("");
+                        if t_type == "subtitles" || t_type == "sub" || t_type == "subs" {
+                            if let Some(id) = t.get("id").and_then(|v| v.as_i64()) {
+                                let id_str = id.to_string();
+                                if !kept_ids.contains(&id_str) {
+                                    kept_ids.push(id_str);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If keep_tracks was also provided, append any extra tracks
+                if let Some(ref kt) = self.opts.keep_tracks {
+                    let extra = resolve_track_spec(kt, &tracks, true);
+                    if !extra.is_empty() && extra != "n" {
+                        for id in extra.split(',') {
+                            let id_t = id.trim();
+                            if !id_t.is_empty() && !kept_ids.contains(&id_t.to_string()) {
+                                kept_ids.push(id_t.to_string());
+                            }
+                        }
+                    }
+                }
+
+                if kept_ids.is_empty() {
+                    return Some("n".to_string());
+                } else {
+                    return Some(kept_ids.join(","));
+                }
+            }
+
             if let Some(ref kt) = self.opts.keep_tracks {
                 return Some(resolve_track_spec(kt, &tracks, true));
             }
@@ -686,7 +873,9 @@ PROCESSING SETTINGS:
 SCRIPTING & NON-INTERACTIVE FLAGS:
   -y, --yes, --non-interactive   Never prompt on stdin; auto-match files 1:1 & use smart defaults
   --auto-match                   Automatically match target and source files 1:1 in sorted order
-  --keep-tracks <IDS|LANG|all>   Tracks to keep in `stream_manager` (e.g. `1,2`, `ita,eng`, `all`, `none`)
+  --keep-tracks <IDS|LANG|all>   Tracks to keep in `stream_manager` (e.g. `1,2`, `ita,eng`, `a:jpn,s:ita`, `none`)
+  --keep-audio <IDS|LANG|all>    Audio tracks to keep in `stream_manager` (e.g. `jpn`, `1,2`, `all`, `none`)
+  --keep-subs <IDS|LANG|all>     Subtitle tracks to keep in `stream_manager` (e.g. `ita`, `10`, `all`, `none`)
   --default-audio <ID|LANG|none> Default audio track for `set_default` (e.g. `1` or `ita`)
   --default-sub <ID|LANG|none>   Default subtitle track for `set_default`
   --forced-sub <ID|LANG|none>    Forced subtitle track for `set_default`
@@ -878,6 +1067,8 @@ pub fn parse_run_args(module: &str, args: &[String]) -> Result<CliRunOptions, St
             "--auto-match" => opts.auto_match = true,
             "--json" => opts.json_output = true,
             "--keep-tracks" => opts.keep_tracks = Some(next_val(&mut i, arg)?),
+            "--keep-audio" => opts.keep_audio = Some(next_val(&mut i, arg)?),
+            "--keep-subs" | "--keep-sub" => opts.keep_subs = Some(next_val(&mut i, arg)?),
             "--default-audio" => opts.default_audio = Some(next_val(&mut i, arg)?),
             "--default-sub" => opts.default_sub = Some(next_val(&mut i, arg)?),
             "--forced-sub" => opts.forced_sub = Some(next_val(&mut i, arg)?),
@@ -972,7 +1163,7 @@ pub fn run_cli_args(args: &[String]) -> i32 {
                     "aliases": ["filter", "remove-tracks"],
                     "title": "Remove & Filter Tracks",
                     "needs": ["video", "output"],
-                    "flags": ["--keep-tracks", "--opus", "--opus-bitrate", "--opus-downmix"]
+                    "flags": ["--keep-tracks", "--keep-audio", "--keep-subs", "--opus", "--opus-bitrate", "--opus-downmix"]
                 },
                 {
                     "id": "set_default",
@@ -1540,14 +1731,123 @@ mod tests {
                 "codec": "SubRip/SRT",
                 "properties": { "language": "eng", "track_name": "English Signs" }
             }),
+            json!({
+                "id": 4,
+                "type": "subtitles",
+                "codec": "SubStationAlpha",
+                "properties": { "language": "jpn", "track_name": "Japanese (SDH)" }
+            }),
+            json!({
+                "id": 5,
+                "type": "subtitles",
+                "codec": "SubStationAlpha",
+                "properties": { "language": "ita", "track_name": "Italian" }
+            }),
         ];
 
         assert_eq!(resolve_track_spec("ita", &tracks, false), "2");
-        assert_eq!(resolve_track_spec("jpn,ita", &tracks, true), "1,2");
+        assert_eq!(resolve_track_spec("jpn,ita", &tracks, true), "1,4,2,5");
         assert_eq!(resolve_track_spec("all", &tracks, true), "");
         assert_eq!(resolve_track_spec("none", &tracks, true), "n");
         assert_eq!(resolve_track_spec("none", &tracks, false), "");
         assert_eq!(resolve_track_spec("1,3", &tracks, true), "1,3");
+
+        // Filtered by audio/subtitles
+        assert_eq!(resolve_track_spec_filtered("jpn", &tracks, true, Some("audio")), "1");
+        assert_eq!(resolve_track_spec_filtered("jpn", &tracks, true, Some("subtitles")), "4");
+        assert_eq!(resolve_track_spec_filtered("ita", &tracks, true, Some("audio")), "2");
+        assert_eq!(resolve_track_spec_filtered("ita", &tracks, true, Some("subtitles")), "5");
+        assert_eq!(resolve_track_spec_filtered("all", &tracks, true, Some("audio")), "1,2");
+        assert_eq!(resolve_track_spec_filtered("all", &tracks, true, Some("subtitles")), "3,4,5");
+
+        // Inline type prefix support
+        assert_eq!(resolve_track_spec("a:jpn,s:ita", &tracks, true), "1,5");
+        assert_eq!(resolve_track_spec("audio:ita,subs:jpn", &tracks, true), "2,4");
+    }
+
+    #[test]
+    fn test_parse_run_args_keep_audio_and_subs() {
+        let args = vec![
+            "-v".to_string(),
+            "./video.mkv".to_string(),
+            "-o".to_string(),
+            "./out".to_string(),
+            "--keep-audio".to_string(),
+            "jpn".to_string(),
+            "--keep-subs".to_string(),
+            "ita".to_string(),
+            "-y".to_string(),
+        ];
+        let parsed = parse_run_args("stream_manager", &args).unwrap();
+        assert_eq!(parsed.keep_audio.as_deref(), Some("jpn"));
+        assert_eq!(parsed.keep_subs.as_deref(), Some("ita"));
+        assert!(parsed.yes);
+    }
+
+    #[test]
+    fn test_match_semantic_answer_keep_audio_and_subs() {
+        let tracks = vec![
+            json!({
+                "id": 1,
+                "type": "audio",
+                "codec": "AAC",
+                "properties": { "language": "jpn", "track_name": "Japanese" }
+            }),
+            json!({
+                "id": 2,
+                "type": "audio",
+                "codec": "AC-3",
+                "properties": { "language": "ita", "track_name": "Italiano" }
+            }),
+            json!({
+                "id": 3,
+                "type": "subtitles",
+                "codec": "SubStationAlpha",
+                "properties": { "language": "jpn", "track_name": "Japanese (SDH)" }
+            }),
+            json!({
+                "id": 4,
+                "type": "subtitles",
+                "codec": "SubStationAlpha",
+                "properties": { "language": "ita", "track_name": "Italian" }
+            }),
+        ];
+
+        let payload = json!({
+            "kind": "multiple",
+            "tracks": tracks
+        });
+
+        // Case A: keep_audio jpn, keep_subs ita -> 1,4 (ignores jpn subtitle 3 and ita audio 2)
+        let mut opts = CliRunOptions::default();
+        opts.keep_audio = Some("jpn".to_string());
+        opts.keep_subs = Some("ita".to_string());
+        let bridge = CliBridge::new(Api::new(), opts);
+        let ans = bridge.match_semantic_answer("Choose the audio and subtitle tracks to keep", &payload);
+        assert_eq!(ans.as_deref(), Some("1,4"));
+
+        // Case B: keep_audio jpn, keep_subs none -> 1
+        let mut opts = CliRunOptions::default();
+        opts.keep_audio = Some("jpn".to_string());
+        opts.keep_subs = Some("none".to_string());
+        let bridge = CliBridge::new(Api::new(), opts);
+        let ans = bridge.match_semantic_answer("Choose the audio and subtitle tracks to keep", &payload);
+        assert_eq!(ans.as_deref(), Some("1"));
+
+        // Case C: keep_audio none, keep_subs ita -> 4
+        let mut opts = CliRunOptions::default();
+        opts.keep_audio = Some("none".to_string());
+        opts.keep_subs = Some("ita".to_string());
+        let bridge = CliBridge::new(Api::new(), opts);
+        let ans = bridge.match_semantic_answer("Choose the audio and subtitle tracks to keep", &payload);
+        assert_eq!(ans.as_deref(), Some("4"));
+
+        // Case D: keep_audio jpn only -> audio 1, plus all subs (3, 4)
+        let mut opts = CliRunOptions::default();
+        opts.keep_audio = Some("jpn".to_string());
+        let bridge = CliBridge::new(Api::new(), opts);
+        let ans = bridge.match_semantic_answer("Choose the audio and subtitle tracks to keep", &payload);
+        assert_eq!(ans.as_deref(), Some("1,3,4"));
     }
 
     #[test]
