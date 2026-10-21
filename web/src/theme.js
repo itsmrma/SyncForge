@@ -89,6 +89,26 @@ export function getAppTheme(mode = 'dark') {
                 : 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)',
             },
           },
+          containedError: {
+            background: isLight
+              ? 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)'
+              : 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)',
+            color: '#FFFFFF',
+            border: isLight
+              ? '1px solid rgba(190, 18, 60, 0.5)'
+              : '1px solid rgba(244, 63, 94, 0.4)',
+            boxShadow: isLight
+              ? '0 2px 8px rgba(225, 29, 72, 0.25)'
+              : '0 2px 10px rgba(244, 63, 94, 0.35)',
+            '&:hover': {
+              background: isLight
+                ? 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)'
+                : 'linear-gradient(135deg, #FB7185 0%, #F43F5E 100%)',
+              boxShadow: isLight
+                ? '0 4px 12px rgba(225, 29, 72, 0.35)'
+                : '0 4px 14px rgba(244, 63, 94, 0.45)',
+            },
+          },
           outlined: {
             borderColor: isLight ? 'rgba(15, 23, 42, 0.16)' : 'rgba(148, 163, 184, 0.2)',
             backgroundColor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.6)',

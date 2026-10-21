@@ -65,7 +65,10 @@ const DEFAULT_SETTINGS = {
 
 function parseSubTaskFromLog(text) {
   if (!text) return null;
-  if (/\[ffmpeg\]|Extracting audio waveform/i.test(text)) {
+  if (/Analyzing.*?structure|Probing:/i.test(text)) {
+    return 'Analyzing file structures and dividing into groups...';
+  }
+  if (/\[ffmpeg\].*?(?:audio|waveform)|Extracting audio waveform/i.test(text)) {
     return 'Extracting audio waveform (FFmpeg)...';
   }
   if (/\[rustfft\]|Calculating waveform delay|Searching for sync/i.test(text)) {
@@ -74,17 +77,32 @@ function parseSubTaskFromLog(text) {
   if (/\[ffsubsync\]|Synchronizing subtitles|Starting ffsubsync|Running ffsubsync/i.test(text)) {
     return 'Synchronizing subtitles to speech (FFsubsync)...';
   }
-  if (/\[mkvextract\]|Extracting Sub ID|Extracting Audio ID/i.test(text)) {
-    return 'Extracting media stream (MKVToolNix)...';
+  if (/Extracting Sub ID/i.test(text)) {
+    return 'Extracting subtitle stream (mkvextract)...';
+  }
+  if (/Extracting Audio ID/i.test(text)) {
+    return 'Extracting audio stream (mkvextract)...';
+  }
+  if (/\[mkvextract\]|Extracting media stream/i.test(text)) {
+    return 'Extracting media stream (mkvextract)...';
+  }
+  if (/Importing attachments|Importing fonts/i.test(text)) {
+    return 'Importing subtitle fonts & attachments (mkvmerge)...';
   }
   if (/Opus conversion|Converting audio to Opus/i.test(text)) {
     return 'Encoding audio stream to Opus (libopus)...';
+  }
+  if (/Modifying in-place|mkvpropedit/i.test(text)) {
+    return 'Applying track flags in-place (mkvpropedit)...';
   }
   if (/\[mkvmerge\]|Writing MKV file|^mkvmerge v\d|^The file .+ has been opened for writing\./im.test(text)) {
     return 'Muxing streams into Matroska container (mkvmerge)...';
   }
   if (/\[mpv\]/i.test(text)) {
     return 'Auditioning synchronization in mpv player...';
+  }
+  if (/Searching subtitles|OpenSubtitles/i.test(text)) {
+    return 'Searching subtitles online (OpenSubtitles)...';
   }
   return null;
 }
@@ -275,6 +293,7 @@ export default function App() {
   const taskStartRef = useRef(null);
   const processingStartRef = useRef(null);
   const progressHistoryRef = useRef([]);
+  const smoothedEtaRef = useRef(null);
   const [etaSeconds, setEtaSeconds] = useState(null);
   const currentOverallPercentRef = useRef(0);
   const hoveredFieldRef = useRef(null);
@@ -467,30 +486,45 @@ export default function App() {
   }, []);
 
   const updateEta = (overall) => {
-    if (!processingStartRef.current || overall < 3 || overall >= 99) {
+    currentOverallPercentRef.current = overall;
+    if (!processingStartRef.current || overall < 2 || overall >= 99) {
+      smoothedEtaRef.current = null;
       setEtaSeconds(null);
       return;
     }
     const activeSec = (Date.now() - processingStartRef.current) / 1000;
-    if (activeSec < 1.5) {
+    if (activeSec < 2.0) {
+      smoothedEtaRef.current = null;
       setEtaSeconds(null);
       return;
     }
-    let rate = overall / activeSec;
+    const overallRate = overall / activeSec;
+    let rate = overallRate;
     const hist = progressHistoryRef.current;
     if (hist.length >= 2) {
       const oldest = hist[0];
       const newest = hist[hist.length - 1];
       const dt = (newest.time - oldest.time) / 1000;
       const dp = newest.percent - oldest.percent;
-      if (dt >= 1.5 && dp > 0) {
-        const recentRate = dp / dt;
-        rate = 0.65 * recentRate + 0.35 * rate;
+      if (dt >= 3.0 && dp > 0) {
+        const windowRate = dp / dt;
+        rate = 0.60 * overallRate + 0.40 * windowRate;
       }
     }
     if (rate > 0) {
-      const remaining = (100 - overall) / rate;
-      setEtaSeconds(Math.max(1, Math.round(remaining)));
+      const rawRemaining = (100 - overall) / rate;
+      if (smoothedEtaRef.current === null) {
+        smoothedEtaRef.current = rawRemaining;
+      } else {
+        const alpha = 0.16;
+        const maxJump = Math.max(4, smoothedEtaRef.current * 0.20);
+        const clampedTarget = Math.max(
+          smoothedEtaRef.current - maxJump,
+          Math.min(smoothedEtaRef.current + maxJump, rawRemaining)
+        );
+        smoothedEtaRef.current = alpha * clampedTarget + (1 - alpha) * smoothedEtaRef.current;
+      }
+      setEtaSeconds(Math.max(1, Math.round(smoothedEtaRef.current)));
     } else {
       setEtaSeconds(null);
     }
@@ -506,9 +540,13 @@ export default function App() {
       if (inputRequest || matcherState.open) {
         processingStartRef.current = null;
         progressHistoryRef.current = [];
+        smoothedEtaRef.current = null;
         setEtaSeconds(null);
       } else if (processingStartRef.current) {
-        updateEta(currentOverallPercentRef.current);
+        if (smoothedEtaRef.current !== null && smoothedEtaRef.current > 1) {
+          smoothedEtaRef.current -= 1;
+          setEtaSeconds(Math.max(1, Math.round(smoothedEtaRef.current)));
+        }
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -670,6 +708,11 @@ export default function App() {
       setCurrentSubTask(detectedSubTask);
     }
 
+    const probeMatch = text.match(/Probing:\s*([^\r\n]+)/i);
+    if (probeMatch) {
+      setProgress((p) => ({ ...p, currentFile: probeMatch[1].trim() }));
+    }
+
     logBufferRef.current += text;
     if (!logRafRef.current) {
       logRafRef.current = requestAnimationFrame(flushTerminalBuffer);
@@ -799,7 +842,7 @@ export default function App() {
       const now = Date.now();
       const hist = progressHistoryRef.current;
       hist.push({ time: now, percent: curOverall });
-      while (hist.length > 12 || (hist.length > 2 && now - hist[0].time > 8000)) {
+      while (hist.length > 20 || (hist.length > 2 && now - hist[0].time > 15000)) {
         hist.shift();
       }
       updateEta(curOverall);
@@ -906,11 +949,11 @@ export default function App() {
     setIsRunning(true);
     setIsStopping(false);
     setElapsedSeconds(0);
-    setCurrentSubTask('Initializing media pipeline...');
+    setCurrentSubTask('Analyzing file structures and dividing into groups...');
     setNotice(null);
     setProgress({
       active: true,
-      currentFile: 'Initializing...',
+      currentFile: 'Scanning media structure...',
       fileIndex: 0,
       totalFiles: 0,
       filePercent: 0,
@@ -973,6 +1016,7 @@ export default function App() {
       setCurrentSubTask('');
       processingStartRef.current = null;
       progressHistoryRef.current = [];
+      smoothedEtaRef.current = null;
       setEtaSeconds(null);
       setProgress({
         active: false,
@@ -1599,13 +1643,31 @@ export default function App() {
                     </Button>
                     {isRunning && (
                       <Button
-                        variant="outlined"
+                        variant="contained"
                         color="error"
                         size="large"
+                        data-testid="stop-task-btn"
                         startIcon={<Stop />}
                         onClick={handleStop}
                         disabled={isStopping}
-                        sx={{ px: 2.5, py: 1.2 }}
+                        sx={{
+                          px: 2.75,
+                          py: 1.2,
+                          fontWeight: 700,
+                          fontSize: '0.86rem',
+                          bgcolor: 'error.main',
+                          color: '#FFFFFF',
+                          boxShadow: '0 2px 10px rgba(244, 63, 94, 0.4)',
+                          border: '1px solid rgba(244, 63, 94, 0.5)',
+                          '&:hover': {
+                            bgcolor: 'error.dark',
+                            boxShadow: '0 4px 14px rgba(244, 63, 94, 0.55)',
+                          },
+                          '&.Mui-disabled': {
+                            bgcolor: 'rgba(244, 63, 94, 0.5)',
+                            color: 'rgba(255, 255, 255, 0.7)',
+                          },
+                        }}
                       >
                         {isStopping ? 'Stopping...' : 'Stop task'}
                       </Button>
@@ -1689,7 +1751,7 @@ export default function App() {
                                   ? `File ${progress.fileIndex} of ${progress.totalFiles} (${Math.round(overallPercent)}%)`
                                   : isStopping
                                     ? 'Stopping...'
-                                    : 'Processing...'}
+                                    : currentSubTask || 'Analyzing file structures and dividing into groups...'}
                               </Typography>
                             </Box>
                             <LinearProgress
@@ -1752,7 +1814,7 @@ export default function App() {
                                     maxWidth: { xs: 260, sm: 360, md: 520 },
                                   }}
                                 >
-                                  {progress.currentFile || 'Initializing...'}
+                                  {progress.currentFile || 'Scanning media structure...'}
                                 </Typography>
                               </Box>
                               <Typography

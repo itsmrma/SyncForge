@@ -7,10 +7,10 @@ use crate::core::config::{get_config, SUB_EXT, VIDEO_EXT};
 use crate::core::mkv_tools::{
     get_tracks_info, select_track_interactive, windows_long_path, Track,
 };
-use crate::core::tasks::TaskError;
+use crate::core::tasks::{check_cancelled, TaskError};
 use crate::core::utils::{
     ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, match_files,
-    normalize_path, run_subprocess, set_file_progress, AskOptions,
+    build_output_path, compute_relative_subfolder, normalize_path, run_subprocess, set_file_progress, AskOptions,
 };
 
 pub fn run_sync_subs() -> Result<(), TaskError> {
@@ -89,7 +89,7 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
             if cfg.preview_mpv {
                 let preview_ctx = serde_json::json!({
                     "filename": v_name,
-                    "target": v_clean,
+                    "target": v_clean.clone(),
                     "audio_file": serde_json::Value::Null,
                     "audio_delay_ms": 0,
                     "sub_file": synced,
@@ -125,11 +125,11 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
                 }
             }
 
-            let name_only = v_clean_buf
+            let _name_only = v_clean_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
-            let out = normalize_path(&Path::new(&out_folder).join(format!("{}_subbed.mkv", name_only)));
+            let out = build_output_path(&out_folder, &vid_folder, &v_clean.clone(), "_subbed.mkv")?;
             let out_dir = out.parent().unwrap_or_else(|| Path::new(&out_folder));
 
             log_line("   [mkvmerge] Writing MKV file...");
@@ -137,7 +137,7 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
                 "mkvmerge".to_string(),
                 "-o".to_string(),
                 out.to_string_lossy().to_string(),
-                v_clean,
+                v_clean.clone(),
                 "--language".to_string(),
                 "0:ita".to_string(),
             ];
@@ -145,8 +145,17 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
                 cmd.extend(["--sync".to_string(), format!("0:{}", sub_delay_ms)]);
             }
             cmd.push(synced.clone());
-            run_subprocess(&cmd, Some(out_dir))?;
+            let returncode = run_subprocess(&cmd, Some(out_dir))?;
             let _ = fs::remove_file(&synced);
+            if returncode == 0 {
+                let rel_sub = compute_relative_subfolder(&vid_folder, &v_clean);
+                let display_saved = if rel_sub.as_os_str().is_empty() {
+                    out.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                } else {
+                    rel_sub.join(out.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                };
+                log_line(&format!("   ✅ Saved: {}", display_saved));
+            }
         }
     }
 
@@ -179,9 +188,16 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing SOURCE file structures...");
+    log_line("\n🔍 Analyzing SOURCE file structures and dividing into groups...");
     let mut groups: Vec<(String, SubMkvGroup)> = Vec::new();
-    for (tgt, src) in &pairs {
+    let total_pairs_count = pairs.len();
+    for (idx, (tgt, src)) in pairs.iter().enumerate() {
+        check_cancelled()?;
+        let bname = Path::new(src)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {}", idx + 1, total_pairs_count, bname));
         let src_tracks = get_tracks_info(src)?;
         let sig = get_track_signature(&src_tracks);
         if let Some((_, group)) = groups.iter_mut().find(|(s, _)| s == &sig) {
@@ -240,7 +256,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                 .unwrap_or_default();
             processed_idx += 1;
             set_file_progress(&filename, processed_idx, total_pairs);
-            let base_name = tgt_buf
+            let _base_name = tgt_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
@@ -250,8 +266,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
             let tgt_clean = tgt_buf.to_string_lossy().to_string();
             let src_clean = src_buf.to_string_lossy().to_string();
 
-            let out_file =
-                normalize_path(&Path::new(&out_folder).join(format!("{}_subbed.mkv", base_name)));
+            let out_file = build_output_path(&out_folder, &tgt_folder, &tgt_clean.clone(), "_subbed.mkv")?;
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
             let temp_dir = Builder::new()
@@ -358,7 +373,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                 if cfg.preview_mpv {
                     let preview_ctx = serde_json::json!({
                         "filename": filename,
-                        "target": tgt_clean,
+                        "target": tgt_clean.clone(),
                         "audio_file": serde_json::Value::Null,
                         "audio_delay_ms": 0,
                         "sub_file": final_sub_to_merge,
@@ -401,7 +416,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                     "mkvmerge".to_string(),
                     "-o".to_string(),
                     out_file.to_string_lossy().to_string(),
-                    tgt_clean,
+                    tgt_clean.clone(),
                     "--language".to_string(),
                     "0:ita".to_string(),
                 ];
@@ -413,7 +428,13 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                 if returncode != 0 {
                     log_line("   ❌ ERROR during muxing.");
                 } else {
-                    log_line("   ✅ Done.");
+                    let rel_sub = compute_relative_subfolder(&tgt_folder, &tgt_clean);
+                    let display_saved = if rel_sub.as_os_str().is_empty() {
+                        out_file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                    } else {
+                        rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                    };
+                    log_line(&format!("   ✅ Done -> {}", display_saved));
                 }
             }
 

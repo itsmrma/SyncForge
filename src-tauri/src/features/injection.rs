@@ -10,10 +10,10 @@ use crate::core::config::{get_config, MAX_AUDIO_DELAY_MS, VIDEO_EXT};
 use crate::core::mkv_tools::{
     get_tracks_info, has_attachments, select_track_interactive, windows_long_path, Track,
 };
-use crate::core::tasks::TaskError;
+use crate::core::tasks::{check_cancelled, TaskError};
 use crate::core::utils::{
     ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, match_files,
-    normalize_path, run_subprocess, set_file_progress, AskOptions,
+    build_output_path, compute_relative_subfolder, normalize_path, run_subprocess, set_file_progress, AskOptions,
 };
 
 struct InjectionGroup {
@@ -115,9 +115,16 @@ pub fn run_injection() -> Result<(), TaskError> {
             != "n";
     }
 
-    log_line("\n🔍 Analyzing SOURCE file structures...");
+    log_line("\n🔍 Analyzing SOURCE file structures and dividing into groups...");
     let mut groups: Vec<(String, InjectionGroup)> = Vec::new();
-    for (tgt, src) in &pairs {
+    let total_pairs_count = pairs.len();
+    for (idx, (tgt, src)) in pairs.iter().enumerate() {
+        check_cancelled()?;
+        let bname = Path::new(src)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {}", idx + 1, total_pairs_count, bname));
         let src_tracks = get_tracks_info(src)?;
         let sig = get_track_signature(&src_tracks);
         if let Some((_, group)) = groups.iter_mut().find(|(s, _)| s == &sig) {
@@ -175,7 +182,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                 .unwrap_or_default();
             processed_idx += 1;
             set_file_progress(&filename, processed_idx, total_pairs);
-            let base_name = tgt_buf
+            let _base_name = tgt_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
@@ -185,8 +192,7 @@ pub fn run_injection() -> Result<(), TaskError> {
             let tgt_clean = tgt_buf.to_string_lossy().to_string();
             let src_clean = src_buf.to_string_lossy().to_string();
 
-            let out_file =
-                normalize_path(&Path::new(&out_folder).join(format!("{}_final.mkv", base_name)));
+            let out_file = build_output_path(&out_folder, &tgt_folder, &tgt_clean, "_final.mkv")?;
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
             let temp_dir = Builder::new()
@@ -541,7 +547,13 @@ pub fn run_injection() -> Result<(), TaskError> {
             if returncode != 0 {
                 log_line("   ❌ ERROR during muxing.");
             } else {
-                log_line("   ✅ Done.");
+                let rel_sub = compute_relative_subfolder(&tgt_folder, &tgt_clean);
+                let display_saved = if rel_sub.as_os_str().is_empty() {
+                    out_file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                } else {
+                    rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                };
+                log_line(&format!("   ✅ Done -> {}", display_saved));
             }
         }
     }

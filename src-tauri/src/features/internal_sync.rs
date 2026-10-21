@@ -10,10 +10,10 @@ use crate::core::config::{get_config, MAX_AUDIO_DELAY_MS, VIDEO_EXT};
 use crate::core::mkv_tools::{
     format_track_label, get_tracks_info, windows_long_path, Track,
 };
-use crate::core::tasks::TaskError;
+use crate::core::tasks::{check_cancelled, TaskError};
 use crate::core::utils::{
     ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, normalize_path,
-    run_subprocess, set_file_progress, AskOptions,
+    build_output_path, compute_relative_subfolder, run_subprocess, set_file_progress, AskOptions,
 };
 
 struct InternalSyncGroup {
@@ -137,9 +137,16 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
         ));
     }
 
-    log_line("\n🔍 Analyzing file structures...");
+    log_line("\n🔍 Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, InternalSyncGroup)> = Vec::new();
-    for vid in &videos {
+    let total_vids = videos.len();
+    for (idx, vid) in videos.iter().enumerate() {
+        check_cancelled()?;
+        let bname = Path::new(vid)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {}", idx + 1, total_vids, bname));
         let tracks = get_tracks_info(vid)?;
         let sig = get_track_signature(&tracks);
         if let Some((_, group)) = groups.iter_mut().find(|(s, _)| s == &sig) {
@@ -260,7 +267,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                 .unwrap_or_default();
             processed_idx += 1;
             set_file_progress(&filename, processed_idx, total_files);
-            let base_name = vid_buf
+            let _base_name = vid_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
@@ -268,8 +275,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
             log_line(&format!("\n>> Processing: {}", filename));
 
             let clean_vid = vid_buf.to_string_lossy().to_string();
-            let out_file =
-                normalize_path(&Path::new(&out_folder).join(format!("{}_synced.mkv", base_name)));
+            let out_file = build_output_path(&out_folder, &vid_folder, &clean_vid, "_synced.mkv")?;
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
             let temp_dir = Builder::new()
@@ -701,11 +707,13 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
             if rc != 0 {
                 log_line(&format!("   ❌ Error writing {}", filename));
             } else {
-                let out_name = out_file
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                log_line(&format!("   ✅ Saved: {}", out_name));
+                let rel_sub = compute_relative_subfolder(&vid_folder, &clean_vid);
+                let display_saved = if rel_sub.as_os_str().is_empty() {
+                    out_file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                } else {
+                    rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                };
+                log_line(&format!("   ✅ Saved: {}", display_saved));
             }
         }
     }

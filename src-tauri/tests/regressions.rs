@@ -720,3 +720,46 @@ fn test_audio_sync_waveform_delay_and_silence_detection() {
     .unwrap_err();
     assert!(err.to_string().contains("No usable audio"));
 }
+
+
+#[test]
+fn test_recursive_subfolder_preservation_in_destination() {
+    use std::path::PathBuf;
+    use syncforge_lib::core::utils::{build_output_path, compute_relative_subfolder};
+
+    let temp_in = tempfile::tempdir().unwrap();
+    let temp_out = tempfile::tempdir().unwrap();
+
+    let in_base = temp_in.path().to_string_lossy().to_string();
+    let out_base = temp_out.path().to_string_lossy().to_string();
+
+    let s1 = temp_in.path().join("Season 1");
+    let s2_special = temp_in.path().join("Season 2").join("Special");
+    std::fs::create_dir_all(&s1).unwrap();
+    std::fs::create_dir_all(&s2_special).unwrap();
+
+    let ep1 = s1.join("Episode 01.mkv");
+    let ep2 = s2_special.join("Episode 02.mkv");
+    std::fs::write(&ep1, b"mock").unwrap();
+    std::fs::write(&ep2, b"mock").unwrap();
+
+    let rel1 = compute_relative_subfolder(&in_base, &ep1.to_string_lossy());
+    assert_eq!(rel1, PathBuf::from("Season 1"));
+
+    let rel2 = compute_relative_subfolder(&in_base, &ep2.to_string_lossy());
+    assert_eq!(rel2, PathBuf::from("Season 2").join("Special"));
+
+    let out1 = build_output_path(&out_base, &in_base, &ep1.to_string_lossy(), "_final.mkv").unwrap();
+    assert_eq!(
+        out1,
+        temp_out.path().join("Season 1").join("Episode 01_final.mkv")
+    );
+    assert!(temp_out.path().join("Season 1").is_dir());
+
+    let out2 = build_output_path(&out_base, &in_base, &ep2.to_string_lossy(), "_mod.mkv").unwrap();
+    assert_eq!(
+        out2,
+        temp_out.path().join("Season 2").join("Special").join("Episode 02_mod.mkv")
+    );
+    assert!(temp_out.path().join("Season 2").join("Special").is_dir());
+}

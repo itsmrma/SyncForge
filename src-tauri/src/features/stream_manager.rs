@@ -6,10 +6,10 @@ use tempfile::Builder;
 use crate::core::audio_sync::convert_audio_track_to_opus;
 use crate::core::config::{get_config, VIDEO_EXT};
 use crate::core::mkv_tools::{format_track_label, get_tracks_info, windows_long_path, Track};
-use crate::core::tasks::TaskError;
+use crate::core::tasks::{check_cancelled, TaskError};
 use crate::core::utils::{
     ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, normalize_path,
-    parse_track_selection, run_subprocess, set_file_progress, AskOptions,
+    build_output_path, compute_relative_subfolder, parse_track_selection, run_subprocess, set_file_progress, AskOptions,
 };
 
 struct StreamGroup {
@@ -44,9 +44,16 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing file structures...");
+    log_line("\n🔍 Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, StreamGroup)> = Vec::new();
-    for vid in &videos {
+    let total_vids = videos.len();
+    for (idx, vid) in videos.iter().enumerate() {
+        check_cancelled()?;
+        let bname = Path::new(vid)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {}", idx + 1, total_vids, bname));
         let tracks = get_tracks_info(vid)?;
         let sig = get_track_signature(&tracks);
         if let Some((_, group)) = groups.iter_mut().find(|(s, _)| s == &sig) {
@@ -244,13 +251,13 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
                 .unwrap_or_default();
             processed_idx += 1;
             set_file_progress(&filename, processed_idx, total_files);
-            let name_only = vid_path
+            let _name_only = vid_path
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
 
             let clean_vid = normalize_path(vid_path).to_string_lossy().to_string();
-            let out = normalize_path(&Path::new(&out_folder).join(format!("{}_mod.mkv", name_only)));
+            let out = build_output_path(&out_folder, &folder, &clean_vid, "_mod.mkv")?;
             let out_str = out.to_string_lossy().to_string();
             let out_dir = out.parent().unwrap_or_else(|| Path::new(&out_folder));
 
@@ -380,7 +387,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
                     }
                 }
 
-                cmd.push(clean_vid);
+                cmd.push(clean_vid.clone());
             }
 
             let returncode = run_subprocess(&cmd, Some(out_dir))?;
@@ -392,11 +399,13 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
             if returncode != 0 {
                 log_line(&format!("   ❌ Error writing {}", filename));
             } else {
-                let out_name = out
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                log_line(&format!("   -> Saved: {}", out_name));
+                let rel_sub = compute_relative_subfolder(&folder, &clean_vid);
+                let display_saved = if rel_sub.as_os_str().is_empty() {
+                    out.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                } else {
+                    rel_sub.join(out.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                };
+                log_line(&format!("   -> Saved: {}", display_saved));
             }
         }
     }
@@ -418,9 +427,16 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing file structures...");
+    log_line("\n🔍 Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, StreamGroup)> = Vec::new();
-    for vid in &videos {
+    let total_vids = videos.len();
+    for (idx, vid) in videos.iter().enumerate() {
+        check_cancelled()?;
+        let bname = Path::new(vid)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {}", idx + 1, total_vids, bname));
         let tracks = get_tracks_info(vid)?;
         let sig = get_track_signature(&tracks);
         if let Some((_, group)) = groups.iter_mut().find(|(s, _)| s == &sig) {

@@ -418,7 +418,7 @@ test('stream manager shows muxing status for native mkvmerge output', async ({ p
   });
   await page.getByRole('button', { name: 'Launch Module' }).click();
   const subtask = page.getByTestId('subtask-label');
-  await expect(subtask).toContainText('Initializing media pipeline...');
+  await expect(subtask).toContainText('Analyzing file structures and dividing into groups...');
 
   for (const line of [
     "mkvmerge v102.0 ('Little Houses') 64-bit\n",
@@ -446,9 +446,20 @@ test('dual progress bars display overall progress and current file progress whil
   });
 
   await page.getByRole('button', { name: 'Launch Module' }).click();
+  const stopBtn = page.getByTestId('stop-task-btn');
+  await expect(stopBtn).toBeVisible();
+  await expect(stopBtn).toHaveClass(/MuiButton-contained/);
+  await expect(stopBtn).toHaveClass(/MuiButton-colorError/);
+  await expect(page.getByTestId('subtask-label')).toContainText('Analyzing file structures and dividing into groups...');
   await expect(page.getByTestId('progress-container')).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Overall Progress' })).toBeVisible();
   await expect(page.getByRole('progressbar', { name: 'Current File Progress' })).toBeVisible();
+
+  // Test probing log updates currentFile
+  await page.evaluate(() => {
+    window.frontend_api.append_terminal('   [1/10] Probing: episode_01.mkv\n');
+  });
+  await expect(page.getByTestId('current-file-label')).toContainText('episode_01.mkv');
 
   // Test updating progress from backend
   await page.evaluate(() => {

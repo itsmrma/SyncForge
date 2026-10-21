@@ -214,6 +214,85 @@ pub fn normalize_path(path: &Path) -> PathBuf {
     }
 }
 
+/// Given a base folder (or file) and an input file path inside it, computes the relative subfolder.
+/// For example, if `base_folder` is `C:/Anime/Show` and `file_path` is `C:/Anime/Show/Season 1/ep01.mkv`,
+/// returns `Season 1`. If the file is directly inside `base_folder`, returns an empty `PathBuf`.
+/// If `base_folder` is a file or paths do not share a common prefix, returns an empty `PathBuf`.
+pub fn compute_relative_subfolder(base_folder: &str, file_path: &str) -> PathBuf {
+    if base_folder.trim().is_empty() || file_path.trim().is_empty() {
+        return PathBuf::new();
+    }
+    let norm_base = normalize_path(Path::new(base_folder));
+    let norm_file = normalize_path(Path::new(file_path));
+
+    if norm_base.is_file() {
+        return PathBuf::new();
+    }
+
+    if let Some(parent) = norm_file.parent() {
+        if let Ok(rel) = parent.strip_prefix(&norm_base) {
+            return rel.to_path_buf();
+        }
+
+        // Fallback for case-insensitive filesystems or drive letter discrepancies (e.g. c:\ vs C:\)
+        let base_comps: Vec<_> = norm_base.components().collect();
+        let file_parent_comps: Vec<_> = parent.components().collect();
+
+        if file_parent_comps.len() >= base_comps.len() {
+            let mut matches = true;
+            for (bc, fc) in base_comps.iter().zip(file_parent_comps.iter()) {
+                let bs = bc.as_os_str().to_string_lossy().to_lowercase();
+                let fs = fc.as_os_str().to_string_lossy().to_lowercase();
+                if bs != fs {
+                    matches = false;
+                    break;
+                }
+            }
+            if matches {
+                let mut rel = PathBuf::new();
+                for fc in &file_parent_comps[base_comps.len()..] {
+                    rel.push(fc.as_os_str());
+                }
+                return rel;
+            }
+        }
+    }
+
+    PathBuf::new()
+}
+
+/// Determines the destination path for an output file, preserving the subfolder structure
+/// relative to the input folder, and creating the destination subdirectories if necessary.
+pub fn build_output_path(
+    out_folder: &str,
+    base_folder: &str,
+    input_file: &str,
+    suffix: &str,
+) -> Result<PathBuf, TaskError> {
+    let rel_sub = compute_relative_subfolder(base_folder, input_file);
+    let target_dir = if rel_sub.as_os_str().is_empty() {
+        PathBuf::from(out_folder)
+    } else {
+        Path::new(out_folder).join(&rel_sub)
+    };
+
+    fs::create_dir_all(&target_dir).map_err(|e| {
+        TaskError::Message(format!(
+            "Failed to create output directory {}: {}",
+            target_dir.display(),
+            e
+        ))
+    })?;
+
+    let file_stem = Path::new(input_file)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "output".to_string());
+
+    let out_file = target_dir.join(format!("{}{}", file_stem, suffix));
+    Ok(normalize_path(&out_file))
+}
+
 /// Return one selected file or recursively find matching files in a folder.
 pub fn get_files_recursive(folder: &str, extensions: &[&str]) -> Result<Vec<String>, TaskError> {
     check_cancelled()?;
@@ -559,6 +638,40 @@ pub fn run_subprocess(cmd: &[String], cwd: Option<&Path>) -> Result<i32, TaskErr
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn test_compute_relative_subfolder_and_build_output_path() {
+        let base = "/media/tv/series";
+        let file_direct = "/media/tv/series/ep01.mkv";
+        let file_sub = "/media/tv/series/Season 01/ep01.mkv";
+        let file_deep = "/media/tv/series/Season 01/Extra/ep01.mkv";
+
+        assert_eq!(compute_relative_subfolder(base, file_direct), PathBuf::new());
+        assert_eq!(
+            compute_relative_subfolder(base, file_sub),
+            PathBuf::from("Season 01")
+        );
+        assert_eq!(
+            compute_relative_subfolder(base, file_deep),
+            PathBuf::from("Season 01").join("Extra")
+        );
+
+        let temp = tempfile::tempdir().unwrap();
+        let out_dir = temp.path().to_string_lossy().to_string();
+
+        let built_direct = build_output_path(&out_dir, base, file_direct, "_mod.mkv").unwrap();
+        assert_eq!(
+            built_direct,
+            normalize_path(&temp.path().join("ep01_mod.mkv"))
+        );
+
+        let built_sub = build_output_path(&out_dir, base, file_sub, "_final.mkv").unwrap();
+        assert_eq!(
+            built_sub,
+            normalize_path(&temp.path().join("Season 01").join("ep01_final.mkv"))
+        );
+        assert!(temp.path().join("Season 01").is_dir());
+    }
 
     #[test]
     fn test_parse_progress_percent_mkvmerge() {

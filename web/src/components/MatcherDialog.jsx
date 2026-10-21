@@ -552,7 +552,19 @@ export default function MatcherDialog({
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onStop} color="error" disabled={stopping}>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={onStop}
+          disabled={stopping}
+          sx={{
+            fontWeight: 700,
+            bgcolor: 'error.main',
+            color: '#FFFFFF',
+            boxShadow: '0 2px 8px rgba(244, 63, 94, 0.35)',
+            '&:hover': { bgcolor: 'error.dark' },
+          }}
+        >
           {stopping ? 'Stopping...' : 'Stop task'}
         </Button>
         <Button onClick={onCancel} color="error">

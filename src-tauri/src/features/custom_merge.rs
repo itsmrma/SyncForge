@@ -6,10 +6,10 @@ use tempfile::Builder;
 use crate::core::audio_sync::convert_audio_track_to_opus;
 use crate::core::config::{get_config, VIDEO_EXT};
 use crate::core::mkv_tools::{format_track_label, get_tracks_info, Track};
-use crate::core::tasks::TaskError;
+use crate::core::tasks::{check_cancelled, TaskError};
 use crate::core::utils::{
     ask_directory, ask_user, get_files_recursive, get_track_signature, log_line, match_files,
-    normalize_path, parse_track_selection, run_subprocess, set_file_progress, AskOptions,
+    build_output_path, compute_relative_subfolder, normalize_path, parse_track_selection, run_subprocess, set_file_progress, AskOptions,
 };
 
 struct MergeGroup {
@@ -50,9 +50,20 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing structure of pairs...");
+    log_line("\n🔍 Analyzing structure of pairs and dividing into groups...");
     let mut groups: Vec<(String, MergeGroup)> = Vec::new();
-    for (f_a, f_b) in &pairs {
+    let total_pairs_count = pairs.len();
+    for (idx, (f_a, f_b)) in pairs.iter().enumerate() {
+        check_cancelled()?;
+        let bname_a = Path::new(f_a)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let bname_b = Path::new(f_b)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        log_line(&format!("   [{}/{}] Probing: {} + {}", idx + 1, total_pairs_count, bname_a, bname_b));
         let tracks_a = get_tracks_info(f_a)?;
         let tracks_b = get_tracks_info(f_b)?;
         let sig = format!(
@@ -302,12 +313,13 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 .unwrap_or_default();
             processed_idx += 1;
             set_file_progress(&filename, processed_idx, total_pairs);
+            let clean_a_str = clean_a_buf.to_string_lossy().to_string();
+            let clean_b_str = clean_b_buf.to_string_lossy().to_string();
             let base_name = clean_a_buf
                 .file_stem()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
-            let out_file =
-                normalize_path(&Path::new(&out_folder).join(format!("{}_merged.mkv", base_name)));
+            let out_file = build_output_path(&out_folder, &folder_a, &clean_a_str, "_merged.mkv")?;
             let out_dir = out_file.parent().unwrap_or_else(|| Path::new(&out_folder));
 
             let temp_dir = Builder::new()
@@ -321,8 +333,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 out_file.to_string_lossy().to_string(),
             ];
 
-            let clean_a_str = clean_a_buf.to_string_lossy().to_string();
-            let clean_b_str = clean_b_buf.to_string_lossy().to_string();
+            // Clean paths already defined above
 
             if action.do_opus {
                 // If opus conversion is active, convert audio tracks from A and B to opus
@@ -371,7 +382,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 cmd.push("--no-subtitles".to_string());
             }
 
-            cmd.push(clean_a_str);
+            cmd.push(clean_a_str.clone());
 
             cmd.push("--no-video".to_string());
             cmd.push("--no-chapters".to_string());
@@ -437,11 +448,13 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
             if returncode != 0 {
                 log_line(&format!("   ❌ Error writing {}", base_name));
             } else {
-                let out_name = out_file
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                log_line(&format!("   -> Saved: {}", out_name));
+                let rel_sub = compute_relative_subfolder(&folder_a, &clean_a_str);
+                let display_saved = if rel_sub.as_os_str().is_empty() {
+                    out_file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                } else {
+                    rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
+                };
+                log_line(&format!("   -> Saved: {}", display_saved));
             }
         }
     }

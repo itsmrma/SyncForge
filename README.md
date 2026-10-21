@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.5.0 — Headless CLI (`syncforge-cli`), JSON Workflow Scripting & GUI CLI Generator](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.0)**
-introduces the lightweight standalone `syncforge-cli` binary (zero GUI overhead), multi-job JSON workflow scripting, interactive/non-interactive terminal execution across all 7 modules, and an integrated CLI command generator in the desktop app. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.1 — Recursive Subfolder Destination Preservation, Red Stop Button, Descriptive Progress Pipeline & Smoothed ETA](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.1)**
+preserves source subfolder hierarchies in destination outputs, styles the active Stop Task button with high-visibility red, provides descriptive progress statuses with real-time file probing, and stabilizes the ETA calculation with smooth damping. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
