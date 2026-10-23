@@ -202,7 +202,7 @@ pub fn convert_audio_track_to_opus(
     };
 
     log_line(&format!(
-        "   🎵 Opus conversion for: {} (Track ID {}, {}k, {})",
+        "   [Opus] Converting audio: {} (Track ID {}, {}k, {})",
         filename, track_id, cfg.opus_bitrate, downmix_label
     ));
     let mut ff_cmd = vec![
@@ -249,7 +249,7 @@ pub fn convert_audio_file_to_opus(
     };
 
     log_line(&format!(
-        "   🎵 Converting audio to Opus ({}k, {})...",
+        "   [Opus] Converting audio to Opus ({}k, {})...",
         cfg.opus_bitrate, downmix_label
     ));
     let mut ff_cmd = vec![

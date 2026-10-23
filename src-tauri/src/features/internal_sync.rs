@@ -33,7 +33,7 @@ fn select_track_prompt(
         return Ok(Some(tracks[0].clone()));
     }
 
-    log_line(&format!("\n⚠️  TRACK SELECTION: {}", group_desc));
+    log_line(&format!("\n[Track Selection] {}", group_desc));
     log_line(prompt);
     for t in tracks {
         log_line(&format!("   {}", format_track_label(t)));
@@ -137,7 +137,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
         ));
     }
 
-    log_line("\n🔍 Analyzing file structures and dividing into groups...");
+    log_line("\n[Analyze] Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, InternalSyncGroup)> = Vec::new();
     let total_vids = videos.len();
     for (idx, vid) in videos.iter().enumerate() {
@@ -167,7 +167,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
     let mut processed_idx = 0;
 
     log_line(&format!(
-        "✅ Found {} file(s), grouped into {} distinct track structure(s).",
+        "[Info] Found {} file(s), grouped into {} distinct track structure(s).",
         total_files, total_groups
     ));
 
@@ -178,7 +178,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
 
         log_line(&format!("\n{}", "=".repeat(60)));
         log_line(&format!(
-            "📦 BATCH {}/{} - Contains {} file(s):",
+            "[Batch {}/{} - Contains {} file(s):",
             i,
             total_groups,
             files.len()
@@ -211,7 +211,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
 
         if do_audio {
             if audio_tracks.len() < 2 {
-                log_line("   ⚠️ Batch has fewer than 2 audio tracks; cannot synchronize audio against reference audio.");
+                log_line("   [Warning] Batch has fewer than 2 audio tracks; cannot synchronize audio against reference audio.");
             } else {
                 ref_audio_track = select_track_prompt(
                     &audio_tracks,
@@ -237,7 +237,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
         let mut target_sub_track: Option<Track> = None;
         if do_subs {
             if sub_tracks.is_empty() {
-                log_line("   ⚠️ Batch has no subtitle tracks; skipping subtitle synchronization.");
+                log_line("   [Warning] Batch has no subtitle tracks; skipping subtitle synchronization.");
             } else {
                 if ref_audio_track.is_none() && !audio_tracks.is_empty() {
                     ref_audio_track = select_track_prompt(
@@ -255,7 +255,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
         }
 
         if target_audio_track.is_none() && target_sub_track.is_none() {
-            log_line("⏭️ No tracks to synchronize for this batch, skipping.");
+            log_line("[Skip] No tracks to synchronize for this batch, skipping.");
             continue;
         }
 
@@ -328,7 +328,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
 
             // A) AUDIO SYNC
             if let Some(ref tgt_a) = target_audio_track {
-                log_line(&format!("   🎤 Extracting Target Audio ID {}...", tgt_a.id));
+                log_line(&format!("   [Extract] Extracting Target Audio ID {}...", tgt_a.id));
                 let tgt_mka = temp_dir
                     .path()
                     .join("temp_target_audio.mka")
@@ -355,7 +355,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
 
                     if do_audio_sync && ref_audio_mka_path.is_some() {
                         log_line(&format!(
-                            "   🧪 Searching for audio sync (Max +/- {}ms)...",
+                            "   [Sync] Searching for audio sync (Max +/- {}ms)...",
                             MAX_AUDIO_DELAY_MS
                         ));
                         let wav_ref = temp_dir
@@ -391,13 +391,13 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                                 Ok(delay) => {
                                     audio_delay_ms = delay;
                                     log_line(&format!(
-                                        "   ⏱️  Calculated Audio Delay: {} ms",
+                                        "   [Sync] Calculated Audio Delay: {} ms",
                                         audio_delay_ms
                                     ));
                                 }
                                 Err(e) => {
                                     log_line(&format!(
-                                        "   ⚠️ Waveform delay calculation failed ({}), using 0 ms.",
+                                        "   [Warning] Waveform delay calculation failed ({}), using 0 ms.",
                                         e
                                     ));
                                 }
@@ -405,10 +405,10 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                             temp_files.push(wav_ref);
                             temp_files.push(wav_tgt);
                         } else {
-                            log_line("   ⚠️ Could not extract audio segment for analysis, skipping auto-delay.");
+                            log_line("   [Warning] Could not extract audio segment for analysis, skipping auto-delay.");
                         }
                     } else if !do_audio_sync {
-                        log_line("   ℹ️ Audio auto-sync skipped (manual or disabled in settings).");
+                        log_line("   [Info] Audio auto-sync skipped (manual or disabled in settings).");
                     }
 
                     if do_opus_audio {
@@ -419,7 +419,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                             }
                             Err(e) => {
                                 log_line(&format!(
-                                    "   ⚠️ Opus conversion failed, falling back to original audio: {}",
+                                    "   [Warning] Opus conversion failed, falling back to original audio: {}",
                                     e
                                 ));
                             }
@@ -431,29 +431,11 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
             // B) SUBTITLE SYNC
             if let Some(ref tgt_s) = target_sub_track {
                 log_line(&format!(
-                    "   [mkvextract] 📝 Extracting Subtitle ID {}...",
+                    "   [mkvextract] [Extract] Extracting Subtitle ID {}...",
                     tgt_s.id
                 ));
-                let codec_id = tgt_s
-                    .properties
-                    .as_ref()
-                    .and_then(|p| p.codec_id.as_deref())
-                    .unwrap_or("")
-                    .to_uppercase();
-                let codec_name = tgt_s.codec.as_deref().unwrap_or("").to_uppercase();
 
-                let (sub_ext, can_sync) = if codec_id.contains("ASS")
-                    || codec_id.contains("SSA")
-                    || codec_name.contains("ASS")
-                {
-                    (".ass", true)
-                } else if codec_id.contains("PGS") || codec_name.contains("PG") {
-                    (".sup", false)
-                } else if codec_id.contains("VOBSUB") {
-                    (".sub", false)
-                } else {
-                    (".srt", true)
-                };
+                let (sub_ext, can_sync) = crate::core::mkv_tools::get_subtitle_extension_and_syncability(tgt_s);
 
                 let raw_sub_path = temp_dir
                     .path()
@@ -495,30 +477,19 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                         };
 
                         log_line("      [ffsubsync] [Sync] Starting ffsubsync...");
-                        let mut cmd_ffsubsync = vec![
-                            "ffsubsync".to_string(),
-                            ref_input,
-                            "-i".to_string(),
-                            raw_sub_path.clone(),
-                            "-o".to_string(),
-                            synced_sub_path.clone(),
-                        ];
-                        if cfg.enable_max_offset && cfg.max_offset_seconds > 0 {
-                            cmd_ffsubsync.push("--max-offset-seconds".to_string());
-                            cmd_ffsubsync.push(cfg.max_offset_seconds.to_string());
-                        }
+                        let cmd_ffsubsync = crate::core::utils::build_ffsubsync_args(&ref_input, &raw_sub_path, &synced_sub_path, &cfg);
                         run_subprocess(&cmd_ffsubsync, Some(out_dir))?;
 
                         if let Ok(meta) = fs::metadata(&synced_sub_path) {
                             if meta.len() > 0 {
                                 chosen_sub = synced_sub_path.clone();
                                 temp_files.push(synced_sub_path);
-                                log_line("      ✅ Subtitle sync successful.");
+                                log_line("      [Done] Subtitle sync successful.");
                             } else {
-                                log_line("      ⚠️ Subtitle sync produced empty file, using original.");
+                                log_line("      [Warning] Subtitle sync produced empty file, using original.");
                             }
                         } else {
-                            log_line("      ⚠️ Subtitle sync failed, using original.");
+                            log_line("      [Warning] Subtitle sync failed, using original.");
                         }
                     } else if can_sync && !do_sub_sync {
                         log_line("      [Sync] Subtitle auto-sync skipped (disabled in settings). Using original.");
@@ -566,7 +537,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                             .and_then(|v| v.as_str())
                             .unwrap_or("confirm");
                         if action == "stop" {
-                            log_line("   ⏹️ Task stopped by user from preview.");
+                            log_line("   [Stop] Task stopped by user from preview.");
                             return Err(TaskError::Cancelled);
                         }
                         if let Some(a_d) = parsed.get("audio_delay_ms").and_then(|v| v.as_i64()) {
@@ -583,7 +554,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
             }
 
             // D) FINAL REMUX
-            log_line("   📦 Remuxing synchronized tracks losslessly...");
+            log_line("   [Remux] Remuxing synchronized tracks losslessly...");
             let mut cmd = vec![
                 "mkvmerge".to_string(),
                 "-o".to_string(),
@@ -705,7 +676,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
             }
 
             if rc != 0 {
-                log_line(&format!("   ❌ Error writing {}", filename));
+                log_line(&format!("   [Error] Error writing {}", filename));
             } else {
                 let rel_sub = compute_relative_subfolder(&vid_folder, &clean_vid);
                 let display_saved = if rel_sub.as_os_str().is_empty() {
@@ -713,7 +684,7 @@ pub fn run_internal_sync() -> Result<(), TaskError> {
                 } else {
                     rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
                 };
-                log_line(&format!("   ✅ Saved: {}", display_saved));
+                log_line(&format!("   [Done] Saved: {}", display_saved));
             }
         }
     }

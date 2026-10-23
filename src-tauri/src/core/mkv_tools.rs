@@ -155,11 +155,31 @@ pub fn has_attachments(filepath: &str) -> Result<bool, TaskError> {
     Ok(!metadata(filepath)?.attachments.is_empty())
 }
 
+pub fn get_subtitle_extension_and_syncability(track: &Track) -> (&'static str, bool) {
+    let codec_id = track
+        .properties
+        .as_ref()
+        .and_then(|p| p.codec_id.as_deref())
+        .unwrap_or("")
+        .to_uppercase();
+    let codec_name = track.codec.as_deref().unwrap_or("").to_uppercase();
+
+    if codec_id.contains("ASS") || codec_id.contains("SSA") || codec_name.contains("ASS") {
+        (".ass", true)
+    } else if codec_id.contains("PGS") || codec_name.contains("PG") {
+        (".sup", false)
+    } else if codec_id.contains("VOBSUB") {
+        (".sub", false)
+    } else {
+        (".srt", true)
+    }
+}
+
 pub fn format_track_label(track: &Track) -> String {
-    let props = track.properties.clone().unwrap_or_default();
-    let lang = props.language.unwrap_or_else(|| "und".to_string());
-    let codec = track.codec.clone().unwrap_or_else(|| "Unknown".to_string());
-    let name = props.track_name.unwrap_or_default();
+    let props = track.properties.as_ref();
+    let lang = props.and_then(|p| p.language.as_deref()).unwrap_or("und");
+    let codec = track.codec.as_deref().unwrap_or("Unknown");
+    let name = props.and_then(|p| p.track_name.as_deref()).unwrap_or("");
 
     let mut label = format!("[ID: {}] {} ({})", track.id, lang.to_uppercase(), codec);
     if !name.is_empty() {
@@ -167,10 +187,10 @@ pub fn format_track_label(track: &Track) -> String {
     }
 
     let mut flags = Vec::new();
-    if props.default_track.unwrap_or(false) {
+    if props.and_then(|p| p.default_track).unwrap_or(false) {
         flags.push("Default");
     }
-    if props.forced_track.unwrap_or(false) {
+    if props.and_then(|p| p.forced_track).unwrap_or(false) {
         flags.push("Forced");
     }
     if !flags.is_empty() {
@@ -213,7 +233,7 @@ pub fn select_track_interactive(
         return Ok(Some(ita_tracks[0].clone()));
     }
 
-    log_line(&format!("\n⚠️  TRACK SELECTION FOR: {}", group_desc));
+    log_line(&format!("\n[Track Selection] FOR: {}", group_desc));
     log_line(&format!(
         "Multiple {} tracks found. Which one do you want to use?",
         track_type

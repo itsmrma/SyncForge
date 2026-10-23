@@ -1,4 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { VERSION } from './version.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -172,8 +173,8 @@ async function runTests() {
     throw new Error('Failed to read syncforge://config');
   }
   const configObj = JSON.parse(readConfig.contents[0].text);
-  if (configObj.version !== '3.3.1') {
-    throw new Error(`Expected version 3.3.1 in config, got ${configObj.version}`);
+  if (configObj.version !== VERSION) {
+    throw new Error(`Expected version ${VERSION} in config, got ${configObj.version}`);
   }
   if (!configObj.opensubtitles?.configured) {
     throw new Error('Expected opensubtitles to be configured');

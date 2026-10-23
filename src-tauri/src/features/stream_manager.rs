@@ -44,7 +44,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing file structures and dividing into groups...");
+    log_line("\n[Analyze] Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, StreamGroup)> = Vec::new();
     let total_vids = videos.len();
     for (idx, vid) in videos.iter().enumerate() {
@@ -70,13 +70,13 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "✅ Found {} files, grouped into {} distinct track structures.",
+        "[Info] Found {} files, grouped into {} distinct track structures.",
         videos.len(),
         groups.len()
     ));
 
     log_line(&format!("\n{}", "=".repeat(60)));
-    log_line("🛠️  CONFIGURATION PHASE");
+    log_line("CONFIGURATION PHASE");
     log_line("Answer questions for each group. Processing starts at the end.");
     log_line(&"=".repeat(60));
 
@@ -89,7 +89,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         let tracks = group.tracks;
 
         log_line(&format!(
-            "\n📦 GROUP {}/{} - Contains {} identical files:",
+            "\n[Group {}/{} - Contains {} identical files:",
             i,
             total_groups,
             files.len()
@@ -157,7 +157,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         .to_lowercase();
 
         if sel == "s" {
-            log_line(&format!("⏭️ Group {} skipped.", i));
+            log_line(&format!("[Skip] Group {} skipped.", i));
             continue;
         }
 
@@ -180,7 +180,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         let mut do_opus_conversion = false;
         if !kept_audio_tracks.is_empty() {
             if cfg.opus_mode == "always" {
-                log_line("   🎵 Opus conversion enabled [from global settings]");
+                log_line("   [Opus] Conversion enabled [from global settings]");
                 do_opus_conversion = true;
             } else if cfg.opus_mode == "prompt" {
                 let prompt_text = format!(
@@ -230,7 +230,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
     }
 
     log_line(&format!("\n{}", "=".repeat(60)));
-    log_line("🚀 PROCESSING PHASE");
+    log_line("PROCESSING PHASE");
     log_line(&"=".repeat(60));
 
     let total_files: usize = actions_to_execute.iter().map(|a| a.files.len()).sum();
@@ -238,7 +238,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
 
     for action in actions_to_execute {
         log_line(&format!(
-            "\n💾 Processing Group {} ({} files)...",
+            "\n[Process] Processing Group {} ({} files)...",
             action.group_idx,
             action.files.len()
         ));
@@ -397,7 +397,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
             }
 
             if returncode != 0 {
-                log_line(&format!("   ❌ Error writing {}", filename));
+                log_line(&format!("   [Error] Error writing {}", filename));
             } else {
                 let rel_sub = compute_relative_subfolder(&folder, &clean_vid);
                 let display_saved = if rel_sub.as_os_str().is_empty() {
@@ -410,7 +410,7 @@ pub fn run_stream_manager() -> Result<(), TaskError> {
         }
     }
 
-    log_line(&format!("\n✅ Done! All batches processed in: {}", out_folder));
+    log_line(&format!("\n[Done] All batches processed in: {}", out_folder));
     Ok(())
 }
 
@@ -427,7 +427,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing file structures and dividing into groups...");
+    log_line("\n[Analyze] Analyzing file structures and dividing into groups...");
     let mut groups: Vec<(String, StreamGroup)> = Vec::new();
     let total_vids = videos.len();
     for (idx, vid) in videos.iter().enumerate() {
@@ -453,7 +453,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "✅ Found {} files, grouped into {} structures.",
+        "[Info] Found {} files, grouped into {} structures.",
         videos.len(),
         groups.len()
     ));
@@ -466,7 +466,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
 
         log_line(&format!("\n{}", "=".repeat(60)));
         log_line(&format!(
-            "📦 GROUP {}/{} - Contains {} identical files:",
+            "[Group {}/{} - Contains {} identical files:",
             i,
             total_groups,
             files.len()
@@ -522,7 +522,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
         .to_lowercase();
 
         if sel_audio == "s" {
-            log_line(&format!("⏭️ Group {} skipped.", i));
+            log_line(&format!("[Skip] Group {} skipped.", i));
             continue;
         }
 
@@ -579,7 +579,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
             continue;
         }
 
-        log_line("💾 Modifying in-place (No remuxing)...");
+        log_line("[Process] Modifying in-place (No remuxing)...");
         let total_files: usize = files.len();
         for (f_idx, vid) in files.iter().enumerate() {
             let clean_vid_buf = normalize_path(Path::new(vid));
@@ -638,7 +638,7 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
             if modifiche_aggiunte {
                 let returncode = run_subprocess(&cmd, vid_dir)?;
                 if returncode != 0 {
-                    log_line(&format!("   ❌ mkvpropedit error on {}", bname));
+                    log_line(&format!("   [Error] mkvpropedit error on {}", bname));
                 } else {
                     log_line(&format!("   -> Modified: {}", bname));
                 }
@@ -648,6 +648,6 @@ pub fn run_set_default_tracks() -> Result<(), TaskError> {
         }
     }
 
-    log_line("\n✅ Operations completed on original files!");
+    log_line("\n[Done] Operations completed on original files!");
     Ok(())
 }

@@ -14,11 +14,12 @@ import {
 import { handleToolCall, TOOLS_DEFINITIONS } from './tools.js';
 import { getResource, RESOURCES_LIST } from './resources.js';
 import { getPrompt, PROMPTS_LIST } from './prompts.js';
+import { VERSION } from './version.js';
 
 const server = new Server(
   {
     name: 'syncforge-mcp',
-    version: '3.3.1',
+    version: VERSION,
   },
   {
     capabilities: {
@@ -90,7 +91,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  process.stderr.write('SyncForge MCP Server running on stdio (v3.3.1)\n');
+  process.stderr.write(`SyncForge MCP Server running on stdio (v${VERSION})\n`);
 }
 
 main().catch((error) => {

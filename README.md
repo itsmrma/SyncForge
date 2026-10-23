@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.5.1 — Recursive Subfolder Destination Preservation, Red Stop Button, Descriptive Progress Pipeline & Smoothed ETA](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.1)**
-preserves source subfolder hierarchies in destination outputs, styles the active Stop Task button with high-visibility red, provides descriptive progress statuses with real-time file probing, and stabilizes the ETA calculation with smooth damping. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.2 — Codebase Audit, Tool Path Caching, Deduplication & Dynamic Metadata Preservation](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.2)**
+improves batch processing performance with tool path caching, unifies subtitle codec helpers, preserves dynamic track languages and metadata during Opus conversion, optimizes episode auto-matching, and enforces strict emoji-free logging. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.

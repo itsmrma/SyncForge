@@ -1,3 +1,4 @@
+import { VERSION } from './version.js';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
@@ -143,7 +144,7 @@ export async function getSystemHealth() {
   return {
     os: `${os.type()} ${os.release()} (${os.arch()})`,
     platform: process.platform,
-    syncforge_version: '3.3.1',
+    syncforge_version: VERSION,
     tools: results,
   };
 }

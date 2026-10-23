@@ -52,6 +52,17 @@ function getSystemLanguageInfo() {
   );
 }
 
+const CODE_REGEX_CACHE = new Map();
+function getCodeRegex(code) {
+  let regex = CODE_REGEX_CACHE.get(code);
+  if (!regex) {
+    const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
+    CODE_REGEX_CACHE.set(code, regex);
+  }
+  return regex;
+}
+
 function trackMatchesLang(track, codes) {
   const props = track.properties || {};
   const lang = (props.language || '').toLowerCase().trim();
@@ -65,9 +76,7 @@ function trackMatchesLang(track, codes) {
     if (langIetf === c || langIetf.startsWith(`${c}-`)) return true;
 
     // 2. Word-boundary regex on track name so "French" never matches "en"
-    const escaped = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const wordRegex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
-    return wordRegex.test(name);
+    return getCodeRegex(c).test(name);
   });
 }
 

@@ -115,7 +115,7 @@ pub fn run_injection() -> Result<(), TaskError> {
             != "n";
     }
 
-    log_line("\n🔍 Analyzing SOURCE file structures and dividing into groups...");
+    log_line("\n[Analyze] Analyzing SOURCE file structures and dividing into groups...");
     let mut groups: Vec<(String, InjectionGroup)> = Vec::new();
     let total_pairs_count = pairs.len();
     for (idx, (tgt, src)) in pairs.iter().enumerate() {
@@ -151,7 +151,7 @@ pub fn run_injection() -> Result<(), TaskError> {
 
         log_line(&format!("\n{}", "=".repeat(60)));
         log_line(&format!(
-            "📦 BATCH {}/{} - {} pairs:",
+            "[Batch {}/{} - {} pairs:",
             i,
             total_groups,
             pairs_in_group.len()
@@ -227,7 +227,7 @@ pub fn run_injection() -> Result<(), TaskError> {
             let mut final_sub_path: Option<String> = None;
 
             if let (true, Some(ref a_track)) = (do_audio, &selected_audio_track) {
-                log_line(&format!("   🎤 Extracting Audio ID {}...", a_track.id));
+                log_line(&format!("   [Extract] Extracting Audio ID {}...", a_track.id));
                 let full_audio_path = temp_dir
                     .path()
                     .join("temp_full_audio.mka")
@@ -255,7 +255,7 @@ pub fn run_injection() -> Result<(), TaskError> {
 
                 if do_audio_sync {
                     log_line(&format!(
-                        "   🧪 Searching for sync (Max +/- {}ms)...",
+                        "   [Sync] Searching for sync (Max +/- {}ms)...",
                         MAX_AUDIO_DELAY_MS
                     ));
                     let wav_ref = temp_dir
@@ -284,12 +284,12 @@ pub fn run_injection() -> Result<(), TaskError> {
 
                     if Path::new(&wav_ref).exists() && Path::new(&wav_src).exists() {
                         audio_delay_ms = find_audio_delay(&wav_ref, &wav_src)?;
-                        log_line(&format!("   ⏱️  Delay applied: {} ms", audio_delay_ms));
+                        log_line(&format!("   [Sync] Delay applied: {} ms", audio_delay_ms));
                         temp_files.push(wav_ref);
                         temp_files.push(wav_src);
                     }
                 } else {
-                    log_line("   ℹ️ Audio auto-sync skipped.");
+                    log_line("   [Info] Audio auto-sync skipped.");
                 }
 
                 let mut final_audio_path = full_audio_path.clone();
@@ -300,7 +300,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                             final_audio_path = opus_path;
                         }
                         Err(e) => {
-                            log_line(&format!("   ⚠️ Opus conversion failed, falling back to original audio: {}", e));
+                            log_line(&format!("   [Warning] Opus conversion failed, falling back to original audio: {}", e));
                         }
                     }
                 }
@@ -309,29 +309,11 @@ pub fn run_injection() -> Result<(), TaskError> {
 
             if let (true, Some(ref s_track)) = (do_subs, &selected_sub_track) {
                 log_line(&format!(
-                    "   [mkvextract] 📝 Extracting Sub ID {}...",
+                    "   [mkvextract] [Extract] Extracting Sub ID {}...",
                     s_track.id
                 ));
-                let codec_id = s_track
-                    .properties
-                    .as_ref()
-                    .and_then(|p| p.codec_id.as_deref())
-                    .unwrap_or("")
-                    .to_uppercase();
-                let codec_name = s_track.codec.as_deref().unwrap_or("").to_uppercase();
 
-                let (sub_ext, can_sync) = if codec_id.contains("ASS")
-                    || codec_id.contains("SSA")
-                    || codec_name.contains("ASS")
-                {
-                    (".ass", true)
-                } else if codec_id.contains("PGS") || codec_name.contains("PG") {
-                    (".sup", false)
-                } else if codec_id.contains("VOBSUB") {
-                    (".sub", false)
-                } else {
-                    (".srt", true)
-                };
+                let (sub_ext, can_sync) = crate::core::mkv_tools::get_subtitle_extension_and_syncability(s_track);
 
                 let raw_sub_path = temp_dir
                     .path()
@@ -368,25 +350,14 @@ pub fn run_injection() -> Result<(), TaskError> {
                 if Path::new(&raw_sub_path).exists() {
                     if can_sync && do_sub_sync {
                         log_line("      [ffsubsync] [Sync] Starting ffsubsync...");
-                        let mut cmd_ffsubsync = vec![
-                            "ffsubsync".to_string(),
-                            tgt_clean.clone(),
-                            "-i".to_string(),
-                            raw_sub_path.clone(),
-                            "-o".to_string(),
-                            synced_sub_path.clone(),
-                        ];
-                        if cfg.enable_max_offset && cfg.max_offset_seconds > 0 {
-                            cmd_ffsubsync.push("--max-offset-seconds".to_string());
-                            cmd_ffsubsync.push(cfg.max_offset_seconds.to_string());
-                        }
+                        let cmd_ffsubsync = crate::core::utils::build_ffsubsync_args(&tgt_clean, &raw_sub_path, &synced_sub_path, &cfg);
                         run_subprocess(&cmd_ffsubsync, Some(out_dir))?;
 
                         if let Ok(meta) = fs::metadata(&synced_sub_path) {
                             if meta.len() > 0 {
                                 final_sub_to_merge = synced_sub_path.clone();
                                 temp_files.push(synced_sub_path);
-                                log_line("      ✅ Sync successful.");
+                                log_line("      [Done] Sync successful.");
                             }
                         }
                     }
@@ -445,7 +416,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                             }
                             if let Some(ref full_audio_path) = extracted_audio_path {
                                 log_line(&format!(
-                                    "   🔄 Recalculating waveform sync at window {} ({})...",
+                                    "   [Sync] Recalculating waveform sync at window {} ({})...",
                                     sample_start, sample_duration
                                 ));
                                 let wav_ref = temp_dir
@@ -473,7 +444,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                                 if Path::new(&wav_ref).exists() && Path::new(&wav_src).exists() {
                                     audio_delay_ms = find_audio_delay(&wav_ref, &wav_src)?;
                                     log_line(&format!(
-                                        "   ⏱️  Recalculated delay: {} ms",
+                                        "   [Sync] Recalculated delay: {} ms",
                                         audio_delay_ms
                                     ));
                                     temp_files.push(wav_ref);
@@ -500,11 +471,18 @@ pub fn run_injection() -> Result<(), TaskError> {
             }
 
             if let Some(final_audio_path) = final_audio_to_merge {
+                let (a_lang, a_name) = if let Some(ref a_t) = selected_audio_track {
+                    let l = a_t.properties.as_ref().and_then(|p| p.language.as_deref()).unwrap_or("und");
+                    let n = a_t.properties.as_ref().and_then(|p| p.track_name.as_deref()).unwrap_or("Muxed Audio");
+                    (l, n)
+                } else {
+                    ("und", "Muxed Audio")
+                };
                 cmd.extend([
                     "--language".to_string(),
-                    "0:ita".to_string(),
+                    format!("0:{}", a_lang),
                     "--track-name".to_string(),
-                    "0:Muxed Audio".to_string(),
+                    format!("0:{}", a_name),
                     "--sync".to_string(),
                     format!("0:{}", audio_delay_ms),
                     final_audio_path,
@@ -512,11 +490,18 @@ pub fn run_injection() -> Result<(), TaskError> {
             }
 
             if let Some(final_sub_to_merge) = final_sub_path {
+                let (s_lang, s_name) = if let Some(ref s_t) = selected_sub_track {
+                    let l = s_t.properties.as_ref().and_then(|p| p.language.as_deref()).unwrap_or("und");
+                    let n = s_t.properties.as_ref().and_then(|p| p.track_name.as_deref()).unwrap_or("Muxed Sub");
+                    (l, n)
+                } else {
+                    ("und", "Muxed Sub")
+                };
                 cmd.extend([
                     "--language".to_string(),
-                    "0:ita".to_string(),
+                    format!("0:{}", s_lang),
                     "--track-name".to_string(),
-                    "0:Muxed Sub".to_string(),
+                    format!("0:{}", s_name),
                 ]);
                 if sub_delay_ms != 0 {
                     cmd.extend(["--sync".to_string(), format!("0:{}", sub_delay_ms)]);
@@ -525,7 +510,7 @@ pub fn run_injection() -> Result<(), TaskError> {
             }
 
             if do_attachments && has_attachments(&src_clean)? {
-                log_line("   📎 Importing attachments (Fonts/Images)...");
+                log_line("   [Attachments] Importing attachments (Fonts/Images)...");
                 cmd.extend([
                     "--no-video".to_string(),
                     "--no-audio".to_string(),
@@ -537,7 +522,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                 ]);
             }
 
-            log_line("   [mkvmerge] 💾 Writing MKV file...");
+            log_line("   [mkvmerge] [Mux] Writing MKV file...");
             let returncode = run_subprocess(&cmd, Some(out_dir))?;
 
             for t in temp_files {
@@ -545,7 +530,7 @@ pub fn run_injection() -> Result<(), TaskError> {
             }
 
             if returncode != 0 {
-                log_line("   ❌ ERROR during muxing.");
+                log_line("   [Error] ERROR during muxing.");
             } else {
                 let rel_sub = compute_relative_subfolder(&tgt_folder, &tgt_clean);
                 let display_saved = if rel_sub.as_os_str().is_empty() {
@@ -553,7 +538,7 @@ pub fn run_injection() -> Result<(), TaskError> {
                 } else {
                     rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
                 };
-                log_line(&format!("   ✅ Done -> {}", display_saved));
+                log_line(&format!("   [Done] -> {}", display_saved));
             }
         }
     }

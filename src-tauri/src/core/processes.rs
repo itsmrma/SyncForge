@@ -17,8 +17,24 @@ pub struct CompletedProcess {
     pub stderr: String,
 }
 
-/// Returns the search directories for external CLI tools across all platforms.
+static CACHED_SEARCH_DIRS: std::sync::RwLock<Option<Vec<PathBuf>>> = std::sync::RwLock::new(None);
+
+pub fn clear_search_directories_cache() {
+    *CACHED_SEARCH_DIRS.write().unwrap() = None;
+}
+
+/// Returns the search directories for external CLI tools across all platforms,
+/// using a thread-safe cache to avoid redundant filesystem lookups.
 pub fn get_search_directories() -> Vec<PathBuf> {
+    if let Some(ref dirs) = *CACHED_SEARCH_DIRS.read().unwrap() {
+        return dirs.clone();
+    }
+    let dirs = compute_search_directories();
+    *CACHED_SEARCH_DIRS.write().unwrap() = Some(dirs.clone());
+    dirs
+}
+
+fn compute_search_directories() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
     // Look in the same directory as the SyncForge executable and portable subdirectories
@@ -353,7 +369,7 @@ pub fn external_tool_environment_from(env: &mut HashMap<String, String>, is_linu
 pub fn start_process(
     cmd: &[String],
     cwd: Option<&Path>,
-    capture: bool,
+    _capture: bool,
 ) -> Result<Child, TaskError> {
     check_cancelled()?;
     if cmd.is_empty() {
@@ -371,11 +387,7 @@ pub fn start_process(
     command.envs(external_tool_environment());
     command.stdin(Stdio::null());
     command.stdout(Stdio::piped());
-    if capture {
-        command.stderr(Stdio::piped());
-    } else {
-        command.stderr(Stdio::piped());
-    }
+    command.stderr(Stdio::piped());
 
     #[cfg(windows)]
     {

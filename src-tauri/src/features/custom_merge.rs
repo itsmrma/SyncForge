@@ -31,7 +31,7 @@ struct MergeAction {
 
 pub fn run_custom_merge() -> Result<(), TaskError> {
     log_line("\n--- MODE 4: CUSTOM MERGE FROM TWO SOURCES (SMART BATCH) ---");
-    log_line("ℹ️ Direct remux: combines selected tracks without altering timing or audio sync.");
+    log_line("[Info] Direct remux: combines selected tracks without altering timing or audio sync.");
     let folder_a = ask_directory("Select Folder A (Base Video + Audio/Subs)")?;
     let folder_b = ask_directory("Select Folder B (Additional Audio/Subs)")?;
     if folder_a.is_empty() || folder_b.is_empty() {
@@ -50,7 +50,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing structure of pairs and dividing into groups...");
+    log_line("\n[Analyze] Analyzing structure of pairs and dividing into groups...");
     let mut groups: Vec<(String, MergeGroup)> = Vec::new();
     let total_pairs_count = pairs.len();
     for (idx, (f_a, f_b)) in pairs.iter().enumerate() {
@@ -86,7 +86,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "✅ Found {} pairs, grouped into {} distinct structures.",
+        "[Info] Found {} pairs, grouped into {} distinct structures.",
         pairs.len(),
         groups.len()
     ));
@@ -108,7 +108,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
 
         log_line(&format!("\n{}", "=".repeat(60)));
         log_line(&format!(
-            "📦 BATCH {}/{} - Contains {} pairs:",
+            "[Batch {}/{} - Contains {} pairs:",
             i,
             total_groups,
             pairs_in_group.len()
@@ -149,7 +149,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_default();
-                format!("{} ➔ {}", name_a, name_b)
+                format!("{} -> {}", name_a, name_b)
             })
             .collect();
 
@@ -249,7 +249,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
         let mut do_opus = false;
         if !kept_audio_tracks.is_empty() {
             if cfg.opus_mode == "always" {
-                log_line("   🎵 Opus conversion enabled [from global settings]");
+                log_line("   [Opus] Conversion enabled [from global settings]");
                 do_opus = true;
             } else if cfg.opus_mode == "prompt" {
                 let prompt_text = format!(
@@ -296,14 +296,14 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
     }
 
     log_line(&format!("\n{}", "=".repeat(60)));
-    log_line("🚀 MULTI-BATCH PROCESSING PHASE");
+    log_line("MULTI-BATCH PROCESSING PHASE");
     log_line(&"=".repeat(60));
 
     let total_pairs: usize = actions_to_execute.iter().map(|a| a.pairs.len()).sum();
     let mut processed_idx = 0;
 
     for (batch_idx, action) in actions_to_execute.into_iter().enumerate() {
-        log_line(&format!("\n💾 Processing Batch {}...", batch_idx + 1));
+        log_line(&format!("\n[Process] Processing Batch {}...", batch_idx + 1));
         for (f_a, f_b) in action.pairs {
             let clean_a_buf = normalize_path(Path::new(&f_a));
             let clean_b_buf = normalize_path(Path::new(&f_b));
@@ -326,6 +326,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                 .prefix("syncforge_merge_")
                 .tempdir_in(out_dir)?;
             let mut temp_files: Vec<String> = Vec::new();
+            let mut opus_converted_tracks: Vec<(String, Option<Track>)> = Vec::new();
 
             let mut cmd = vec![
                 "mkvmerge".to_string(),
@@ -343,6 +344,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                         .iter()
                         .position(|t| t.id == *track_id)
                         .unwrap_or(0);
+                    let t_meta = action.tracks_a_audio.iter().find(|t| t.id == *track_id).cloned();
                     let opus_file = convert_audio_track_to_opus(
                         &clean_a_str,
                         idx,
@@ -351,7 +353,8 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                         out_dir,
                         &filename,
                     )?;
-                    temp_files.push(opus_file);
+                    temp_files.push(opus_file.clone());
+                    opus_converted_tracks.push((opus_file, t_meta));
                 }
                 cmd.push("--no-audio".to_string());
             } else if !action.keep_a_audio.is_empty() {
@@ -394,6 +397,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                         .iter()
                         .position(|t| t.id == *track_id)
                         .unwrap_or(0);
+                    let t_meta = action.tracks_b_audio.iter().find(|t| t.id == *track_id).cloned();
                     let opus_file = convert_audio_track_to_opus(
                         &clean_b_str,
                         idx,
@@ -402,7 +406,8 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
                         out_dir,
                         &filename,
                     )?;
-                    temp_files.push(opus_file);
+                    temp_files.push(opus_file.clone());
+                    opus_converted_tracks.push((opus_file, t_meta));
                 }
                 cmd.push("--no-audio".to_string());
             } else if !action.keep_b_audio.is_empty() {
@@ -435,8 +440,36 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
 
             cmd.push(clean_b_str);
 
-            // Append any converted opus audio tracks
-            for opus_file in &temp_files {
+            // Append any converted opus audio tracks with preserved metadata
+            for (opus_file, track_opt) in &opus_converted_tracks {
+                if let Some(ref t) = track_opt {
+                    let props = t.properties.as_ref();
+                    let lang = props.and_then(|p| p.language.as_deref()).unwrap_or("und");
+                    let name = props.and_then(|p| p.track_name.as_deref()).unwrap_or("");
+                    cmd.push("--language".to_string());
+                    cmd.push(format!("0:{}", lang));
+                    if !name.is_empty() {
+                        cmd.push("--track-name".to_string());
+                        cmd.push(format!("0:{} (Opus)", name));
+                    } else {
+                        cmd.push("--track-name".to_string());
+                        cmd.push("0:Opus".to_string());
+                    }
+                    if props.and_then(|p| p.default_track).unwrap_or(false) {
+                        cmd.push("--default-track".to_string());
+                        cmd.push("0:1".to_string());
+                    } else {
+                        cmd.push("--default-track".to_string());
+                        cmd.push("0:0".to_string());
+                    }
+                    if props.and_then(|p| p.forced_track).unwrap_or(false) {
+                        cmd.push("--forced-track".to_string());
+                        cmd.push("0:1".to_string());
+                    } else {
+                        cmd.push("--forced-track".to_string());
+                        cmd.push("0:0".to_string());
+                    }
+                }
                 cmd.push(opus_file.clone());
             }
 
@@ -446,7 +479,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
             }
 
             if returncode != 0 {
-                log_line(&format!("   ❌ Error writing {}", base_name));
+                log_line(&format!("   [Error] Error writing {}", base_name));
             } else {
                 let rel_sub = compute_relative_subfolder(&folder_a, &clean_a_str);
                 let display_saved = if rel_sub.as_os_str().is_empty() {
@@ -460,7 +493,7 @@ pub fn run_custom_merge() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "\n✅ Operations complete! Files saved to: {}",
+        "\n[Done] Operations complete! Files saved to: {}",
         out_folder
     ));
     Ok(())

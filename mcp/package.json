@@ -1,6 +1,6 @@
 {
   "name": "syncforge-mcp",
-  "version": "3.3.1",
+  "version": "3.5.2",
   "description": "Model Context Protocol (MCP) server for SyncForge - AI Agent integration for media inspection, audio waveform delay synchronization, subtitle alignment, and lossless MKV remuxing",
   "type": "module",
   "main": "index.js",

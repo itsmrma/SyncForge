@@ -90,7 +90,9 @@ export default function MatcherDialog({
   };
 
   const handleAutoMatch = () => {
-    const remaining = [...sources.filter((s) => !s.isGap && s.path)];
+    const remaining = sources
+      .filter((s) => !s.isGap && s.path)
+      .map((s) => ({ item: s, key: extractEpisodeKey(s.path) }));
     const matched = new Array(state.targets.length).fill(null);
 
     state.targets.forEach((targetPath, tIdx) => {
@@ -99,23 +101,20 @@ export default function MatcherDialog({
 
       let matchIdx = -1;
       if (tKey.season !== null) {
-        matchIdx = remaining.findIndex((s) => {
-          const sKey = extractEpisodeKey(s.path);
-          return (
-            sKey &&
-            sKey.season === tKey.season &&
-            sKey.episode === tKey.episode
-          );
-        });
+        matchIdx = remaining.findIndex(
+          (cand) =>
+            cand.key &&
+            cand.key.season === tKey.season &&
+            cand.key.episode === tKey.episode
+        );
       }
       if (matchIdx === -1) {
-        matchIdx = remaining.findIndex((s) => {
-          const sKey = extractEpisodeKey(s.path);
-          return sKey && sKey.episode === tKey.episode;
-        });
+        matchIdx = remaining.findIndex(
+          (cand) => cand.key && cand.key.episode === tKey.episode
+        );
       }
       if (matchIdx !== -1) {
-        matched[tIdx] = remaining.splice(matchIdx, 1)[0];
+        matched[tIdx] = remaining.splice(matchIdx, 1)[0].item;
       }
     });
 
@@ -124,10 +123,10 @@ export default function MatcherDialog({
       if (matched[i]) {
         newOrder.push(matched[i]);
       } else if (remaining.length > 0) {
-        newOrder.push(remaining.shift());
+        newOrder.push(remaining.shift().item);
       }
     }
-    newOrder.push(...remaining);
+    newOrder.push(...remaining.map((r) => r.item));
     onReorder(newOrder);
   };
 

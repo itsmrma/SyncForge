@@ -1,3 +1,4 @@
+import { VERSION } from './version.js';
 import { getSystemHealth } from './media.js';
 import { getConfigFilePath, getSavedOpenSubtitlesConfig } from './opensubtitles.js';
 
@@ -76,7 +77,7 @@ export async function getResource(uri) {
     const configPath = getConfigFilePath();
     const subConfig = getSavedOpenSubtitlesConfig();
     const config = {
-      version: '3.3.1',
+      version: VERSION,
       config_file_path: configPath,
       opensubtitles: {
         configured: Boolean(subConfig.apiKey),

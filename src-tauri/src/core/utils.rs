@@ -119,10 +119,35 @@ pub fn reset_file_progress() {
     }
 }
 
+pub fn build_ffsubsync_args(
+    ref_input: &str,
+    raw_sub: &str,
+    output_sub: &str,
+    cfg: &crate::core::config::RuntimeConfig,
+) -> Vec<String> {
+    let mut cmd = vec![
+        "ffsubsync".to_string(),
+        ref_input.to_string(),
+        "-i".to_string(),
+        raw_sub.to_string(),
+        "-o".to_string(),
+        output_sub.to_string(),
+    ];
+    if cfg.enable_max_offset && cfg.max_offset_seconds > 0 {
+        cmd.push("--max-offset-seconds".to_string());
+        cmd.push(cfg.max_offset_seconds.to_string());
+    }
+    cmd
+}
+
 pub fn parse_progress_percent(line: &str) -> Option<f64> {
-    let lower = line.to_lowercase();
-    if let Some(pos) = lower.find("progress:") {
-        let slice = lower[pos + 9..].trim_start();
+    let bytes = line.as_bytes();
+    let prog_needle = b"progress:";
+    let prog_pos = bytes.windows(prog_needle.len()).position(|w| {
+        w.iter().zip(prog_needle.iter()).all(|(&b1, &b2)| b1.to_ascii_lowercase() == b2)
+    });
+    if let Some(pos) = prog_pos {
+        let slice = line[pos + prog_needle.len()..].trim_start();
         let num_str: String = slice.chars().take_while(|c| c.is_ascii_digit()).collect();
         if let Ok(val) = num_str.parse::<f64>() {
             return Some(val.clamp(0.0, 100.0));
@@ -142,7 +167,7 @@ pub fn parse_progress_percent(line: &str) -> Option<f64> {
         if !digits.is_empty() {
             if let Ok(val) = digits.parse::<f64>() {
                 let after = line[pct_pos + 1..].trim_start();
-                if after.starts_with('|') || lower.contains("sync") {
+                if after.starts_with('|') || line.to_ascii_lowercase().contains("sync") {
                     return Some(val.clamp(0.0, 100.0));
                 }
             }

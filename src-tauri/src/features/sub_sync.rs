@@ -66,18 +66,7 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
 
         if cfg.auto_sync_subs {
             log_line("   [ffsubsync] Synchronizing subtitles...");
-            let mut cmd_ffsubsync = vec![
-                "ffsubsync".to_string(),
-                v_clean.clone(),
-                "-i".to_string(),
-                s_clean.clone(),
-                "-o".to_string(),
-                synced.clone(),
-            ];
-            if cfg.enable_max_offset && cfg.max_offset_seconds > 0 {
-                cmd_ffsubsync.push("--max-offset-seconds".to_string());
-                cmd_ffsubsync.push(cfg.max_offset_seconds.to_string());
-            }
+            let cmd_ffsubsync = crate::core::utils::build_ffsubsync_args(&v_clean, &s_clean, &synced, &cfg);
             run_subprocess(&cmd_ffsubsync, None)?;
         } else {
             fs::copy(&s_clean_buf, &synced)
@@ -154,7 +143,7 @@ pub fn run_sync_subs() -> Result<(), TaskError> {
                 } else {
                     rel_sub.join(out.file_name().unwrap_or_default()).to_string_lossy().to_string()
                 };
-                log_line(&format!("   ✅ Saved: {}", display_saved));
+                log_line(&format!("   [Done] Saved: {}", display_saved));
             }
         }
     }
@@ -188,7 +177,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
         return Ok(());
     }
 
-    log_line("\n🔍 Analyzing SOURCE file structures and dividing into groups...");
+    log_line("\n[Analyze] Analyzing SOURCE file structures and dividing into groups...");
     let mut groups: Vec<(String, SubMkvGroup)> = Vec::new();
     let total_pairs_count = pairs.len();
     for (idx, (tgt, src)) in pairs.iter().enumerate() {
@@ -214,7 +203,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "✅ Found {} pairs, grouped into {} distinct source structures.",
+        "[Info] Found {} pairs, grouped into {} distinct source structures.",
         pairs.len(),
         groups.len()
     ));
@@ -231,7 +220,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
 
         log_line(&format!("\n{}", "=".repeat(60)));
         log_line(&format!(
-            "📦 BATCH {}/{} - Contains {} pairs:",
+            "[Batch {}/{} - Contains {} pairs:",
             i,
             total_groups,
             pairs_in_group.len()
@@ -243,7 +232,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
             &format!("Batch {}/{}", i, total_groups),
         )?
         else {
-            log_line("⏭️ No subtitle track selected, skipping batch.");
+            log_line("[Skip] No subtitle track selected, skipping batch.");
             continue;
         };
 
@@ -277,32 +266,11 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
             let mut temp_files: Vec<String> = Vec::new();
 
             log_line(&format!(
-                "   [mkvextract] 📝 Extracting Sub ID {}...",
+                "   [mkvextract] [Extract] Extracting Sub ID {}...",
                 selected_sub_track.id
             ));
-            let codec_id = selected_sub_track
-                .properties
-                .as_ref()
-                .and_then(|p| p.codec_id.as_deref())
-                .unwrap_or("")
-                .to_uppercase();
-            let codec_name = selected_sub_track
-                .codec
-                .as_deref()
-                .unwrap_or("")
-                .to_uppercase();
 
-            let (sub_ext, can_sync) =
-                if codec_id.contains("ASS") || codec_id.contains("SSA") || codec_name.contains("ASS")
-                {
-                    (".ass", true)
-                } else if codec_id.contains("PGS") || codec_name.contains("PG") {
-                    (".sup", false)
-                } else if codec_id.contains("VOBSUB") {
-                    (".sub", false)
-                } else {
-                    (".srt", true)
-                };
+            let (sub_ext, can_sync) = crate::core::mkv_tools::get_subtitle_extension_and_syncability(&selected_sub_track);
 
             let raw_sub_path = temp_dir
                 .path()
@@ -340,30 +308,19 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
             if Path::new(&raw_sub_path).exists() {
                 if can_sync && cfg.auto_sync_subs {
                     log_line("      [ffsubsync] [Sync] Running ffsubsync...");
-                    let mut cmd_ffsubsync = vec![
-                        "ffsubsync".to_string(),
-                        tgt_clean.clone(),
-                        "-i".to_string(),
-                        raw_sub_path.clone(),
-                        "-o".to_string(),
-                        synced_sub_path.clone(),
-                    ];
-                    if cfg.enable_max_offset && cfg.max_offset_seconds > 0 {
-                        cmd_ffsubsync.push("--max-offset-seconds".to_string());
-                        cmd_ffsubsync.push(cfg.max_offset_seconds.to_string());
-                    }
+                    let cmd_ffsubsync = crate::core::utils::build_ffsubsync_args(&tgt_clean, &raw_sub_path, &synced_sub_path, &cfg);
                     run_subprocess(&cmd_ffsubsync, Some(out_dir))?;
 
                     if let Ok(meta) = fs::metadata(&synced_sub_path) {
                         if meta.len() > 0 {
                             final_sub_to_merge = synced_sub_path.clone();
                             temp_files.push(synced_sub_path);
-                            log_line("      ✅ Sync successful.");
+                            log_line("      [Done] Sync successful.");
                         } else {
-                            log_line("      ⚠️ Sync failed or impossible. Using original.");
+                            log_line("      [Warning] Sync failed or impossible. Using original.");
                         }
                     } else {
-                        log_line("      ⚠️ Sync failed or impossible. Using original.");
+                        log_line("      [Warning] Sync failed or impossible. Using original.");
                     }
                 } else if can_sync && !cfg.auto_sync_subs {
                     log_line("      [Sync] Skipped (disabled in settings). Using original.");
@@ -426,7 +383,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                 cmd.push(final_sub_to_merge);
                 let returncode = run_subprocess(&cmd, Some(out_dir))?;
                 if returncode != 0 {
-                    log_line("   ❌ ERROR during muxing.");
+                    log_line("   [Error] ERROR during muxing.");
                 } else {
                     let rel_sub = compute_relative_subfolder(&tgt_folder, &tgt_clean);
                     let display_saved = if rel_sub.as_os_str().is_empty() {
@@ -434,7 +391,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
                     } else {
                         rel_sub.join(out_file.file_name().unwrap_or_default()).to_string_lossy().to_string()
                     };
-                    log_line(&format!("   ✅ Done -> {}", display_saved));
+                    log_line(&format!("   [Done] -> {}", display_saved));
                 }
             }
 
@@ -445,7 +402,7 @@ pub fn run_sync_subs_from_mkv() -> Result<(), TaskError> {
     }
 
     log_line(&format!(
-        "\n✅ All files processed and saved in: {}",
+        "\n[Done] All files processed and saved in: {}",
         out_folder
     ));
     Ok(())
