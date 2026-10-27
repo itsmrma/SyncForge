@@ -2,6 +2,7 @@
 
 ## 3.5.3 - Cross-Platform Automatic Updates & Windows Installer
 
+- **New SyncForge Logo**: Adopted the stream-merge and audio-spectrum logo throughout the app sidebar, favicon, desktop application and installer icons, and project previews. Refreshed release packages retain version 3.5.3.
 - **Separate Windows Downloads**: Releases now include an NSIS installer (`SyncForge-Windows-3.5.3-setup.exe`) and a clearly named portable executable (`SyncForge-Windows-3.5.3-portable.exe`). Standalone CLI downloads remain available.
 - **Cross-Platform Automatic Updates**: The Windows installer edition, macOS app bundle, and Linux AppImage check GitHub Releases at startup and every four hours, download signed updates in the background, and show a persistent notification when ready. Automatic downloads can be disabled in Settings.
 - **Restart to Install**: A new Application updates section at the bottom of General settings shows the installed version, download progress, release notes, retry controls, and Restart to install. Installation waits for media tasks to finish and restarts the app after updating.

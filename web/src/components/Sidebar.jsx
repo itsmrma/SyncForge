@@ -21,8 +21,12 @@ import { DEFAULT_SHORTCUTS, formatCompactShortcut, formatShortcutDisplay } from 
 function SyncForgeLogo({ size = 32 }) {
   return (
     <Box
-      component="svg"
-      viewBox="0 0 1024 1024"
+      component="img"
+      src="/icon.svg"
+      alt="SyncForge logo"
+      width={size}
+      height={size}
+      draggable={false}
       sx={{
         width: size,
         height: size,
@@ -33,144 +37,7 @@ function SyncForgeLogo({ size = 32 }) {
             ? '0 1px 3px rgba(15, 23, 42, 0.15), 0 1px 2px rgba(15, 23, 42, 0.10)'
             : '0 2px 8px rgba(0, 0, 0, 0.55)',
       }}
-    >
-      <defs>
-        <linearGradient id="sf-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#080C14" />
-          <stop offset="50%" stopColor="#0F172A" />
-          <stop offset="100%" stopColor="#05080E" />
-        </linearGradient>
-        <linearGradient id="sf-panel" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#1E293B" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#0F172A" stopOpacity="0.95" />
-        </linearGradient>
-        <linearGradient id="sf-border" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#6366F1" stopOpacity="0.6" />
-          <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#A855F7" stopOpacity="0.6" />
-        </linearGradient>
-        <linearGradient id="sf-vtrack" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#4F46E5" />
-          <stop offset="50%" stopColor="#6366F1" />
-          <stop offset="100%" stopColor="#818CF8" />
-        </linearGradient>
-        <linearGradient id="sf-atrack" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#0284C7" />
-          <stop offset="50%" stopColor="#38BDF8" />
-          <stop offset="100%" stopColor="#22D3EE" />
-        </linearGradient>
-        <linearGradient id="sf-strack" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#059669" />
-          <stop offset="50%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#34D399" />
-        </linearGradient>
-      </defs>
-
-      <rect width="1024" height="1024" rx="224" fill="url(#sf-bg)" />
-      <rect x="36" y="36" width="952" height="952" rx="196" fill="none" stroke="url(#sf-border)" strokeWidth="12" />
-
-      {/* Top & Bottom Filmstrip Sprockets */}
-      <g fill="#334155" opacity="0.45">
-        <rect x="180" y="140" width="60" height="44" rx="10" />
-        <rect x="280" y="140" width="60" height="44" rx="10" />
-        <rect x="380" y="140" width="60" height="44" rx="10" />
-        <rect x="480" y="140" width="60" height="44" rx="10" />
-        <rect x="580" y="140" width="60" height="44" rx="10" />
-        <rect x="680" y="140" width="60" height="44" rx="10" />
-        <rect x="780" y="140" width="60" height="44" rx="10" />
-
-        <rect x="180" y="840" width="60" height="44" rx="10" />
-        <rect x="280" y="840" width="60" height="44" rx="10" />
-        <rect x="380" y="840" width="60" height="44" rx="10" />
-        <rect x="480" y="840" width="60" height="44" rx="10" />
-        <rect x="580" y="840" width="60" height="44" rx="10" />
-        <rect x="680" y="840" width="60" height="44" rx="10" />
-        <rect x="780" y="840" width="60" height="44" rx="10" />
-      </g>
-
-      {/* Timeline Editor Workstation Panel */}
-      <rect x="150" y="216" width="724" height="592" rx="28" fill="url(#sf-panel)" stroke="#475569" strokeOpacity="0.3" strokeWidth="4" />
-
-      {/* Track 1: Video Track (V1) */}
-      <rect x="180" y="248" width="664" height="150" rx="16" fill="#0B1120" stroke="#334155" strokeOpacity="0.4" strokeWidth="2" />
-      <rect x="194" y="260" width="280" height="126" rx="12" fill="url(#sf-vtrack)" />
-      <rect x="210" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="240,315 252,323 240,331" fill="#FFFFFF" opacity="0.8" />
-      <rect x="290" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="320,315 332,323 320,331" fill="#FFFFFF" opacity="0.8" />
-      <rect x="370" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="400,315 412,323 400,331" fill="#FFFFFF" opacity="0.8" />
-
-      <rect x="484" y="260" width="344" height="126" rx="12" fill="url(#sf-vtrack)" opacity="0.85" />
-      <rect x="500" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="530,315 542,323 530,331" fill="#FFFFFF" opacity="0.8" />
-      <rect x="580" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="610,315 622,323 610,331" fill="#FFFFFF" opacity="0.8" />
-      <rect x="660" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="690,315 702,323 690,331" fill="#FFFFFF" opacity="0.8" />
-      <rect x="740" y="274" width="70" height="98" rx="8" fill="#1E1B4B" opacity="0.6" />
-      <polygon points="770,315 782,323 770,331" fill="#FFFFFF" opacity="0.8" />
-
-      {/* Track 2: Audio Waveform Track (A1) */}
-      <rect x="180" y="422" width="664" height="150" rx="16" fill="#0B1120" stroke="#334155" strokeOpacity="0.4" strokeWidth="2" />
-      <rect x="194" y="434" width="634" height="126" rx="12" fill="#082F49" stroke="#0284C7" strokeOpacity="0.5" strokeWidth="2" />
-      <g fill="url(#sf-atrack)">
-        <rect x="212" y="482" width="10" height="30" rx="5" />
-        <rect x="230" y="467" width="10" height="60" rx="5" />
-        <rect x="248" y="455" width="10" height="84" rx="5" />
-        <rect x="266" y="470" width="10" height="54" rx="5" />
-        <rect x="284" y="460" width="10" height="74" rx="5" />
-        <rect x="302" y="447" width="10" height="100" rx="5" />
-        <rect x="320" y="465" width="10" height="64" rx="5" />
-        <rect x="338" y="450" width="10" height="94" rx="5" />
-        <rect x="356" y="462" width="10" height="70" rx="5" />
-        <rect x="374" y="472" width="10" height="50" rx="5" />
-        <rect x="392" y="452" width="10" height="90" rx="5" />
-        <rect x="410" y="445" width="10" height="104" rx="5" />
-        <rect x="428" y="460" width="10" height="74" rx="5" />
-        <rect x="446" y="468" width="10" height="58" rx="5" />
-        <rect x="464" y="454" width="10" height="86" rx="5" />
-        <rect x="482" y="442" width="10" height="110" rx="5" />
-        <rect x="500" y="450" width="10" height="94" rx="5" />
-        <rect x="518" y="440" width="10" height="114" rx="5" />
-        <rect x="536" y="448" width="10" height="98" rx="5" />
-        <rect x="554" y="458" width="10" height="78" rx="5" />
-        <rect x="572" y="445" width="10" height="104" rx="5" />
-        <rect x="590" y="465" width="10" height="64" rx="5" />
-        <rect x="608" y="452" width="10" height="90" rx="5" />
-        <rect x="626" y="460" width="10" height="74" rx="5" />
-        <rect x="644" y="470" width="10" height="54" rx="5" />
-        <rect x="662" y="455" width="10" height="84" rx="5" />
-        <rect x="680" y="448" width="10" height="98" rx="5" />
-        <rect x="698" y="464" width="10" height="66" rx="5" />
-        <rect x="716" y="452" width="10" height="90" rx="5" />
-        <rect x="734" y="468" width="10" height="58" rx="5" />
-        <rect x="752" y="458" width="10" height="78" rx="5" />
-        <rect x="770" y="472" width="10" height="50" rx="5" />
-        <rect x="788" y="482" width="10" height="30" rx="5" />
-      </g>
-
-      {/* Track 3: Subtitle Track (S1) */}
-      <rect x="180" y="596" width="664" height="110" rx="16" fill="#0B1120" stroke="#334155" strokeOpacity="0.4" strokeWidth="2" />
-      <rect x="230" y="612" width="260" height="78" rx="12" fill="url(#sf-strack)" />
-      <rect x="250" y="632" width="160" height="14" rx="7" fill="#064E3B" opacity="0.6" />
-      <rect x="250" y="654" width="200" height="14" rx="7" fill="#064E3B" opacity="0.6" />
-
-      <rect x="520" y="612" width="280" height="78" rx="12" fill="url(#sf-strack)" opacity="0.9" />
-      <rect x="540" y="632" width="200" height="14" rx="7" fill="#064E3B" opacity="0.6" />
-      <rect x="540" y="654" width="150" height="14" rx="7" fill="#064E3B" opacity="0.6" />
-
-      {/* Video Timecode Bar */}
-      <rect x="180" y="726" width="664" height="60" rx="12" fill="#090D16" stroke="#1E293B" strokeWidth="2" />
-
-      {/* Playhead & Sync Cursor */}
-      <line x1="523" y1="216" x2="523" y2="786" stroke="#38BDF8" strokeWidth="6" opacity="0.8" />
-      <line x1="523" y1="216" x2="523" y2="786" stroke="#FFFFFF" strokeWidth="3" />
-      <polygon points="503,196 543,196 543,222 523,242 503,222" fill="#38BDF8" />
-      <polygon points="507,200 539,200 539,220 523,236 507,220" fill="#FFFFFF" />
-      <circle cx="523" cy="584" r="14" fill="#F59E0B" opacity="0.9" />
-      <path d="M 523 560 Q 523 584 547 584 Q 523 584 523 608 Q 523 584 499 584 Q 523 584 523 560 Z" fill="#FFFFFF" />
-    </Box>
+    />
   );
 }
 

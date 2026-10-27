@@ -1,7 +1,7 @@
 {
   "version": 1,
   "historyId": "82e63eed-002a-4467-b70a-62801e620b7e",
-  "currentRevision": "be94aa03-7883-4a0a-9629-f44b0bf5a30d",
+  "currentRevision": "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e",
   "pendingChanges": false,
   "files": {
     "assets/sfx/impact/impactBell_heavy_000.ogg": {
@@ -25,12 +25,16 @@
       "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\3b\\3b74efad87f1e69dbd1d05c5ad952ab90859b5a3d11da6ec5bd79b4f03b42afa"
     },
     "index.html": {
-      "hash": "68eb4ea8187f1bc2a7075c44f71e081e6a33950fa94c85f5109ad8a942ce521f",
-      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\68\\68eb4ea8187f1bc2a7075c44f71e081e6a33950fa94c85f5109ad8a942ce521f"
+      "hash": "12161fcebc017a846e7d7468a3e42e07c2bac606ff98d4eac36134fd9bbd1703",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\12\\12161fcebc017a846e7d7468a3e42e07c2bac606ff98d4eac36134fd9bbd1703"
     },
     "assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3": {
       "hash": "5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1",
       "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\58\\5888d4bd2ba0119b87a94e502ae2cc401c08192945cc5e5c2f8e8a33aa47a0a1"
+    },
+    ".media/manifest.jsonl": {
+      "hash": "289659a61b2ba5afce1df9e4d426d31863adcaa648729f4b89e719e38c13df15",
+      "content": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\28\\289659a61b2ba5afce1df9e4d426d31863adcaa648729f4b89e719e38c13df15"
     }
   },
   "revisions": {
@@ -93,17 +97,34 @@
           "after": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\68\\68eb4ea8187f1bc2a7075c44f71e081e6a33950fa94c85f5109ad8a942ce521f"
         }
       }
+    },
+    "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e": {
+      "actor": {
+        "kind": "agent",
+        "name": "codex"
+      },
+      "label": "Replace SyncForge branding with approved merge-spectrum logo",
+      "startedAt": 1793141949618,
+      "endedAt": 1793142015123.6277,
+      "files": {
+        ".media/manifest.jsonl": {
+          "before": null,
+          "after": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\28\\289659a61b2ba5afce1df9e4d426d31863adcaa648729f4b89e719e38c13df15"
+        },
+        "index.html": {
+          "before": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\68\\68eb4ea8187f1bc2a7075c44f71e081e6a33950fa94c85f5109ad8a942ce521f",
+          "after": "C:\\Users\\mbena\\.cache\\hyperframes\\history\\82e63eed-002a-4467-b70a-62801e620b7e\\blobs\\12\\12161fcebc017a846e7d7468a3e42e07c2bac606ff98d4eac36134fd9bbd1703"
+        }
+      }
     }
   },
   "checks": {
     "latest": {
-      "revision": "be94aa03-7883-4a0a-9629-f44b0bf5a30d",
-      "id": "b5bbf676-3d2f-49ad-a07d-779afb6a5a34"
+      "revision": "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e",
+      "id": "9c2b109f-0045-41db-9360-49f824190851"
     },
     "revisions": {
       "8dc92062-6d74-48c8-80c3-12c669e5b2ce": [],
-      "4f2134b5-84b3-4618-87a5-72f8930b3147": [],
-      "258c3007-b001-4fa4-9e9c-91f9b39f8026": [],
       "55cc0a52-aee6-4e73-b19d-ece302cde381": [
         {
           "id": "6cfa610d-8de9-4bb8-ba0e-baa671168f97",
@@ -162,6 +183,35 @@
           "inputScope": "local-project-files",
           "attribution": "recorded-revision"
         }
+      ],
+      "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e": [
+        {
+          "id": "9c2b109f-0045-41db-9360-49f824190851",
+          "scope": "project",
+          "report": "C:\\Users\\mbena\\Documents\\SyncForge\\brag-output\\composition\\.hyperframes\\artifacts\\checks\\9c2b109f-0045-41db-9360-49f824190851.json",
+          "metadata": {
+            "ok": true,
+            "browserSkipped": false,
+            "options": {
+              "samples": 9,
+              "atTransitions": false,
+              "maxIssues": 80,
+              "collapseStatic": true,
+              "tolerance": 2,
+              "timeout": 10000,
+              "contrast": true,
+              "strict": false,
+              "snapshots": false,
+              "browserGpuMode": "auto"
+            }
+          },
+          "createdAt": 1793142034041,
+          "contentHash": "1b60d16e07489454c7373080673b5c6fd03bfe16af215ad4285281b61ef2fdd8",
+          "revision": "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e",
+          "inputFingerprint": "eac37d5b2dbebaafebc92e1edda056f87ca143dd25c691f972737c2469453006",
+          "inputScope": "local-project-files",
+          "attribution": "recorded-revision"
+        }
       ]
     },
     "unversioned": []
@@ -173,15 +223,15 @@
   },
   "renders": {
     "latest": {
-      "id": "680a676d-8a07-4b32-973d-67e321f03a9a",
-      "completedAt": 1792428531615,
+      "id": "4aeddc99-35df-4b5b-a7f7-6e6f178bc6ff",
+      "completedAt": 1793142102167,
       "output": "C:\\Users\\mbena\\Documents\\SyncForge\\brag-output\\brag.mp4",
       "status": "completed",
-      "revision": "be94aa03-7883-4a0a-9629-f44b0bf5a30d"
+      "revision": "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e"
     },
     "retainedRevisions": [
-      "be94aa03-7883-4a0a-9629-f44b0bf5a30d",
-      "258c3007-b001-4fa4-9e9c-91f9b39f8026"
+      "3b2e4d77-9f86-4b2b-af0b-b98ff5fdaa0e",
+      "be94aa03-7883-4a0a-9629-f44b0bf5a30d"
     ]
   },
   "pendingArtifactCleanup": []

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">SyncForge — Stream Merge Spectrum</title>
+  <desc id="desc">Indigo and sky-blue media streams converge into a white playback arrow. Three rounded audio spectrum bars form the central input stream.</desc>
+  <rect width="512" height="512" rx="112" fill="#090C12" />
+  <rect x="1" y="1" width="510" height="510" rx="111" stroke="#263044" stroke-width="2" />
+  <path d="M112 144H160C224 144 224 256 288 256H344" stroke="#818CF8" stroke-width="40" stroke-linecap="round" />
+  <path d="M112 368H160C224 368 224 256 288 256H344" stroke="#38BDF8" stroke-width="40" stroke-linecap="round" />
+  <g fill="#F1F5F9">
+    <rect x="102" y="232" width="20" height="48" rx="10" />
+    <rect x="136" y="208" width="20" height="96" rx="10" />
+    <rect x="170" y="232" width="20" height="48" rx="10" />
+  </g>
+  <path d="M224 256H344" stroke="#F1F5F9" stroke-width="40" stroke-linecap="round" />
+  <path d="M328 192L408 256L328 320V192Z" fill="#F1F5F9" />
+</svg>

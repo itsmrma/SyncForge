@@ -98,6 +98,10 @@ Visual anti-references are strictly defined: SyncForge rejects generic pastel Sa
 - High-contrast signal accents: Electric Forge Indigo (`#6366F1`) for primary actions, Signal Sky (`#38BDF8`) for subtitles, and Audio Match Emerald (`#34D399`) for verified tracks.
 - Studio patchbay ergonomics: tactile track selection cards, integrated adornment clear buttons, and drag-and-drop batch matcher slots.
 
+## Brand Logo
+
+The app mark combines converging indigo and sky-blue media streams, a white playback arrow, and three rounded audio-spectrum bars on a carbon-slate tile. The approved source is `src-tauri/icons/app-icon.svg`; `web/public/icon.svg` contains the same SVG and is shared by the sidebar and favicon. Use this artwork rather than drawing a separate inline logo. Regenerate all platform icons with `npx --prefix web tauri icon src-tauri/icons/app-icon.svg --output src-tauri/icons --ios-color '#090C12'`. Project previews use the same approved mark.
+
 ## Colors
 
 The palette is anchored in deep carbon obsidian neutrals, activated by high-contrast technical neon signals that guide the eye directly to action triggers, stream parameters, and pipeline states.
