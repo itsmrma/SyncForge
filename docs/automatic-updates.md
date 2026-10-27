@@ -26,10 +26,13 @@ successful replacement; failures leave the application open with an error.
 
 ## Platform notes
 
-macOS uses `signingIdentity: "-"` (ad-hoc signing). Tauri signs the universal bundle
-before producing the updater `.app.tar.gz` and signature. Packaging verifies the
-code signature and both Mach-O architectures, then copies that exact archive and
-signature. Never modify/re-sign the bundle after generating its updater archive.
+macOS uses `signingIdentity: "-"` (ad-hoc signing). The release workflow compiles
+without bundling, then explicitly merges the architecture-specific `syncforge-cli`
+binaries with `lipo`. Tauri merges the GUI automatically, but does not merge additional
+Cargo binaries. Both must exist in the universal output directory before `tauri bundle`
+signs the complete app and produces its updater `.app.tar.gz` and signature. Packaging
+verifies the code signature and both Mach-O architectures in both binaries, then copies
+that exact archive and signature. Never modify/re-sign the bundle after generating it.
 This does not require an Apple Developer account. The app is not Apple-notarized:
 Gatekeeper may require manual approval, and automatic updates do not remove that
 restriction. Keep the app in a normal application folder, not on a read-only disk.

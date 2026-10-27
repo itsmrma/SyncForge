@@ -28,6 +28,7 @@ jobs:
       working-directory: web
       run: |
         npm ci
+        node --test ../scripts/create-update-manifest.test.mjs ../scripts/release-build.test.mjs
         npm run lint
         npm run build
         npx playwright install --with-deps --only-shell chromium
@@ -107,7 +108,10 @@ jobs:
           exit 1
         fi
         if [ "${{ runner.os }}" = "macOS" ]; then
-          npx --prefix web tauri build --bundles app --target universal-apple-darwin
+          # Tauri merges only the main binary; the bundler also includes our second Cargo binary.
+          npx --prefix web tauri build --no-bundle --target universal-apple-darwin
+          lipo -create target/aarch64-apple-darwin/release/syncforge-cli target/x86_64-apple-darwin/release/syncforge-cli -output target/universal-apple-darwin/release/syncforge-cli
+          npx --prefix web tauri bundle --bundles app --target universal-apple-darwin
         elif [ "${{ runner.os }}" = "Windows" ]; then
           npx --prefix web tauri build --bundles nsis
         else
@@ -130,6 +134,7 @@ jobs:
           # Do not mutate the bundle after the updater archive/signature has been created.
           codesign --verify --deep --strict "$MACOS_BUNDLE/SyncForge.app"
           lipo -verify_arch x86_64 arm64 "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/SyncForge"
+          lipo -verify_arch x86_64 arm64 "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/syncforge-cli"
           codesign --force -s - target/release/syncforge-cli
           # Package .app preserving macOS permissions and resource forks
           ditto -c -k --sequesterRsrc --keepParent "$MACOS_BUNDLE/SyncForge.app" "dist/SyncForge-macOS-${VERSION}-app.zip"
