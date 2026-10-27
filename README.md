@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.5.4 — macOS Release Build Fix](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.4)**
-fixes universal architecture verification during macOS release packaging. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.3 — Cross-Platform Automatic Updates & Windows Installer](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.3)**
+adds signed background updates on Windows, macOS, and Linux, separate Windows installer/portable downloads, and a Restart to install action in Settings. The macOS release packaging also verifies universal architecture correctly. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
