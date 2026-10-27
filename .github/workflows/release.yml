@@ -70,11 +70,16 @@ jobs:
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2
 
+    - name: Install both macOS Rust targets
+      if: runner.os == 'macOS'
+      run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
     - name: Install Linux system dependencies
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libayatana-appindicator3-dev || sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libappindicator3-dev
+        sudo apt-get install -y libfuse2 file xdg-utils
 
     - name: Setup Node
       uses: actions/setup-node@v7
@@ -92,38 +97,56 @@ jobs:
 
     - name: Build Tauri application and standalone syncforge-cli
       shell: bash
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        APPIMAGE_EXTRACT_AND_RUN: '1'
       run: |
+        if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+          echo "Missing TAURI_SIGNING_PRIVATE_KEY repository secret" >&2
+          exit 1
+        fi
         if [ "${{ runner.os }}" = "macOS" ]; then
-          npx --prefix web tauri build --bundles app
+          npx --prefix web tauri build --bundles app --target universal-apple-darwin
+        elif [ "${{ runner.os }}" = "Windows" ]; then
+          npx --prefix web tauri build --bundles nsis
         else
-          npx --prefix web tauri build --no-bundle
+          npx --prefix web tauri build --bundles appimage
         fi
         cargo build --release --no-default-features --bin syncforge-cli
 
-    - name: Package direct standalone executables (No installer)
+    - name: Package executables and signed update bundles
       shell: bash
       run: |
-        VERSION=${GITHUB_REF_NAME#v}
-        if [[ "$VERSION" != *.* ]]; then
-          VERSION="${VERSION}.0"
+        VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+        if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+          echo "Select/push the v$VERSION tag to publish this version." >&2
+          exit 1
         fi
         mkdir -p dist
         if [ "${{ runner.os }}" = "macOS" ]; then
-          # Ad-hoc sign the entire app bundle to seal Info.plist and Resources
-          codesign --force --deep -s - target/release/bundle/macos/SyncForge.app
+          MACOS_BUNDLE=target/universal-apple-darwin/release/bundle/macos
+          # Tauri ad-hoc signs the universal .app before creating/signing its update archive.
+          # Do not mutate the bundle after the updater archive/signature has been created.
+          codesign --verify --deep --strict "$MACOS_BUNDLE/SyncForge.app"
+          lipo -verify_arch x86_64 arm64 "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/SyncForge"
           codesign --force -s - target/release/syncforge-cli
           # Package .app preserving macOS permissions and resource forks
-          ditto -c -k --sequesterRsrc --keepParent target/release/bundle/macos/SyncForge.app "dist/SyncForge-macOS-${VERSION}-app.zip"
-          tar -czvf "dist/SyncForge-macOS-${VERSION}.tar.gz" -C target/release/bundle/macos SyncForge.app
+          ditto -c -k --sequesterRsrc --keepParent "$MACOS_BUNDLE/SyncForge.app" "dist/SyncForge-macOS-${VERSION}-app.zip"
+          cp "$MACOS_BUNDLE/SyncForge.app.tar.gz" "dist/SyncForge-macOS-${VERSION}.tar.gz"
+          cp "$MACOS_BUNDLE/SyncForge.app.tar.gz.sig" "dist/SyncForge-macOS-${VERSION}.tar.gz.sig"
           # Standalone headless CLI binary for macOS
           cp target/release/syncforge-cli "dist/syncforge-cli-macOS-${VERSION}"
           chmod +x "dist/syncforge-cli-macOS-${VERSION}"
           tar -czvf "dist/syncforge-cli-macOS-${VERSION}.tar.gz" -C target/release syncforge-cli
         elif [ "${{ runner.os }}" = "Windows" ]; then
-          # Standalone direct .exe (GUI + Headless CLI)
-          cp target/release/SyncForge.exe "dist/SyncForge-Windows-${VERSION}.exe"
+          cp target/release/SyncForge.exe "dist/SyncForge-Windows-${VERSION}-portable.exe"
           cp target/release/syncforge-cli.exe "dist/syncforge-cli-Windows-${VERSION}.exe"
+          cp target/release/bundle/nsis/*-setup.exe "dist/SyncForge-Windows-${VERSION}-setup.exe"
+          cp target/release/bundle/nsis/*-setup.exe.sig "dist/SyncForge-Windows-${VERSION}-setup.exe.sig"
         else
+          cp target/release/bundle/appimage/*.AppImage "dist/SyncForge-Linux-${VERSION}-x86_64.AppImage"
+          cp target/release/bundle/appimage/*.AppImage.sig "dist/SyncForge-Linux-${VERSION}-x86_64.AppImage.sig"
           # Standalone direct Linux binaries (GUI + Headless CLI)
           cp target/release/SyncForge "dist/SyncForge-Linux-${VERSION}"
           chmod +x "dist/SyncForge-Linux-${VERSION}"
@@ -153,12 +176,21 @@ jobs:
         pattern: SyncForge-*
         path: release-assets
         merge-multiple: true
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+    - name: Generate complete cross-platform update manifest
+      env:
+        RELEASE_REPOSITORY: ${{ github.repository }}
+        RELEASE_TAG: ${{ github.ref_name }}
+      run: node scripts/create-update-manifest.mjs release-assets
     - name: Read release title
       run: echo "RELEASE_TITLE=Ver $(sed -n 's/^## //p' CHANGELOG.md | head -n 1)" >> "$GITHUB_ENV"
-    - name: Publish all platform executables
+    - name: Publish executables and signed cross-platform updates
       uses: softprops/action-gh-release@v3
       with:
         files: release-assets/*
         body_path: CHANGELOG.md
         name: ${{ env.RELEASE_TITLE }}
         draft: false
+        fail_on_unmatched_files: true

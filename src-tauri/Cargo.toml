@@ -1,15 +1,15 @@
 [package]
 name = "syncforge"
-version = "3.5.2"
+version = "3.5.3"
 description = "Batch merge and synchronize audio and subtitle tracks in a native Rust + Tauri v2 desktop GUI and CLI"
 authors = ["itsmrma <m.benassi30@gmail.com>"]
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.90"
 default-run = "SyncForge"
 
 [features]
 default = ["gui"]
-gui = ["dep:tauri", "dep:rfd", "dep:tauri-build"]
+gui = ["dep:tauri", "dep:rfd", "dep:tauri-build", "dep:tauri-plugin-updater"]
 
 [lib]
 name = "syncforge_lib"
@@ -39,3 +39,6 @@ uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[target.'cfg(any(windows, target_os = "macos", target_os = "linux"))'.dependencies]
+tauri-plugin-updater = { version = "2", optional = true }

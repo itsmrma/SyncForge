@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "SyncForge",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "identifier": "com.itsmrma.syncforge",
   "build": {
     "frontendDist": "../web/dist",
@@ -31,6 +31,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "app",
       "nsis",
@@ -44,5 +45,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1MzcwMjZCOTI3REE4MTcKUldRWHFIMlNhd0kzbGR0UVpmNmU0S3pNN25nenNzYXRia0Z3Qi9YMGQySENzdU5iQ1UxMEc4WnEK",
+      "endpoints": ["https://github.com/itsmrma/SyncForge/releases/latest/download/latest.json"]
+    }
   }
 }

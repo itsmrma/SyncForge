@@ -39,6 +39,9 @@ jobs:
         working-directory: web
         run: npm run lint
 
+      - name: Test release update manifest
+        run: node --test scripts/create-update-manifest.test.mjs
+
       - name: Build Web GUI (Vite)
         working-directory: web
         run: npm run build

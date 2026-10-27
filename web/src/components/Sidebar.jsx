@@ -188,6 +188,7 @@ function Sidebar({
   onSettingsTabChange,
   shortcuts = DEFAULT_SHORTCUTS,
   onShortcutsChange,
+  updater,
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(320);
@@ -615,6 +616,8 @@ function Sidebar({
           )}
 
           <SettingsDialog
+            updater={updater}
+            running={running}
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
             selectedMod={selectedMod}
