@@ -57,6 +57,14 @@ fn compute_search_directories() -> Vec<PathBuf> {
             }
         }
 
+        #[cfg(target_os = "linux")]
+        if let Some(appimage) = std::env::var_os("APPIMAGE") {
+            // current_exe() points into the mounted AppImage. Portable tools live beside the file.
+            if let Some(parent) = Path::new(&appimage).parent() {
+                app_dirs.push(parent.to_path_buf());
+            }
+        }
+
         for base in app_dirs {
             if base.is_dir() && !dirs.contains(&base) {
                 dirs.push(base.clone());
@@ -362,6 +370,16 @@ pub fn external_tool_environment_from(env: &mut HashMap<String, String>, is_linu
     if is_linux {
         if let Some(orig) = env.get("LD_LIBRARY_PATH_ORIG").cloned() {
             env.insert("LD_LIBRARY_PATH".to_string(), orig);
+        } else if let (Some(appdir), Some(library_path)) =
+            (env.get("APPDIR"), env.get("LD_LIBRARY_PATH"))
+        {
+            // External FFmpeg/mpv/Python tools must use system libraries, not AppImage's GTK stack.
+            let cleaned = library_path
+                .split(':')
+                .filter(|entry| !Path::new(entry).starts_with(Path::new(appdir)))
+                .collect::<Vec<_>>()
+                .join(":");
+            env.insert("LD_LIBRARY_PATH".to_string(), cleaned);
         }
     }
 }
@@ -589,6 +607,27 @@ pub fn preview_sync_mpv(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn external_tools_do_not_load_appimage_libraries() {
+        let original = HashMap::from([
+            ("APPDIR".to_string(), "/tmp/.mount_sync".to_string()),
+            ("LD_LIBRARY_PATH".to_string(), "/tmp/.mount_sync/usr/lib:/opt/media/lib:/tmp/.mount_sync-other/lib".to_string()),
+        ]);
+        let mut env = original.clone();
+        external_tool_environment_from(&mut env, true);
+        assert_eq!(env["LD_LIBRARY_PATH"], "/opt/media/lib:/tmp/.mount_sync-other/lib");
+        let mut unchanged = original.clone();
+        external_tool_environment_from(&mut unchanged, false);
+        assert_eq!(unchanged, original);
+        env.insert("LD_LIBRARY_PATH".into(), "/tmp/.mount_sync/usr/lib".into());
+        external_tool_environment_from(&mut env, true);
+        // Override the inherited value even when no external search directories remain.
+        assert_eq!(env["LD_LIBRARY_PATH"], "");
+        env.insert("LD_LIBRARY_PATH_ORIG".into(), "/custom/libs".into());
+        external_tool_environment_from(&mut env, true);
+        assert_eq!(env["LD_LIBRARY_PATH"], "/custom/libs");
+    }
 
     #[test]
     fn test_build_mpv_preview_args_combined() {

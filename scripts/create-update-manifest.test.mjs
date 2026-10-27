@@ -5,21 +5,53 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createUpdateManifest } from './create-update-manifest.mjs';
 
-test('manifest points to the signed installer and excludes portable/other platforms', async t => {
+async function releaseAssets(t) {
   const directory = await mkdtemp(path.join(tmpdir(), 'syncforge-manifest-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const { version } = JSON.parse(await readFile(new URL('../src-tauri/tauri.conf.json', import.meta.url)));
-  const name = `SyncForge-Windows-${version}-setup.exe`;
-  await writeFile(path.join(directory, name), 'test installer');
-  await writeFile(path.join(directory, `${name}.sig`), 'test-signature\n');
+  const files = [
+    `SyncForge-Windows-${version}-setup.exe`,
+    `SyncForge-macOS-${version}.tar.gz`,
+    `SyncForge-Linux-${version}-x86_64.AppImage`,
+  ];
+  for (const file of files) {
+    await writeFile(path.join(directory, file), 'test update bundle');
+    await writeFile(path.join(directory, `${file}.sig`), `signature-for-${file}\n`);
+  }
+  return { directory, version, files };
+}
+
+test('manifest includes Windows, universal macOS, and Linux with matching signatures', async t => {
+  const { directory, version, files } = await releaseAssets(t);
   const manifest = await createUpdateManifest(directory, 'itsmrma/SyncForge', `v${version}`);
-  assert.deepEqual(Object.keys(manifest.platforms), ['windows-x86_64']);
-  assert.equal(manifest.platforms['windows-x86_64'].url, `https://github.com/itsmrma/SyncForge/releases/download/v${version}/${name}`);
-  assert.equal(manifest.platforms['windows-x86_64'].signature, 'test-signature');
+  assert.deepEqual(Object.keys(manifest.platforms).sort(), ['darwin-aarch64', 'darwin-x86_64', 'linux-x86_64', 'windows-x86_64']);
+  for (const [target, file] of [
+    ['windows-x86_64', files[0]], ['darwin-aarch64', files[1]],
+    ['darwin-x86_64', files[1]], ['linux-x86_64', files[2]],
+  ]) {
+    assert.equal(manifest.platforms[target].url, `https://github.com/itsmrma/SyncForge/releases/download/v${version}/${file}`);
+    assert.equal(manifest.platforms[target].signature, `signature-for-${file}`);
+  }
   assert.deepEqual(JSON.parse(await readFile(path.join(directory, 'latest.json'))), manifest);
-  await assert.rejects(createUpdateManifest(directory, 'itsmrma/SyncForge', 'main'), /Release tag/);
-  await writeFile(path.join(directory, `${name}.sig`), '');
-  await assert.rejects(createUpdateManifest(directory, 'itsmrma/SyncForge', `v${version}`), /signature is empty/);
-  await writeFile(path.join(directory, name), '');
-  await assert.rejects(createUpdateManifest(directory, 'itsmrma/SyncForge', `v${version}`), /installer is empty/);
 });
+
+test('manifest rejects a wrong release tag or invalid repository', async t => {
+  const { directory, version } = await releaseAssets(t);
+  await assert.rejects(createUpdateManifest(directory, 'itsmrma/SyncForge', 'main'), /Release tag/);
+  await assert.rejects(createUpdateManifest(directory, 'invalid/repo/extra', `v${version}`), /Invalid release repository/);
+});
+
+for (const index of [0, 1, 2]) {
+  for (const failure of ['missing bundle', 'empty bundle', 'missing signature', 'empty signature']) {
+    test(`manifest fails closed for ${failure} on bundle ${index}`, async t => {
+      const { directory, version, files } = await releaseAssets(t);
+      const file = path.join(directory, files[index]);
+      if (failure === 'missing bundle') await rm(file);
+      if (failure === 'empty bundle') await writeFile(file, '');
+      if (failure === 'missing signature') await rm(`${file}.sig`);
+      if (failure === 'empty signature') await writeFile(`${file}.sig`, '');
+      await assert.rejects(createUpdateManifest(directory, 'itsmrma/SyncForge', `v${version}`));
+      await assert.rejects(readFile(path.join(directory, 'latest.json')), { code: 'ENOENT' });
+    });
+  }
+}

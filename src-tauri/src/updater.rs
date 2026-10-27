@@ -1,31 +1,59 @@
-//! Windows installer updates. The standalone CLI and other platforms keep their existing lifecycle.
+//! Signed updates for Windows NSIS, macOS app bundles, and Linux AppImages.
 use serde_json::{json, Value};
+use std::path::Path;
 
-#[cfg(windows)]
+use tauri::Manager;
 use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Default)]
 pub struct PendingUpdate {
-    #[cfg(windows)]
     ready: tauri::async_runtime::Mutex<Option<(tauri_plugin_updater::Update, Vec<u8>)>>,
 }
 
-fn installer_supported() -> bool {
-    cfg!(windows)
-        && !cfg!(debug_assertions)
-        && std::env::current_exe()
-            .ok()
-            .and_then(|exe| {
-                exe.parent()
-                    .map(|dir| dir.join("syncforge-installed").is_file())
-            })
-            .unwrap_or(false)
+fn supports_updates(
+    platform: &str,
+    development: bool,
+    exe: Option<&Path>,
+    appimage: Option<&Path>,
+) -> bool {
+    if development {
+        return false;
+    }
+    match platform {
+        "windows" => exe
+            .and_then(Path::parent)
+            .is_some_and(|dir| dir.join("syncforge-installed").is_file()),
+        "macos" => exe
+            .and_then(Path::parent)
+            .filter(|dir| dir.file_name().is_some_and(|name| name == "MacOS"))
+            .and_then(Path::parent)
+            .filter(|dir| dir.file_name().is_some_and(|name| name == "Contents"))
+            .and_then(Path::parent)
+            .is_some_and(|dir| dir.extension().is_some_and(|ext| ext == "app")),
+        "linux" => appimage.is_some_and(Path::is_file),
+        _ => false,
+    }
 }
 
-#[cfg(any(windows, test))]
+fn update_supported(app: &tauri::AppHandle) -> bool {
+    let exe = std::env::current_exe().ok();
+    #[cfg(target_os = "linux")]
+    let appimage = app.env().appimage.map(std::path::PathBuf::from);
+    #[cfg(not(target_os = "linux"))]
+    let appimage: Option<std::path::PathBuf> = {
+        let _ = app;
+        None
+    };
+    supports_updates(
+        std::env::consts::OS,
+        cfg!(debug_assertions),
+        exe.as_deref(),
+        appimage.as_deref(),
+    )
+}
+
 struct InstallReservation(crate::ui::backend::Api);
 
-#[cfg(any(windows, test))]
 impl InstallReservation {
     fn acquire(api: crate::ui::backend::Api) -> Result<Self, String> {
         {
@@ -39,7 +67,6 @@ impl InstallReservation {
     }
 }
 
-#[cfg(any(windows, test))]
 impl Drop for InstallReservation {
     fn drop(&mut self) {
         if let Ok(mut busy) = self.0.inner.run_lock.lock() {
@@ -49,9 +76,9 @@ impl Drop for InstallReservation {
 }
 
 #[tauri::command]
-pub fn updater_info() -> Value {
+pub fn updater_info(app: tauri::AppHandle) -> Value {
     json!({
-        "supported": installer_supported(),
+        "supported": update_supported(&app),
         "version": env!("CARGO_PKG_VERSION"),
         "platform": std::env::consts::OS,
     })
@@ -63,10 +90,9 @@ pub async fn download_update(
     pending: tauri::State<'_, PendingUpdate>,
     on_progress: tauri::ipc::Channel<Value>,
 ) -> Result<Value, String> {
-    if !installer_supported() {
-        return Err("Automatic updates require the Windows installer edition.".into());
+    if !update_supported(&app) {
+        return Err("Automatic updates require a release build of the Windows installer, macOS app bundle, or Linux AppImage.".into());
     }
-    #[cfg(windows)]
     {
         let mut ready = pending
             .ready
@@ -106,11 +132,6 @@ pub async fn download_update(
         *ready = Some((update, bytes));
         Ok(result)
     }
-    #[cfg(not(windows))]
-    {
-        let _ = (app, pending, on_progress);
-        Err("Automatic updates are currently available only on Windows.".into())
-    }
 }
 
 #[tauri::command]
@@ -118,12 +139,10 @@ pub async fn install_update(
     app: tauri::AppHandle,
     api: tauri::State<'_, crate::ui::backend::Api>,
 ) -> Result<(), String> {
-    if !installer_supported() {
-        return Err("Automatic updates require the Windows installer edition.".into());
+    if !update_supported(&app) {
+        return Err("Automatic updates require a release build of the Windows installer, macOS app bundle, or Linux AppImage.".into());
     }
-    #[cfg(windows)]
     {
-        use tauri::Manager;
         let app_handle = app.clone();
         let api = api.inner().clone();
         // Installation can extract files and starts a process: keep it off the UI/runtime thread.
@@ -138,16 +157,15 @@ pub async fn install_update(
                 .ok_or("Download an update before installing it.")?;
             // Share the media task admission lock to prevent races with a new task starting.
             let _reservation = InstallReservation::acquire(api)?;
-            // On Windows the plugin exits this process and the NSIS installer relaunches it.
-            update.install(bytes).map_err(|e| e.to_string())
+            // Windows exits through NSIS. macOS/Linux replace the bundle and need an explicit restart.
+            update.install(bytes).map_err(|e| e.to_string())?;
+            #[cfg(not(windows))]
+            app_handle.restart();
+            #[cfg(windows)]
+            Ok(())
         })
         .await
         .map_err(|e| e.to_string())?
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = (app, api);
-        Err("Automatic updates are currently available only on Windows.".into())
     }
 }
 
@@ -155,6 +173,41 @@ pub async fn install_update(
 mod tests {
     use super::*;
     use crate::ui::backend::Api;
+
+    #[test]
+    fn only_release_packages_enable_updates() {
+        let dir = tempfile::tempdir().unwrap();
+        let exe = dir.path().join("SyncForge.exe");
+        assert!(!supports_updates("windows", false, Some(&exe), None));
+        std::fs::write(dir.path().join("syncforge-installed"), "installed").unwrap();
+        assert!(supports_updates("windows", false, Some(&exe), None));
+        assert!(!supports_updates("windows", true, Some(&exe), None));
+        let mac = dir.path().join("SyncForge.app/Contents/MacOS/SyncForge");
+        assert!(supports_updates("macos", false, Some(&mac), None));
+        assert!(!supports_updates("macos", true, Some(&mac), None));
+        assert!(!supports_updates("macos", false, Some(&exe), None));
+        assert!(!supports_updates("linux", false, Some(&exe), None));
+        let appimage = dir.path().join("SyncForge.AppImage");
+        assert!(!supports_updates(
+            "linux",
+            false,
+            Some(&exe),
+            Some(&appimage)
+        ));
+        std::fs::write(&appimage, "appimage").unwrap();
+        assert!(supports_updates(
+            "linux",
+            false,
+            Some(&exe),
+            Some(&appimage)
+        ));
+        assert!(!supports_updates(
+            "linux",
+            true,
+            Some(&exe),
+            Some(&appimage)
+        ));
+    }
 
     #[test]
     fn installation_rejects_active_tasks_without_releasing_their_lock() {

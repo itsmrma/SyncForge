@@ -320,7 +320,7 @@ pub fn run() {
         .manage(api)
         .manage(crate::updater::PendingUpdate::default())
         .setup(move |app| {
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos", target_os = "linux"))]
             app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
             let bridge = Arc::new(TauriWindowBridge {
                 app: app.handle().clone(),

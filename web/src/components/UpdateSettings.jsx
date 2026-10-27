@@ -43,7 +43,11 @@ export default function UpdateSettings({ updater, running }) {
           <Typography variant="body2" color="text.secondary">
             {!info ? 'Loading update information...' : info.platform === 'windows'
               ? 'Automatic updates are available in the Windows installer edition. Portable and development builds are updated manually.'
-              : 'Automatic updates are currently available in the Windows installer edition. Download new versions from GitHub Releases.'}
+              : info.platform === 'linux'
+              ? 'Use the Linux AppImage to enable automatic updates. Standalone binaries and development builds are updated manually.'
+              : info.platform === 'macos'
+              ? 'Run the release version of SyncForge.app to enable automatic updates. Development builds are updated manually.'
+              : 'Automatic updates support Windows installer, macOS app, and Linux AppImage releases. Download a desktop build from GitHub Releases.'}
           </Typography>
           {error && <Alert severity="error">{error}</Alert>}
           <Button component="a" href="https://github.com/itsmrma/SyncForge/releases/latest" target="_blank" rel="noopener noreferrer" variant="outlined" sx={{ minHeight: 40, alignSelf: 'flex-start' }}>Open releases</Button>

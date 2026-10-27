@@ -118,6 +118,23 @@ for (const platform of ['windows', 'linux', 'macos']) {
     await expect(section.getByRole('link', { name: 'Open releases' })).toHaveAttribute('href', 'https://github.com/itsmrma/SyncForge/releases/latest');
     await expect(section.getByRole('checkbox')).toHaveCount(0);
     expect(await page.evaluate(() => window.updateChecks)).toBe(0);
+    await expect(section).toContainText(platform === 'windows' ? 'Windows installer' : platform === 'linux' ? 'Linux AppImage' : 'SyncForge.app');
+  });
+}
+
+for (const platform of ['linux', 'macos']) {
+  test(`${platform} release supports automatic download and explicit restart`, async ({ page }) => {
+    await launch(page, { platform });
+    await expect.poll(() => page.evaluate(() => window.updateChecks)).toBe(1);
+    await page.waitForFunction(() => Boolean(window.finishDownload));
+    await page.evaluate(() => window.finishDownload());
+    await page.getByRole('button', { name: 'View update' }).click();
+    const section = page.getByTestId('update-settings');
+    await expect(section.getByRole('checkbox')).toBeChecked();
+    await expect(section.getByRole('button', { name: 'Restart to install' })).toBeInViewport();
+    expect(await page.evaluate(() => window.updateInstalls)).toBe(0);
+    await section.getByRole('button', { name: 'Restart to install' }).click();
+    await expect.poll(() => page.evaluate(() => window.updateInstalls)).toBe(1);
   });
 }
 
