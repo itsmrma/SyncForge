@@ -38,6 +38,7 @@ import PathInput from './components/PathInput';
 import { getAppTheme } from './theme';
 import modules from './modules';
 import { desktopBridge } from './bridge';
+import { useUpdater } from './useUpdater';
 import {
   loadInitialShortcuts,
   matchesShortcut,
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS = {
   notify_on_finish: true,
   sound_on_finish: true,
   theme_mode: 'dark',
+  auto_update: true,
   preview_mpv: false,
   opensubtitles_api_key: '',
   opensubtitles_token: '',
@@ -253,6 +255,7 @@ export default function App() {
   const [selectedMod, setSelectedMod] = useState(loadInitialModule);
   const [terminal, setTerminal] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(() => !desktopBridge.isConnected());
   const [isStopping, setIsStopping] = useState(false);
   const [inputRequest, setInputRequest] = useState(null);
   const [matcherState, setMatcherState] = useState({
@@ -315,6 +318,7 @@ export default function App() {
   const [mediaBackendData, setMediaBackendData] = useState(null);
 
   const [settings, setSettings] = useState(loadInitialSettings);
+  const updater = useUpdater(settings.auto_update !== false, settingsReady);
   const [shortcuts, setShortcuts] = useState(loadInitialShortcuts);
   const prefersDarkQuery = useMediaQuery('(prefers-color-scheme: dark)', { noSsr: true });
   const isLgUp = useMediaQuery('(min-width:1200px)', { noSsr: true });
@@ -361,7 +365,8 @@ export default function App() {
             setSettings((prev) => ({ ...prev, ...loaded }));
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setSettingsReady(true));
     }
   }, []);
 
@@ -372,9 +377,9 @@ export default function App() {
       // ignore storage errors
     }
     if (desktopBridge.isConnected()) {
-      desktopBridge.saveSettings(settings).catch(() => {});
+      if (settingsReady) desktopBridge.saveSettings(settings).catch(() => {});
     }
-  }, [settings]);
+  }, [settings, settingsReady]);
 
   useEffect(() => {
     try {
@@ -1198,6 +1203,7 @@ export default function App() {
         }}
       >
         <Sidebar
+          updater={updater}
           selectedMod={selectedMod}
           onSelect={(mod) => {
             setSelectedMod(mod);
@@ -1227,6 +1233,11 @@ export default function App() {
             overflow: 'hidden',
           }}
         >
+          {updater.phase === 'ready' && (
+            <Alert severity="info" sx={{ mx: 3, mt: 2, flexShrink: 0 }} action={<Button color="inherit" size="small" onClick={() => { setSettingsTab('updates'); setSettingsOpen(true); }}>View update</Button>}>
+              Version {updater.version} is ready to install. Restart when your work is finished.
+            </Alert>
+          )}
           {/* Scrollable Workspace Content Area */}
           <Box
             sx={{

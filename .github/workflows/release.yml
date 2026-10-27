@@ -92,20 +92,30 @@ jobs:
 
     - name: Build Tauri application and standalone syncforge-cli
       shell: bash
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       run: |
         if [ "${{ runner.os }}" = "macOS" ]; then
           npx --prefix web tauri build --bundles app
+        elif [ "${{ runner.os }}" = "Windows" ]; then
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "Missing TAURI_SIGNING_PRIVATE_KEY repository secret" >&2
+            exit 1
+          fi
+          npx --prefix web tauri build --bundles nsis
         else
           npx --prefix web tauri build --no-bundle
         fi
         cargo build --release --no-default-features --bin syncforge-cli
 
-    - name: Package direct standalone executables (No installer)
+    - name: Package portable executables and Windows installer
       shell: bash
       run: |
-        VERSION=${GITHUB_REF_NAME#v}
-        if [[ "$VERSION" != *.* ]]; then
-          VERSION="${VERSION}.0"
+        VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+        if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+          echo "Select/push the v$VERSION tag to publish this version." >&2
+          exit 1
         fi
         mkdir -p dist
         if [ "${{ runner.os }}" = "macOS" ]; then
@@ -120,9 +130,10 @@ jobs:
           chmod +x "dist/syncforge-cli-macOS-${VERSION}"
           tar -czvf "dist/syncforge-cli-macOS-${VERSION}.tar.gz" -C target/release syncforge-cli
         elif [ "${{ runner.os }}" = "Windows" ]; then
-          # Standalone direct .exe (GUI + Headless CLI)
-          cp target/release/SyncForge.exe "dist/SyncForge-Windows-${VERSION}.exe"
+          cp target/release/SyncForge.exe "dist/SyncForge-Windows-${VERSION}-portable.exe"
           cp target/release/syncforge-cli.exe "dist/syncforge-cli-Windows-${VERSION}.exe"
+          cp target/release/bundle/nsis/*-setup.exe "dist/SyncForge-Windows-${VERSION}-setup.exe"
+          cp target/release/bundle/nsis/*-setup.exe.sig "dist/SyncForge-Windows-${VERSION}-setup.exe.sig"
         else
           # Standalone direct Linux binaries (GUI + Headless CLI)
           cp target/release/SyncForge "dist/SyncForge-Linux-${VERSION}"
@@ -132,6 +143,14 @@ jobs:
           chmod +x "dist/syncforge-cli-Linux-${VERSION}"
           tar -czvf "dist/syncforge-cli-Linux-${VERSION}.tar.gz" -C target/release syncforge-cli
         fi
+
+    - name: Generate signed Windows update manifest
+      if: runner.os == 'Windows'
+      shell: bash
+      env:
+        RELEASE_REPOSITORY: ${{ github.repository }}
+        RELEASE_TAG: ${{ github.ref_name }}
+      run: node scripts/create-update-manifest.mjs dist
 
     - name: Save release assets
       uses: actions/upload-artifact@v7
@@ -155,10 +174,11 @@ jobs:
         merge-multiple: true
     - name: Read release title
       run: echo "RELEASE_TITLE=Ver $(sed -n 's/^## //p' CHANGELOG.md | head -n 1)" >> "$GITHUB_ENV"
-    - name: Publish all platform executables
+    - name: Publish executables, Windows installer, and update manifest
       uses: softprops/action-gh-release@v3
       with:
         files: release-assets/*
         body_path: CHANGELOG.md
         name: ${{ env.RELEASE_TITLE }}
         draft: false
+        fail_on_unmatched_files: true

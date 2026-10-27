@@ -40,6 +40,8 @@ import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import UnfoldMoreOutlined from '@mui/icons-material/UnfoldMoreOutlined';
 import UnfoldLessOutlined from '@mui/icons-material/UnfoldLessOutlined';
+import SystemUpdateAltOutlined from '@mui/icons-material/SystemUpdateAltOutlined';
+import UpdateSettings from './UpdateSettings';
 import { desktopBridge } from '../bridge';
 import {
   DEFAULT_SHORTCUTS,
@@ -312,8 +314,10 @@ export default function SettingsDialog({
   shortcuts = DEFAULT_SHORTCUTS,
   onShortcutsChange,
   initialTab = 'general',
+  updater,
+  running = false,
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab || 'general');
+  const [activeTab, setActiveTab] = useState(initialTab === 'updates' ? 'general' : initialTab || 'general');
   const [prevOpen, setPrevOpen] = useState(open);
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
   const [editingShortcut, setEditingShortcut] = useState(null);
@@ -331,6 +335,7 @@ export default function SettingsDialog({
     output: true,
     notifications: true,
     portable: true,
+    updates: true,
   });
 
   const toggleSection = (key) => {
@@ -354,6 +359,7 @@ export default function SettingsDialog({
       output: nextVal,
       notifications: nextVal,
       portable: nextVal,
+      updates: nextVal,
     });
   };
 
@@ -412,13 +418,19 @@ export default function SettingsDialog({
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
+      if (open && initialTab === 'updates') {
+        scrollRef.current.querySelector('[data-testid="update-settings"]')?.scrollIntoView({ block: 'nearest' });
+      }
     }
-  }, [activeTab, open]);
+  }, [activeTab, open, initialTab]);
 
   if ((open && !prevOpen) || initialTab !== prevInitialTab) {
     setPrevOpen(open);
     setPrevInitialTab(initialTab);
-    setActiveTab(initialTab || 'general');
+    setActiveTab(initialTab === 'updates' ? 'general' : initialTab || 'general');
+    if (initialTab === 'updates' && !expandedSections.updates) {
+      setExpandedSections({ ...expandedSections, updates: true });
+    }
   } else if (!open && prevOpen) {
     setPrevOpen(false);
   }
@@ -564,6 +576,13 @@ export default function SettingsDialog({
         maxWidth={false}
         fullWidth
         slotProps={{
+          transition: {
+            onEntered: () => {
+              if (initialTab === 'updates') {
+                scrollRef.current?.querySelector('[data-testid="update-settings"]')?.scrollIntoView({ block: 'start' });
+              }
+            },
+          },
           paper: {
             'aria-label': 'Settings',
             sx: (theme) => ({
@@ -1456,6 +1475,18 @@ export default function SettingsDialog({
                   </Typography>
                 </Box>
               </SectionCard>
+              {updater && (
+                <SectionCard icon={SystemUpdateAltOutlined} title="Application updates" testId="update-settings" expanded={expandedSections.updates} onToggle={() => toggleSection('updates')}>
+                  {updater.info?.supported && <SettingToggleRow
+                    title="Automatically download updates"
+                    description="Check at startup and every four hours. You choose when to restart and install."
+                    checked={settings.auto_update !== false}
+                    onChange={(checked) => onChange({ ...settings, auto_update: checked })}
+                    divider
+                  />}
+                  <UpdateSettings updater={updater} running={running} />
+                </SectionCard>
+              )}
             </>
           ) : (
             <Box

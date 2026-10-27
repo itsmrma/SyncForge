@@ -1,0 +1,19 @@
+{
+  "bundle": {
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "windows/installer-hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1MzcwMjZCOTI3REE4MTcKUldRWHFIMlNhd0kzbGR0UVpmNmU0S3pNN25nenNzYXRia0Z3Qi9YMGQySENzdU5iQ1UxMEc4WnEK",
+      "endpoints": ["https://github.com/itsmrma/SyncForge/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

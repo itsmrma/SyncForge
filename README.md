@@ -7,8 +7,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.5.2 — Codebase Audit, Tool Path Caching, Deduplication & Dynamic Metadata Preservation](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.2)**
-improves batch processing performance with tool path caching, unifies subtitle codec helpers, preserves dynamic track languages and metadata during Opus conversion, optimizes episode auto-matching, and enforces strict emoji-free logging. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.3 — Windows Installer & Automatic Updates](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.3)**
+adds separate Windows installer and portable downloads, signed background updates, and a Restart to install action in Settings. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.
@@ -42,8 +42,20 @@ write before stopping. Keep backups of media you intend to modify.
 
 ## Download and requirements
 
-Download standalone Windows, Linux, and macOS builds from
+Download Windows installer/portable editions and standalone Linux and macOS builds from
 [GitHub Releases](https://github.com/itsmrma/SyncForge/releases).
+
+On Windows, choose **`SyncForge-Windows-<version>-setup.exe`** for a per-user installation
+with automatic updates, or **`SyncForge-Windows-<version>-portable.exe`** to run without
+installing. In the installer edition, **Settings → General → Application updates**
+controls automatic downloads, checks for updates manually, and shows progress and release
+notes. Updates are checked at startup and every four hours. Once a signed update is
+downloaded, choose **Restart to install** after media processing finishes; the installer
+updates and reopens the app. Settings and external media tools are preserved. Portable,
+development, Linux, and macOS builds use manual downloads for now. Existing portable
+users need to install the Windows edition once to enable subsequent automatic updates.
+
+See [Windows release setup](docs/windows-updates.md) for signing and release maintenance.
 
 SyncForge interfaces with external CLI tools. You have two convenient options:
 1. **Portable Mode (No installation required)**: Simply drop the executables (`mkvmerge`, `mkvextract`, `mkvpropedit`, `ffmpeg`, `ffsubsync`, `mpv` or their folders `tools/`, `bin/`) directly in the same folder as the `SyncForge` executable (or next to `SyncForge.app` on macOS).

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 
 function hasTauri() {
   return typeof window !== 'undefined' && Boolean(window.__TAURI_INTERNALS__);
@@ -12,6 +12,29 @@ function getMockApi() {
 }
 
 export const desktopBridge = {
+  async updaterInfo() {
+    const mock = getMockApi();
+    if (mock?.updater_info) return await mock.updater_info();
+    if (hasTauri()) return await invoke('updater_info');
+    return { supported: false, platform: 'browser' };
+  },
+
+  async downloadUpdate(onProgress) {
+    const mock = getMockApi();
+    if (mock?.download_update) return await mock.download_update(onProgress);
+    if (!hasTauri()) throw new Error('The desktop backend is not connected.');
+    const channel = new Channel();
+    channel.onmessage = onProgress;
+    return await invoke('download_update', { onProgress: channel });
+  },
+
+  async installUpdate() {
+    const mock = getMockApi();
+    if (mock?.install_update) return await mock.install_update();
+    if (!hasTauri()) throw new Error('The desktop backend is not connected.');
+    return await invoke('install_update');
+  },
+
   isConnected() {
     return Boolean(getMockApi() || hasTauri());
   },

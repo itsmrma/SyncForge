@@ -4,6 +4,9 @@ pub mod features;
 pub mod ui;
 
 #[cfg(feature = "gui")]
+mod updater;
+
+#[cfg(feature = "gui")]
 mod gui_app {
     use std::sync::Arc;
     use serde_json::Value;
@@ -315,7 +318,10 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(api)
+        .manage(crate::updater::PendingUpdate::default())
         .setup(move |app| {
+            #[cfg(windows)]
+            app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
             let bridge = Arc::new(TauriWindowBridge {
                 app: app.handle().clone(),
             });
@@ -341,7 +347,10 @@ pub fn run() {
             preview_sync_mpv,
             save_settings,
             load_settings,
-            check_external_tools
+            check_external_tools,
+            crate::updater::updater_info,
+            crate::updater::download_update,
+            crate::updater::install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running SyncForge Tauri application");
