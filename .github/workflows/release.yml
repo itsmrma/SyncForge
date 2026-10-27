@@ -133,8 +133,8 @@ jobs:
           # Tauri ad-hoc signs the universal .app before creating/signing its update archive.
           # Do not mutate the bundle after the updater archive/signature has been created.
           codesign --verify --deep --strict "$MACOS_BUNDLE/SyncForge.app"
-          lipo -verify_arch x86_64 arm64 "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/SyncForge"
-          lipo -verify_arch x86_64 arm64 "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/syncforge-cli"
+          lipo "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/SyncForge" -verify_arch x86_64 arm64
+          lipo "$MACOS_BUNDLE/SyncForge.app/Contents/MacOS/syncforge-cli" -verify_arch x86_64 arm64
           codesign --force -s - target/release/syncforge-cli
           # Package .app preserving macOS permissions and resource forks
           ditto -c -k --sequesterRsrc --keepParent "$MACOS_BUNDLE/SyncForge.app" "dist/SyncForge-macOS-${VERSION}-app.zip"
