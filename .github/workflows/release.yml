@@ -28,7 +28,7 @@ jobs:
       working-directory: web
       run: |
         npm ci
-        node --test ../scripts/create-update-manifest.test.mjs ../scripts/release-build.test.mjs
+        node --test ../scripts/create-update-manifest.test.mjs ../scripts/release-build.test.mjs ../scripts/cli-shell.test.mjs
         npm run lint
         npm run build
         npx playwright install --with-deps --only-shell chromium

@@ -12,6 +12,7 @@ import {
   FormControlLabel,
   Checkbox,
   Chip,
+  MenuItem,
 } from '@mui/material';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
@@ -20,180 +21,10 @@ import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import Close from '@mui/icons-material/Close';
 import CodeOutlined from '@mui/icons-material/CodeOutlined';
 
-function quoteShellArg(val) {
-  const s = String(val ?? '').trim();
-  if (!s) return '""';
-  if (/^[a-zA-Z0-9_./:\\-]+$/.test(s)) return s;
-  return `"${s.replace(/"/g, '\\"')}"`;
-}
-
-function buildCliCommandAndScript(selectedMod, paths, settings, extraOpts = {}) {
-  const modId = selectedMod?.id || 'stream_manager';
-  const vid = (paths?.video || '').trim() || './input_video';
-  const sub = (paths?.sub || '').trim() || './input_source';
-  const out = (paths?.output || settings?.default_output_dir || '').trim();
-
-  const nonInteractive = extraOpts.yes ?? true;
-  const args = ['syncforge-cli', 'run', modId];
-  const scriptObj = {
-    module: modId,
-    video: vid,
-  };
-
-  args.push('-v', quoteShellArg(vid));
-
-  if (selectedMod?.needs?.includes('sub')) {
-    args.push('-s', quoteShellArg(sub));
-    scriptObj.sub = sub;
-  }
-
-  if (selectedMod?.needs?.includes('output') && out) {
-    args.push('-o', quoteShellArg(out));
-    scriptObj.output = out;
-  }
-
-  // Applicable settings per AGENTS.md matrix
-  if (['stream_manager', 'injection', 'custom_merge', 'internal_sync'].includes(modId)) {
-    const opusMode = settings?.opus_mode || 'off';
-    if (opusMode !== 'off') {
-      args.push('--opus', opusMode);
-      args.push('--opus-bitrate', String(settings?.opus_bitrate || 128));
-      if (settings?.opus_downmix === false) {
-        args.push('--no-opus-downmix');
-      }
-      scriptObj.opus_mode = opusMode;
-      scriptObj.opus_bitrate = Number(settings?.opus_bitrate || 128);
-      scriptObj.opus_downmix = settings?.opus_downmix !== false;
-    }
-  }
-
-  if (['injection', 'internal_sync'].includes(modId)) {
-    if (settings?.auto_audio === false) {
-      args.push('--no-auto-audio');
-      scriptObj.auto_audio = false;
-    }
-  }
-
-  if (['sync_subs', 'sync_subs_mkv', 'injection', 'internal_sync'].includes(modId)) {
-    if (settings?.auto_subs === false) {
-      args.push('--no-auto-subs');
-      scriptObj.auto_subs = false;
-    }
-    if (settings?.enable_max_offset && Number(settings?.max_offset) > 0) {
-      args.push('--max-offset', String(settings.max_offset));
-      scriptObj.enable_max_offset = true;
-      scriptObj.max_offset = Number(settings.max_offset);
-    }
-  }
-
-  // Module-specific optional flags
-  if (modId === 'stream_manager') {
-    if (extraOpts.keepTracks?.trim()) {
-      const kt = extraOpts.keepTracks.trim();
-      args.push('--keep-tracks', quoteShellArg(kt));
-      scriptObj.keep_tracks = kt;
-    }
-    if (extraOpts.keepAudio?.trim()) {
-      const ka = extraOpts.keepAudio.trim();
-      args.push('--keep-audio', quoteShellArg(ka));
-      scriptObj.keep_audio = ka;
-    }
-    if (extraOpts.keepSubs?.trim()) {
-      const ks = extraOpts.keepSubs.trim();
-      args.push('--keep-subs', quoteShellArg(ks));
-      scriptObj.keep_subs = ks;
-    }
-  }
-
-  if (modId === 'set_default') {
-    if (extraOpts.defaultAudio?.trim()) {
-      args.push('--default-audio', quoteShellArg(extraOpts.defaultAudio.trim()));
-      scriptObj.default_audio = extraOpts.defaultAudio.trim();
-    }
-    if (extraOpts.defaultSub?.trim()) {
-      args.push('--default-sub', quoteShellArg(extraOpts.defaultSub.trim()));
-      scriptObj.default_sub = extraOpts.defaultSub.trim();
-    }
-    if (extraOpts.forcedSub?.trim()) {
-      args.push('--forced-sub', quoteShellArg(extraOpts.forcedSub.trim()));
-      scriptObj.forced_sub = extraOpts.forcedSub.trim();
-    }
-  }
-
-  if (modId === 'sync_subs_mkv' && extraOpts.subTrack?.trim()) {
-    args.push('--sub-track', quoteShellArg(extraOpts.subTrack.trim()));
-    scriptObj.sub_track = extraOpts.subTrack.trim();
-  }
-
-  if (modId === 'injection') {
-    if (extraOpts.keepTargetAudio) {
-      args.push('--keep-target-audio');
-      scriptObj.keep_target_audio = true;
-    }
-    if (extraOpts.keepTargetSubs) {
-      args.push('--keep-target-subs');
-      scriptObj.keep_target_subs = true;
-    }
-    if (extraOpts.audioTrack?.trim()) {
-      args.push('--import-audio', '--audio-track', quoteShellArg(extraOpts.audioTrack.trim()));
-      scriptObj.import_audio = true;
-      scriptObj.audio_track = extraOpts.audioTrack.trim();
-    }
-    if (extraOpts.subTrack?.trim()) {
-      args.push('--import-subs', '--sub-track', quoteShellArg(extraOpts.subTrack.trim()));
-      scriptObj.import_subs = true;
-      scriptObj.sub_track = extraOpts.subTrack.trim();
-    }
-  }
-
-  if (modId === 'custom_merge') {
-    if (extraOpts.keepAAudio?.trim()) {
-      args.push('--keep-a-audio', quoteShellArg(extraOpts.keepAAudio.trim()));
-      scriptObj.keep_a_audio = extraOpts.keepAAudio.trim();
-    }
-    if (extraOpts.keepASubs?.trim()) {
-      args.push('--keep-a-subs', quoteShellArg(extraOpts.keepASubs.trim()));
-      scriptObj.keep_a_subs = extraOpts.keepASubs.trim();
-    }
-    if (extraOpts.keepBAudio?.trim()) {
-      args.push('--keep-b-audio', quoteShellArg(extraOpts.keepBAudio.trim()));
-      scriptObj.keep_b_audio = extraOpts.keepBAudio.trim();
-    }
-    if (extraOpts.keepBSubs?.trim()) {
-      args.push('--keep-b-subs', quoteShellArg(extraOpts.keepBSubs.trim()));
-      scriptObj.keep_b_subs = extraOpts.keepBSubs.trim();
-    }
-  }
-
-  if (modId === 'internal_sync') {
-    if (extraOpts.refAudioTrack?.trim()) {
-      args.push('--ref-audio-track', quoteShellArg(extraOpts.refAudioTrack.trim()));
-      scriptObj.ref_audio_track = extraOpts.refAudioTrack.trim();
-    }
-    if (extraOpts.audioTrack?.trim()) {
-      args.push('--sync-audio', '--target-audio-track', quoteShellArg(extraOpts.audioTrack.trim()));
-      scriptObj.sync_audio = true;
-      scriptObj.target_audio_track = extraOpts.audioTrack.trim();
-    }
-    if (extraOpts.subTrack?.trim()) {
-      args.push('--sync-subs', '--target-sub-track', quoteShellArg(extraOpts.subTrack.trim()));
-      scriptObj.sync_subs = true;
-      scriptObj.target_sub_track = extraOpts.subTrack.trim();
-    }
-  }
-
-  if (nonInteractive) {
-    args.push('-y');
-    scriptObj.yes = true;
-  }
-
-  return {
-    command: args.join(' '),
-    scriptJson: JSON.stringify({ jobs: [scriptObj] }, null, 2),
-  };
-}
+import { buildCliCommandAndScript } from '../cliExport.js';
 
 export default function CliExportDialog({ open, onClose, selectedMod, paths, settings }) {
+  const [shell, setShell] = useState(() => /Win/i.test(navigator.platform) ? 'powershell' : 'bash');
   const [yesMode, setYesMode] = useState(true);
   const [keepTracks, setKeepTracks] = useState('');
   const [keepAudio, setKeepAudio] = useState('');
@@ -217,6 +48,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
   const { command, scriptJson } = useMemo(
     () =>
       buildCliCommandAndScript(selectedMod, paths, settings, {
+        shell,
         yes: yesMode,
         keepTracks,
         keepAudio,
@@ -238,6 +70,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
       selectedMod,
       paths,
       settings,
+      shell,
       yesMode,
       keepTracks,
       keepAudio,
@@ -547,9 +380,20 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <TerminalIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
               <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Command Line (Shell / PowerShell / Bash)
+                Command Line ({shell === 'powershell' ? 'PowerShell 7.3+' : 'Bash / POSIX sh'})
               </Typography>
             </Box>
+            <TextField
+              select
+              size="small"
+              label="Command shell"
+              value={shell}
+              onChange={(event) => setShell(event.target.value)}
+              sx={{ minWidth: 150, ml: 'auto', mr: 1.5 }}
+            >
+              <MenuItem value="powershell">PowerShell 7.3+</MenuItem>
+              <MenuItem value="bash">Bash / POSIX sh</MenuItem>
+            </TextField>
             <Button
               size="small"
               variant="outlined"

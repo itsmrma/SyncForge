@@ -1344,6 +1344,26 @@ test('CLI Command generator dialog builds syncforge-cli command and JSON script 
   await expect(dialog).not.toBeVisible();
 });
 
+test('CLI export switches shell quoting while preserving JSON values', async ({ page }) => {
+  const video = "C:\\Media Files\\director's $HOME\\";
+  await page.getByRole('textbox', { name: 'Video File or Folder', exact: true }).fill(video);
+  await page.getByTestId('open-cli-export-btn').click();
+  const dialog = page.getByTestId('cli-export-dialog');
+  await dialog.getByRole('combobox', { name: 'Command shell' }).click();
+  await page.getByRole('option', { name: 'PowerShell 7.3+', exact: true }).click();
+  await expect(page.getByTestId('cli-command-preview')).toHaveText(
+    String.raw`syncforge-cli run stream_manager -v 'C:\Media Files\director''s $HOME\' -y`,
+  );
+  await expect(page.getByTestId('cli-json-preview')).toContainText(JSON.stringify(video));
+
+  await dialog.getByRole('combobox', { name: 'Command shell' }).click();
+  await page.getByRole('option', { name: 'Bash / POSIX sh', exact: true }).click();
+  await expect(page.getByTestId('cli-command-preview')).toHaveText(
+    String.raw`syncforge-cli run stream_manager -v 'C:\Media Files\director'"'"'s $HOME\' -y`,
+  );
+  await expect(page.getByTestId('cli-json-preview')).toContainText(JSON.stringify(video));
+});
+
 
 
 
