@@ -40,7 +40,7 @@ jobs:
         run: npm run lint
 
       - name: Test release packaging and update manifest
-        run: node --test scripts/create-update-manifest.test.mjs scripts/release-build.test.mjs
+        run: node --test scripts/create-update-manifest.test.mjs scripts/release-build.test.mjs scripts/cli-shell.test.mjs
 
       - name: Build Web GUI (Vite)
         working-directory: web
@@ -99,3 +99,6 @@ jobs:
 
       - name: Run Rust tests
         run: cargo test --workspace
+
+      - name: Test patched GLib string iterators with optimizations
+        run: cargo test --manifest-path vendor/glib/Cargo.toml --release --lib variant_iter::tests::test_variant_str_iter
