@@ -102,3 +102,8 @@ jobs:
 
       - name: Test patched GLib string iterators with optimizations
         run: cargo test --manifest-path vendor/glib/Cargo.toml --release --lib variant_iter::tests::test_variant_str_iter
+
+      - name: Test GLib CodeQL regression cases with optimizations
+        run: |
+          cargo test --manifest-path vendor/glib/Cargo.toml --release --test security_regressions
+          cargo test --manifest-path vendor/glib/Cargo.toml --release --lib subclass::boxed::test::

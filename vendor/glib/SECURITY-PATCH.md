@@ -5,7 +5,7 @@ under the included MIT license. Upstream source commit:
 `42b9caf98e03ded086362d9653ca58fe94dc8658` in `gtk-rs/gtk-rs-core`.
 Only Cargo's local `.cargo-ok` cache marker is omitted.
 
-The only Rust source change is the backport of
+The only modification to upstream Rust source is the backport of
 https://github.com/gtk-rs/gtk-rs-core/pull/1343 in `src/variant_iter.rs`:
 `VariantStrIter::impl_get` initializes a mutable pointer and passes `&mut p`
 to the variadic GLib out-parameter. This fixes the undefined behavior described
@@ -25,3 +25,7 @@ cargo test --manifest-path vendor/glib/Cargo.toml --release --lib variant_iter::
 
 Remove this override when Tauri supports a patched registry version throughout
 its GTK dependency graph.
+
+The additional `tests/security_regressions.rs` integration tests cover the
+reviewed CodeQL false positives documented in `docs/security/glib-codeql.md`.
+They do not change the library implementation or its public API.
