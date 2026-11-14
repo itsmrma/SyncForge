@@ -212,7 +212,7 @@ export default function MatcherDialog({
     <Dialog open={state.open} onClose={onCancel} maxWidth="xl" fullWidth>
       <DialogTitle
         sx={{
-          fontWeight: 700,
+          fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -270,7 +270,7 @@ export default function MatcherDialog({
                 label={`Duplicate: ${diagnostics.duplicateEpisodes.join(', ')}`}
                 color="warning"
                 variant="outlined"
-                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+                sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.72rem' }}
               />
             )}
             {diagnostics.missingEpisodes.length > 0 && (
@@ -280,7 +280,7 @@ export default function MatcherDialog({
                 label={`Missing: ${diagnostics.missingEpisodes.join(', ')}`}
                 color="warning"
                 variant="outlined"
-                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+                sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.72rem' }}
               />
             )}
             {diagnostics.mismatchedRows.size > 0 && (
@@ -290,7 +290,7 @@ export default function MatcherDialog({
                 label={`${diagnostics.mismatchedRows.size} mismatch(es)`}
                 color="error"
                 variant="outlined"
-                sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+                sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.72rem' }}
               />
             )}
             <Chip
@@ -302,7 +302,7 @@ export default function MatcherDialog({
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Targets
             </Typography>
             <List dense sx={{ p: 0 }}>
@@ -358,7 +358,7 @@ export default function MatcherDialog({
                           height: 20,
                           fontSize: '0.68rem',
                           fontFamily: 'monospace',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           bgcolor: 'rgba(56, 189, 248, 0.14)',
                           color: '#38BDF8',
                           flexShrink: 0,
@@ -388,7 +388,7 @@ export default function MatcherDialog({
                         sx={{
                           height: 20,
                           fontSize: '0.65rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           flexShrink: 0,
                         }}
                       />
@@ -399,7 +399,7 @@ export default function MatcherDialog({
             </List>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               Sources (Drag to reorder)
             </Typography>
             <Reorder.Group
@@ -489,7 +489,7 @@ export default function MatcherDialog({
                                 height: 20,
                                 fontSize: '0.68rem',
                                 fontFamily: 'monospace',
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 bgcolor: 'rgba(99, 102, 241, 0.25)',
                                 color: '#A5B4FC',
                                 flexShrink: 0,
@@ -520,7 +520,7 @@ export default function MatcherDialog({
                                 ml: 0.75,
                                 height: 20,
                                 fontSize: '0.65rem',
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 flexShrink: 0,
                               }}
                             />
@@ -557,10 +557,9 @@ export default function MatcherDialog({
           onClick={onStop}
           disabled={stopping}
           sx={{
-            fontWeight: 700,
+            fontWeight: 600,
             bgcolor: 'error.main',
             color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(244, 63, 94, 0.35)',
             '&:hover': { bgcolor: 'error.dark' },
           }}
         >

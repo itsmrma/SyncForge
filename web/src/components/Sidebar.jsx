@@ -241,22 +241,31 @@ function Sidebar({
                     disabled={running}
                     onClick={() => onSelect(module)}
                     sx={{
-                      borderRadius: 1.75,
-                      mb: 0.6,
+                      borderRadius: 2,
+                      mb: 0.5,
                       py: 1,
                       px: width < 280 ? 1 : 1.5,
                       position: 'relative',
                       border: '1px solid',
-                      borderColor: active
-                        ? 'rgba(99, 102, 241, 0.4)'
-                        : 'transparent',
+                      borderColor: (theme) => !active
+                        ? 'transparent'
+                        : theme.palette.mode === 'light'
+                          ? 'rgba(15, 23, 42, 0.10)'
+                          : 'rgba(148, 163, 184, 0.12)',
                       overflow: 'hidden',
                       whiteSpace: collapsed ? 'nowrap' : 'normal',
                       alignItems: 'center',
                       '&.Mui-selected': {
-                        bgcolor: 'rgba(99, 102, 241, 0.14)',
+                        bgcolor: (theme) => theme.palette.mode === 'light'
+                          ? '#FFFFFF'
+                          : 'rgba(148, 163, 184, 0.08)',
+                        boxShadow: (theme) => theme.palette.mode === 'light'
+                          ? '0 1px 2px rgba(15, 23, 42, 0.05)'
+                          : 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
                         '&:hover': {
-                          bgcolor: 'rgba(99, 102, 241, 0.20)',
+                          bgcolor: (theme) => theme.palette.mode === 'light'
+                            ? '#FFFFFF'
+                            : 'rgba(148, 163, 184, 0.11)',
                         },
                       },
                     }}
@@ -291,7 +300,7 @@ function Sidebar({
                       <ListItemText
                         primary={module.title}
                         primaryTypographyProps={{
-                          fontWeight: active ? 700 : 500,
+                          fontWeight: 500,
                           fontSize: titleFontSize,
                           color: active ? 'text.primary' : 'text.secondary',
                           lineHeight: 1.25,
@@ -312,8 +321,8 @@ function Sidebar({
                             ml: width < 280 ? 0.75 : 1.25,
                             fontFamily: 'monospace',
                             fontSize: '0.72rem',
-                            color: active ? 'primary.light' : 'text.secondary',
-                            fontWeight: 600,
+                            color: 'text.secondary',
+                            fontWeight: 400,
                             flexShrink: 0,
                             alignSelf: 'center',
                           }}
@@ -361,7 +370,7 @@ function Sidebar({
                 fullWidth
                 sx={{
                   borderRadius: 1.75,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   minWidth: 0,
                   fontSize: buttonFontSize,
                   overflow: 'hidden',
@@ -426,7 +435,7 @@ function Sidebar({
               startIcon={<Settings fontSize="small" sx={{ flexShrink: 0 }} />}
               sx={{
                 borderRadius: 1.75,
-                fontWeight: 700,
+                fontWeight: 600,
                 minWidth: 0,
                 fontSize: buttonFontSize,
                 justifyContent: 'space-between',
@@ -471,7 +480,7 @@ function Sidebar({
                       fontFamily: 'monospace',
                       fontSize: '0.72rem',
                       color: 'text.secondary',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       flexShrink: 0,
                     }}
                   >

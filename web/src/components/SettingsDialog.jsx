@@ -56,7 +56,7 @@ function SectionCard({
   icon: IconComponent,
   title,
   tag,
-  iconColor = 'primary.main',
+  iconColor = 'text.secondary',
   children,
   testId,
   headerAction,
@@ -84,8 +84,8 @@ function SectionCard({
         '&:hover': {
           borderColor:
             theme.palette.mode === 'light'
-              ? 'rgba(99, 102, 241, 0.35)'
-              : 'rgba(99, 102, 241, 0.30)',
+              ? 'rgba(15, 23, 42, 0.20)'
+              : 'rgba(148, 163, 184, 0.24)',
         },
       })}
     >
@@ -147,10 +147,9 @@ function SectionCard({
           )}
           <Typography
             variant="subtitle2"
-            fontWeight={700}
+            fontWeight={600}
             sx={{
               fontSize: '0.84rem',
-              letterSpacing: '-0.01em',
               color: 'text.primary',
             }}
           >
@@ -172,7 +171,7 @@ function SectionCard({
               sx={{
                 height: 20,
                 fontSize: '0.66rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 bgcolor: 'action.hover',
                 color: 'text.secondary',
                 border: '1px solid',
@@ -637,9 +636,10 @@ export default function SettingsDialog({
                   width: 36,
                   height: 36,
                   borderRadius: 2,
-                  bgcolor: 'rgba(99, 102, 241, 0.14)',
-                  border: '1px solid rgba(99, 102, 241, 0.28)',
-                  color: 'primary.main',
+                  bgcolor: 'rgba(148, 163, 184, 0.06)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  color: 'text.secondary',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -648,7 +648,7 @@ export default function SettingsDialog({
                 <Settings fontSize="small" />
               </Box>
               <Box>
-                <Typography id="settings-dialog-title" variant="h6" fontWeight={800} sx={{ fontSize: '1.10rem', lineHeight: 1.2 }}>
+                <Typography id="settings-dialog-title" variant="h6" fontWeight={600} sx={{ fontSize: '1.10rem', lineHeight: 1.2 }}>
                   Settings
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.74rem' }}>
@@ -698,23 +698,23 @@ export default function SettingsDialog({
                 borderRadius: 1.5,
                 py: 0.75,
                 fontSize: '0.80rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 textTransform: 'none',
                 color: activeTab === 'general' ? 'text.primary' : 'text.secondary',
                 bgcolor:
                   activeTab === 'general'
-                    ? 'rgba(99, 102, 241, 0.18)'
+                    ? 'rgba(148, 163, 184, 0.12)'
                     : 'transparent',
                 border: '1px solid',
                 borderColor:
                   activeTab === 'general'
-                    ? 'rgba(99, 102, 241, 0.45)'
+                    ? 'rgba(148, 163, 184, 0.20)'
                     : 'transparent',
                 '&:hover': {
                   bgcolor:
                     activeTab === 'general'
-                      ? 'rgba(99, 102, 241, 0.24)'
-                      : 'rgba(99, 102, 241, 0.06)',
+                      ? 'rgba(148, 163, 184, 0.16)'
+                      : 'rgba(148, 163, 184, 0.06)',
                   color: 'text.primary',
                 },
               }}
@@ -732,23 +732,23 @@ export default function SettingsDialog({
                 borderRadius: 1.5,
                 py: 0.75,
                 fontSize: '0.80rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 textTransform: 'none',
                 color: activeTab === 'shortcuts' ? 'text.primary' : 'text.secondary',
                 bgcolor:
                   activeTab === 'shortcuts'
-                    ? 'rgba(99, 102, 241, 0.18)'
+                    ? 'rgba(148, 163, 184, 0.12)'
                     : 'transparent',
                 border: '1px solid',
                 borderColor:
                   activeTab === 'shortcuts'
-                    ? 'rgba(99, 102, 241, 0.45)'
+                    ? 'rgba(148, 163, 184, 0.20)'
                     : 'transparent',
                 '&:hover': {
                   bgcolor:
                     activeTab === 'shortcuts'
-                      ? 'rgba(99, 102, 241, 0.24)'
-                      : 'rgba(99, 102, 241, 0.06)',
+                      ? 'rgba(148, 163, 184, 0.16)'
+                      : 'rgba(148, 163, 184, 0.06)',
                   color: 'text.primary',
                 },
               }}
@@ -762,7 +762,7 @@ export default function SettingsDialog({
                     ml: 1,
                     height: 18,
                     fontSize: '0.68rem',
-                    fontWeight: 800,
+                    fontWeight: 600,
                     bgcolor: 'rgba(245, 158, 11, 0.2)',
                     color: 'warning.main',
                     border: '1px solid rgba(245, 158, 11, 0.4)',
@@ -841,7 +841,6 @@ export default function SettingsDialog({
                     ? 'Light Mode'
                     : 'System Default'
                 }
-                iconColor="primary.main"
                 expanded={expandedSections.appearance}
                 onToggle={() => toggleSection('appearance')}
               >
@@ -883,15 +882,15 @@ export default function SettingsDialog({
                             borderRadius: 1.5,
                             py: 0.75,
                             fontSize: '0.78rem',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             color: selected ? 'text.primary' : 'text.secondary',
-                            bgcolor: selected ? 'rgba(99, 102, 241, 0.18)' : 'transparent',
+                            bgcolor: selected ? 'rgba(148, 163, 184, 0.12)' : 'transparent',
                             border: '1px solid',
-                            borderColor: selected ? 'rgba(99, 102, 241, 0.45)' : 'transparent',
+                            borderColor: selected ? 'rgba(148, 163, 184, 0.20)' : 'transparent',
                             '&:hover': {
                               bgcolor: selected
-                                ? 'rgba(99, 102, 241, 0.24)'
-                                : 'rgba(99, 102, 241, 0.08)',
+                                ? 'rgba(148, 163, 184, 0.16)'
+                                : 'rgba(148, 163, 184, 0.06)',
                               color: 'text.primary',
                             },
                           }}
@@ -919,7 +918,6 @@ export default function SettingsDialog({
                     ? 'Opus: Prompt'
                     : 'Opus: Disabled'
                 }
-                iconColor="success.main"
                 expanded={expandedSections.audio}
                 onToggle={() => toggleSection('audio')}
               >
@@ -1054,7 +1052,6 @@ export default function SettingsDialog({
                     ? 'FFsubsync Auto'
                     : 'FFsubsync Off'
                 }
-                iconColor="secondary.main"
                 expanded={expandedSections.subtitles}
                 onToggle={() => toggleSection('subtitles')}
               >
@@ -1111,7 +1108,6 @@ export default function SettingsDialog({
                 testId="opensubtitles-settings-card"
                 icon={KeyOutlined}
                 title="OpenSubtitles.com API Integration"
-                iconColor="primary.main"
                 expanded={expandedSections.opensubtitles}
                 onToggle={() => toggleSection('opensubtitles')}
                 headerAction={
@@ -1123,7 +1119,7 @@ export default function SettingsDialog({
                         label="Configured"
                         color="success"
                         variant="outlined"
-                        sx={{ height: 20, fontSize: '0.66rem', fontWeight: 700 }}
+                        sx={{ height: 20, fontSize: '0.66rem', fontWeight: 600 }}
                       />
                     ) : (
                       <Chip
@@ -1133,7 +1129,7 @@ export default function SettingsDialog({
                         sx={{
                           height: 20,
                           fontSize: '0.66rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           color: 'text.secondary',
                         }}
                       />
@@ -1293,7 +1289,6 @@ export default function SettingsDialog({
                 icon={FolderOpenOutlined}
                 title="Default Output Directory"
                 tag={settings.default_output_dir ? 'Custom Directory' : 'Source Directory'}
-                iconColor="warning.main"
                 expanded={expandedSections.output}
                 onToggle={() => toggleSection('output')}
               >
@@ -1362,7 +1357,6 @@ export default function SettingsDialog({
                     ? 'Chime Only'
                     : 'Muted'
                 }
-                iconColor="info.main"
                 expanded={expandedSections.notifications}
                 onToggle={() => toggleSection('notifications')}
               >
@@ -1391,7 +1385,6 @@ export default function SettingsDialog({
                     ? `${toolsFoundCount}/6 Ready`
                     : 'Tools & Binaries'
                 }
-                iconColor="secondary.main"
                 expanded={expandedSections.portable}
                 onToggle={() => toggleSection('portable')}
               >
@@ -1436,13 +1429,13 @@ export default function SettingsDialog({
                                 : 'divider',
                               fontFamily: 'monospace',
                               fontSize: '0.72rem',
-                              fontWeight: 700,
+                              fontWeight: 600,
                               color: isGreen
                                 ? '#4ADE80'
                                 : isRed
                                 ? '#F87171'
                                 : 'text.secondary',
-                              transition: 'all 0.15s ease',
+                              transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                               cursor: 'default',
                             }}
                           >
@@ -1556,7 +1549,7 @@ export default function SettingsDialog({
                       sx={{
                         height: 22,
                         fontSize: '0.70rem',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         bgcolor: 'rgba(245, 158, 11, 0.16)',
                         color: 'warning.main',
                         border: '1px solid rgba(245, 158, 11, 0.35)',
@@ -1676,12 +1669,10 @@ export default function SettingsDialog({
                         <KeyboardOutlined sx={{ color: group.color, fontSize: 17 }} />
                         <Typography
                           variant="subtitle2"
-                          fontWeight={700}
+                          fontWeight={600}
                           sx={{
                             color: group.color,
                             fontSize: '0.80rem',
-                            letterSpacing: '0.03em',
-                            textTransform: 'uppercase',
                           }}
                         >
                           {group.category}
@@ -1695,7 +1686,7 @@ export default function SettingsDialog({
                           sx={{
                             height: 20,
                             fontSize: '0.66rem',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             bgcolor: 'action.hover',
                             color: 'text.secondary',
                             border: '1px solid',
@@ -1765,7 +1756,7 @@ export default function SettingsDialog({
                               bgcolor: isModified
                                 ? 'rgba(245, 158, 11, 0.05)'
                                 : 'transparent',
-                              transition: 'all 0.12s ease',
+                              transition: 'background-color 0.12s ease, border-color 0.12s ease',
                               '&:hover': {
                                 bgcolor: isModified
                                   ? 'rgba(245, 158, 11, 0.10)'
@@ -1806,7 +1797,7 @@ export default function SettingsDialog({
                                       border: '1px solid rgba(245, 158, 11, 0.35)',
                                       color: '#FBBF24',
                                       fontSize: '0.66rem',
-                                      fontWeight: 700,
+                                      fontWeight: 600,
                                     }}
                                   >
                                     <EditOutlined sx={{ fontSize: 12 }} />
@@ -1830,7 +1821,7 @@ export default function SettingsDialog({
                                         textAlign: 'center',
                                         fontFamily: 'monospace',
                                         fontSize: '0.74rem',
-                                        fontWeight: 700,
+                                        fontWeight: 600,
                                         color: isModified
                                           ? '#FBBF24'
                                           : theme.palette.mode === 'light'
@@ -1920,8 +1911,8 @@ export default function SettingsDialog({
               >
                 <InfoOutlined sx={{ color: '#818CF8', fontSize: 16, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.73rem', color: 'text.secondary' }}>
-                  On macOS, you can use <code style={{ color: 'inherit', fontWeight: 700 }}>Cmd (⌘)</code>{' '}
-                  in place of <code style={{ color: 'inherit', fontWeight: 700 }}>Ctrl</code> for all
+                  On macOS, you can use <code style={{ color: 'inherit', fontWeight: 600 }}>Cmd (⌘)</code>{' '}
+                  in place of <code style={{ color: 'inherit', fontWeight: 600 }}>Ctrl</code> for all
                   global shortcuts.
                 </Typography>
               </Box>
@@ -1969,7 +1960,7 @@ export default function SettingsDialog({
           <Button
             variant="contained"
             onClick={onClose}
-            sx={{ px: 3.5, fontWeight: 700, borderRadius: 2 }}
+            sx={{ px: 3 }}
           >
             Done
           </Button>
@@ -2008,7 +1999,7 @@ export default function SettingsDialog({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <KeyboardOutlined sx={{ color: '#818CF8' }} />
-          <Typography variant="h6" fontWeight={700} fontSize="1rem">
+          <Typography variant="h6" fontWeight={600} fontSize="1rem">
             Change Shortcut
           </Typography>
         </Box>
@@ -2034,9 +2025,7 @@ export default function SettingsDialog({
             sx={{
               color: '#818CF8',
               fontFamily: 'monospace',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
+              fontWeight: 600,
             }}
           >
             Listening for key combination...
@@ -2110,7 +2099,7 @@ export default function SettingsDialog({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <WarningAmberRounded sx={{ color: '#F59E0B' }} />
-          <Typography variant="h6" fontWeight={700} fontSize="1rem">
+          <Typography variant="h6" fontWeight={600} fontSize="1rem">
             Shortcut Already Mapped
           </Typography>
         </Box>
@@ -2119,7 +2108,7 @@ export default function SettingsDialog({
           <code
             style={{
               color: '#FBBF24',
-              fontWeight: 700,
+              fontWeight: 600,
               background: 'rgba(245, 158, 11, 0.14)',
               padding: '2px 6px',
               borderRadius: 4,

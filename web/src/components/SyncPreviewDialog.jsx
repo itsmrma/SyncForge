@@ -178,7 +178,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
             <TuneOutlined fontSize="small" />
           </Box>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
+            <Typography variant="subtitle1" fontWeight={600} noWrap>
               Synchronization Preview & Micro-Nudge
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
@@ -194,7 +194,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
             maxWidth: 200,
             fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
             fontSize: '0.72rem',
-            fontWeight: 700,
+            fontWeight: 600,
             bgcolor: 'rgba(99, 102, 241, 0.14)',
             color: 'primary.main',
             border: '1px solid rgba(99, 102, 241, 0.30)',
@@ -229,9 +229,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  fontWeight: 600,
                   color: 'text.secondary',
                 }}
               >
@@ -244,7 +242,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
                 fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
                 fontVariantNumeric: 'tabular-nums',
                 fontSize: '1.15rem',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: highConfidenceAudio ? 'success.main' : 'warning.main',
               }}
             >
@@ -261,9 +259,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  fontWeight: 600,
                   color: 'text.secondary',
                 }}
               >
@@ -276,7 +272,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
                 fontFamily: '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
                 fontVariantNumeric: 'tabular-nums',
                 fontSize: '1.15rem',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: 'secondary.main',
               }}
             >
@@ -297,7 +293,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
             disabled={launchingMpv || stopping}
             onClick={handleLaunchMpv}
             data-testid="preview-in-mpv-btn"
-            sx={{ fontWeight: 700, px: 2.5 }}
+            sx={{ fontWeight: 600, px: 2.5 }}
           >
             {launchingMpv ? 'Launching mpv...' : 'Preview in mpv'}
           </Button>
@@ -314,7 +310,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
 
         {/* Audio Micro-Nudge Controls */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{  }}>
             Audio Offset Micro-Nudge (--audio-delay)
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -327,7 +323,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
                   variant="outlined"
                   data-testid={`nudge-audio-${delta > 0 ? `+${delta}` : delta}`}
                   onClick={() => setAudioDelay((prev) => (Number(prev) || 0) + delta)}
-                  sx={{ fontFamily: 'monospace', fontWeight: 700, minWidth: 68 }}
+                  sx={{ fontFamily: 'monospace', fontWeight: 600, minWidth: 68 }}
                 >
                   {label}
                 </Button>
@@ -352,7 +348,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
 
         {/* Subtitle Micro-Nudge Controls */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{  }}>
             Subtitle Offset Micro-Nudge (--sub-delay)
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -365,7 +361,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
                   variant="outlined"
                   data-testid={`nudge-sub-${delta > 0 ? `+${delta}` : delta}`}
                   onClick={() => setSubDelay((prev) => (Number(prev) || 0) + delta)}
-                  sx={{ fontFamily: 'monospace', fontWeight: 700, minWidth: 68 }}
+                  sx={{ fontFamily: 'monospace', fontWeight: 600, minWidth: 68 }}
                 >
                   {label}
                 </Button>
@@ -433,7 +429,7 @@ export default function SyncPreviewDialog({ request, onResolve, onStop, stopping
           disabled={stopping}
           onClick={handleConfirm}
           data-testid="confirm-and-mux-btn"
-          sx={{ fontWeight: 700, px: 2.5 }}
+          sx={{ fontWeight: 600, px: 2.5 }}
         >
           Confirm & Mux
         </Button>

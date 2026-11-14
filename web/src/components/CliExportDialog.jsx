@@ -151,7 +151,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
           <TerminalIcon sx={{ color: 'primary.main', fontSize: 22 }} />
           <Box>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.2 }}>
               CLI Automation & Script Generator
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -163,7 +163,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
           <Chip
             size="small"
             label={selectedMod?.title || modId}
-            sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem' }}
+            sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.72rem' }}
           />
           <IconButton size="small" onClick={onClose} aria-label="Close CLI export dialog">
             <Close fontSize="small" />
@@ -186,7 +186,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-            <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
+            <Typography variant="caption" fontWeight={600} sx={{ color: 'text.secondary' }}>
               Script Parameters (Optional Track IDs or Language Codes e.g. ita, eng)
             </Typography>
             <FormControlLabel
@@ -379,7 +379,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <TerminalIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
-              <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <Typography variant="caption" fontWeight={600} sx={{  }}>
                 Command Line ({shell === 'powershell' ? 'PowerShell 7.3+' : 'Bash / POSIX sh'})
               </Typography>
             </Box>
@@ -429,7 +429,7 @@ export default function CliExportDialog({ open, onClose, selectedMod, paths, set
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <CodeOutlined sx={{ fontSize: 16, color: 'primary.main' }} />
-              <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <Typography variant="caption" fontWeight={600} sx={{  }}>
                 JSON Workflow Script (syncforge-cli script workflow.json)
               </Typography>
             </Box>

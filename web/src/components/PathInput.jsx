@@ -154,8 +154,7 @@ function PathInput({
                   sx={{
                     height: 20,
                     fontSize: '0.68rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.03em',
+                    fontWeight: 500,
                     bgcolor: dragOver
                       ? 'rgba(56, 189, 248, 0.20)'
                       : 'rgba(99, 102, 241, 0.16)',

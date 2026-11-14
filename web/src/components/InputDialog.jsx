@@ -309,7 +309,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
           borderRadius: 2,
           cursor: 'pointer',
           minWidth: 0,
-          transition: 'all 0.15s ease',
+          transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
           '&:hover': {
             borderColor: isAudio
               ? 'rgba(52, 211, 153, 0.6)'
@@ -345,7 +345,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
           sx={{
             fontFamily: 'monospace',
             fontSize: '0.85rem',
-            fontWeight: 800,
+            fontWeight: 600,
             minWidth: 64,
             flexShrink: 0,
             bgcolor: checked
@@ -368,7 +368,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
         />
         <Box sx={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography fontWeight={700} fontSize="0.92rem">
+            <Typography fontWeight={600} fontSize="0.92rem">
               {trackName}
             </Typography>
             <Chip
@@ -377,9 +377,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
               sx={{
                 height: 18,
                 fontSize: '0.68rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
+                fontWeight: 600,
                 bgcolor: isAudio
                   ? 'rgba(52, 211, 153, 0.12)'
                   : 'rgba(56, 189, 248, 0.12)',
@@ -417,7 +415,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
               sx={{
                 height: 22,
                 fontSize: '0.7rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 bgcolor: 'rgba(99, 102, 241, 0.20)',
                 color: '#A5B4FC',
                 border: '1px solid rgba(99, 102, 241, 0.55)',
@@ -432,7 +430,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
               sx={{
                 height: 22,
                 fontSize: '0.7rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 bgcolor: 'rgba(245, 158, 11, 0.20)',
                 color: '#FBBF24',
                 border: '1px solid rgba(245, 158, 11, 0.55)',
@@ -456,8 +454,8 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
       fullWidth
       aria-labelledby="input-title"
     >
-      <DialogTitle id="input-title" sx={{ pb: 1.5, fontWeight: 700 }}>
-        <Typography variant="h5" component="div" fontWeight={700}>
+      <DialogTitle id="input-title" sx={{ pb: 1.5, fontWeight: 600 }}>
+        <Typography variant="h5" component="div" fontWeight={600}>
           {prompt}
         </Typography>
         {(context || (files && files.length > 0)) && (
@@ -693,10 +691,8 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     <Typography
                       variant="subtitle2"
                       sx={{
-                        fontWeight: 700,
-                        letterSpacing: '0.04em',
+                        fontWeight: 600,
                         color: '#34D399',
-                        textTransform: 'uppercase',
                         fontSize: '0.78rem',
                       }}
                     >
@@ -746,10 +742,8 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     <Typography
                       variant="subtitle2"
                       sx={{
-                        fontWeight: 700,
-                        letterSpacing: '0.04em',
+                        fontWeight: 600,
                         color: '#38BDF8',
-                        textTransform: 'uppercase',
                         fontSize: '0.78rem',
                       }}
                     >
@@ -788,9 +782,8 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                 <Typography
                   variant="subtitle2"
                   sx={{
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: 'text.secondary',
-                    textTransform: 'uppercase',
                     fontSize: '0.78rem',
                     mb: 1,
                     px: 0.5,
@@ -836,7 +829,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     <AudiotrackOutlined />
                   </Box>
                   <Box>
-                    <Typography variant="subtitle1" fontWeight={700}>
+                    <Typography variant="subtitle1" fontWeight={600}>
                       Audio Re-encoding: Opus
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -850,10 +843,8 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                     <Typography
                       variant="caption"
                       sx={{
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
+                        fontWeight: 600,
                         color: 'text.secondary',
-                        letterSpacing: '0.04em',
                       }}
                     >
                       Audio tracks to be converted ({tracks.length}):
@@ -873,7 +864,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                           }}
                         >
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                            <Chip label={`ID ${t.id}`} size="small" sx={{ fontFamily: 'monospace', fontWeight: 700 }} />
+                            <Chip label={`ID ${t.id}`} size="small" sx={{ fontFamily: 'monospace', fontWeight: 600 }} />
                             <Typography variant="body2" fontWeight={600} noWrap>
                               {t.properties?.track_name || 'Audio track'}
                             </Typography>
@@ -885,7 +876,7 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
                             variant="caption"
                             sx={{
                               color: '#34D399',
-                              fontWeight: 700,
+                              fontWeight: 600,
                               flexShrink: 0,
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -930,10 +921,9 @@ export default function InputDialog({ request, onResolve, onStop, stopping }) {
           onClick={onStop}
           disabled={stopping}
           sx={{
-            fontWeight: 700,
+            fontWeight: 600,
             bgcolor: 'error.main',
             color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(244, 63, 94, 0.35)',
             '&:hover': { bgcolor: 'error.dark' },
           }}
         >
