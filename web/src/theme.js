@@ -16,7 +16,7 @@ export function getAppTheme(mode = 'dark') {
         main: isLight ? '#0284C7' : '#38BDF8',
       },
       error: {
-        main: isLight ? '#E11D48' : '#F43F5E',
+        main: isLight ? '#DC2626' : '#E5484D',
       },
       warning: {
         main: isLight ? '#D97706' : '#F59E0B',
@@ -42,21 +42,21 @@ export function getAppTheme(mode = 'dark') {
       borderRadius: 8,
     },
     typography: {
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      fontFamily: '"Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       h3: {
         fontSize: '1.85rem',
-        fontWeight: 800,
-        letterSpacing: '-0.025em',
+        fontWeight: 500,
+        letterSpacing: '-0.015em',
       },
       h5: {
         fontSize: '1.15rem',
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
+        fontWeight: 600,
+        letterSpacing: '-0.01em',
       },
       button: {
         textTransform: 'none',
-        fontWeight: 600,
-        letterSpacing: '-0.01em',
+        fontWeight: 500,
+        letterSpacing: 0,
       },
     },
     components: {
@@ -71,42 +71,24 @@ export function getAppTheme(mode = 'dark') {
             '&:focus-visible': {
               outline: isLight ? '2px solid #4F46E5' : '2px solid #818CF8',
               outlineOffset: 2,
-              boxShadow: isLight
-                ? '0 0 0 4px rgba(79, 70, 229, 0.18)'
-                : '0 0 0 4px rgba(99, 102, 241, 0.25)',
             },
           },
           containedPrimary: {
-            background: isLight
-              ? 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)'
-              : 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
-            border: isLight
-              ? '1px solid rgba(67, 56, 202, 0.4)'
-              : '1px solid rgba(129, 140, 248, 0.35)',
+            backgroundColor: '#4F46E5',
+            color: '#FFFFFF',
+            boxShadow: isLight ? 'none' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
             '&:hover': {
-              background: isLight
-                ? 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)'
-                : 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)',
+              backgroundColor: '#4338CA',
+              boxShadow: isLight ? 'none' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
             },
           },
           containedError: {
-            background: isLight
-              ? 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)'
-              : 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)',
+            backgroundColor: isLight ? '#DC2626' : '#E5484D',
             color: '#FFFFFF',
-            border: isLight
-              ? '1px solid rgba(190, 18, 60, 0.5)'
-              : '1px solid rgba(244, 63, 94, 0.4)',
-            boxShadow: isLight
-              ? '0 2px 8px rgba(225, 29, 72, 0.25)'
-              : '0 2px 10px rgba(244, 63, 94, 0.35)',
+            boxShadow: 'none',
             '&:hover': {
-              background: isLight
-                ? 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)'
-                : 'linear-gradient(135deg, #FB7185 0%, #F43F5E 100%)',
-              boxShadow: isLight
-                ? '0 4px 12px rgba(225, 29, 72, 0.35)'
-                : '0 4px 14px rgba(244, 63, 94, 0.45)',
+              backgroundColor: isLight ? '#B91C1C' : '#CE3D42',
+              boxShadow: 'none',
             },
           },
           outlined: {
@@ -114,8 +96,8 @@ export function getAppTheme(mode = 'dark') {
             backgroundColor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.6)',
             color: isLight ? '#0F172A' : '#F1F5F9',
             '&:hover': {
-              borderColor: isLight ? 'rgba(79, 70, 229, 0.45)' : 'rgba(129, 140, 248, 0.45)',
-              backgroundColor: isLight ? 'rgba(79, 70, 229, 0.06)' : 'rgba(99, 102, 241, 0.08)',
+              borderColor: isLight ? 'rgba(15, 23, 42, 0.28)' : 'rgba(148, 163, 184, 0.36)',
+              backgroundColor: isLight ? 'rgba(15, 23, 42, 0.04)' : 'rgba(148, 163, 184, 0.06)',
             },
           },
         },

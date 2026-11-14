@@ -1197,9 +1197,6 @@ export default function App() {
           height: '100vh',
           overflow: 'hidden',
           bgcolor: 'background.default',
-          backgroundImage: isLight
-            ? 'radial-gradient(circle at 85% 10%, rgba(79, 70, 229, 0.05) 0%, transparent 45%), radial-gradient(circle at 20% 90%, rgba(2, 132, 199, 0.04) 0%, transparent 40%)'
-            : 'radial-gradient(circle at 85% 10%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), radial-gradient(circle at 20% 90%, rgba(56, 189, 248, 0.06) 0%, transparent 40%)',
         }}
       >
         <Sidebar
@@ -1255,7 +1252,7 @@ export default function App() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.16, ease: 'easeOut' }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
               style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
             >
               {/* Modern Workspace Header */}
@@ -1271,22 +1268,20 @@ export default function App() {
                     : '1px solid rgba(148, 163, 184, 0.10)',
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Box
                     sx={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 2,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2.5,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: isLight
-                        ? 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(2, 132, 199, 0.08) 100%)'
-                        : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(56, 189, 248, 0.12) 100%)',
+                      bgcolor: isLight ? '#FFFFFF' : 'rgba(148, 163, 184, 0.06)',
                       border: isLight
-                        ? '1px solid rgba(79, 70, 229, 0.28)'
-                        : '1px solid rgba(99, 102, 241, 0.35)',
-                      color: 'primary.main',
+                        ? '1px solid rgba(15, 23, 42, 0.10)'
+                        : '1px solid rgba(148, 163, 184, 0.12)',
+                      color: isLight ? 'primary.main' : 'primary.light',
                     }}
                   >
                     <ActiveIcon />
@@ -1298,43 +1293,33 @@ export default function App() {
                   </Box>
                 </Box>
 
-                <Chip
-                  size="small"
-                  label={
-                    isStopping
-                      ? 'Stopping'
-                      : isRunning
-                        ? 'Processing'
-                        : 'Ready'
-                  }
+                <Box
+                  role="status"
                   sx={{
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    fontSize: '0.72rem',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    bgcolor: isRunning
-                      ? isLight
-                        ? 'rgba(79, 70, 229, 0.12)'
-                        : 'rgba(99, 102, 241, 0.16)'
-                      : isLight
-                        ? 'rgba(5, 150, 105, 0.12)'
-                        : 'rgba(16, 185, 129, 0.12)',
-                    color: isRunning
-                      ? 'primary.main'
-                      : isLight
-                        ? '#047857'
-                        : '#34D399',
-                    border: '1px solid',
-                    borderColor: isRunning
-                      ? isLight
-                        ? 'rgba(79, 70, 229, 0.3)'
-                        : 'rgba(99, 102, 241, 0.35)'
-                      : isLight
-                        ? 'rgba(5, 150, 105, 0.28)'
-                        : 'rgba(16, 185, 129, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    color: 'text.secondary',
                   }}
-                />
+                >
+                  <Box
+                    component="span"
+                    aria-hidden
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: isStopping
+                        ? 'warning.main'
+                        : isRunning
+                          ? 'primary.light'
+                          : 'success.main',
+                    }}
+                  />
+                  {isStopping ? 'Stopping' : isRunning ? 'Processing' : 'Ready'}
+                </Box>
               </Box>
 
               <Typography
@@ -1369,11 +1354,10 @@ export default function App() {
                       width: '100%',
                       p: 2.5,
                       borderRadius: 2.5,
-                      bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.72)',
+                      bgcolor: isLight ? '#FAFAFC' : '#0F141F',
                       border: isLight
                         ? '1px solid rgba(15, 23, 42, 0.10)'
-                        : '1px solid rgba(148, 163, 184, 0.12)',
-                      backdropFilter: 'blur(12px)',
+                        : '1px solid rgba(148, 163, 184, 0.10)',
                     }}
                   >
                     {selectedMod.needs.includes('video') && (
@@ -1432,7 +1416,7 @@ export default function App() {
                                 height: 20,
                                 fontSize: '0.68rem',
                                 fontFamily: 'monospace',
-                                fontWeight: 800,
+                                fontWeight: 500,
                                 bgcolor: isLight
                                   ? 'rgba(79, 70, 229, 0.12)'
                                   : 'rgba(99, 102, 241, 0.18)',
@@ -1604,7 +1588,7 @@ export default function App() {
                       sx={{
                         px: 3.5,
                         py: 1.2,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         fontSize: '0.92rem',
                       }}
                     >
@@ -1618,7 +1602,7 @@ export default function App() {
                         sx={{
                           fontFamily: 'monospace',
                           fontSize: '0.70rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           color: 'text.secondary',
                           bgcolor: isLight
                             ? 'rgba(15, 23, 42, 0.06)'
@@ -1664,18 +1648,10 @@ export default function App() {
                         sx={{
                           px: 2.75,
                           py: 1.2,
-                          fontWeight: 700,
+                          fontWeight: 500,
                           fontSize: '0.86rem',
-                          bgcolor: 'error.main',
-                          color: '#FFFFFF',
-                          boxShadow: '0 2px 10px rgba(244, 63, 94, 0.4)',
-                          border: '1px solid rgba(244, 63, 94, 0.5)',
-                          '&:hover': {
-                            bgcolor: 'error.dark',
-                            boxShadow: '0 4px 14px rgba(244, 63, 94, 0.55)',
-                          },
                           '&.Mui-disabled': {
-                            bgcolor: 'rgba(244, 63, 94, 0.5)',
+                            bgcolor: 'rgba(229, 72, 77, 0.5)',
                             color: 'rgba(255, 255, 255, 0.7)',
                           },
                         }}
@@ -1701,11 +1677,10 @@ export default function App() {
                             width: '100%',
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.85)',
+                            bgcolor: isLight ? '#FAFAFC' : '#0F141F',
                             border: isLight
-                              ? '1px solid rgba(79, 70, 229, 0.28)'
-                              : '1px solid rgba(99, 102, 241, 0.25)',
-                            backdropFilter: 'blur(10px)',
+                              ? '1px solid rgba(15, 23, 42, 0.10)'
+                              : '1px solid rgba(148, 163, 184, 0.10)',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 1.5,
@@ -1753,7 +1728,7 @@ export default function App() {
                                 data-testid="overall-progress-label"
                                 sx={{
                                   fontFamily: 'monospace',
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   color: 'primary.main',
                                   fontSize: '0.82rem',
                                 }}
@@ -1777,8 +1752,7 @@ export default function App() {
                                   : 'rgba(255, 255, 255, 0.08)',
                                 '& .MuiLinearProgress-bar': {
                                   borderRadius: 4,
-                                  background:
-                                    'linear-gradient(90deg, #6366F1 0%, #38BDF8 100%)',
+                                  bgcolor: isLight ? 'primary.main' : 'primary.light',
                                 },
                               }}
                             />
@@ -1833,8 +1807,9 @@ export default function App() {
                                 data-testid="file-progress-label"
                                 sx={{
                                   fontFamily: 'monospace',
-                                  fontWeight: 700,
-                                  color: 'secondary.main',
+                                  fontWeight: 500,
+                                  fontVariantNumeric: 'tabular-nums',
+                                  color: 'text.primary',
                                   fontSize: '0.82rem',
                                 }}
                               >
@@ -1853,8 +1828,7 @@ export default function App() {
                                   : 'rgba(255, 255, 255, 0.08)',
                                 '& .MuiLinearProgress-bar': {
                                   borderRadius: 4,
-                                  background:
-                                    'linear-gradient(90deg, #38BDF8 0%, #34D399 100%)',
+                                  bgcolor: 'secondary.main',
                                 },
                               }}
                             />
@@ -1929,13 +1903,12 @@ export default function App() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 2,
-                    p: 2.25,
+                    p: 2.5,
                     borderRadius: 2.5,
-                    bgcolor: isLight ? '#FAFAFC' : 'rgba(15, 20, 31, 0.55)',
+                    bgcolor: isLight ? '#FAFAFC' : '#0F141F',
                     border: isLight
                       ? '1px solid rgba(15, 23, 42, 0.10)'
                       : '1px solid rgba(148, 163, 184, 0.10)',
-                    backdropFilter: 'blur(10px)',
                     minWidth: 0,
                   }}
                 >
@@ -1947,16 +1920,14 @@ export default function App() {
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TuneOutlined sx={{ fontSize: 17, color: 'primary.main' }} />
+                      <TuneOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
                       <Typography
                         component="h4"
                         variant="subtitle2"
-                        fontWeight={700}
+                        fontWeight={500}
                         sx={{
-                          fontSize: '0.78rem',
-                          letterSpacing: '0.04em',
-                          textTransform: 'uppercase',
-                          color: isLight ? '#4338CA' : '#A5B4FC',
+                          fontSize: '0.8rem',
+                          color: 'text.primary',
                         }}
                       >
                         Active Profile
@@ -2034,16 +2005,14 @@ export default function App() {
                           bgcolor:
                             settings.opus_mode && settings.opus_mode !== 'off'
                               ? isLight
-                                ? 'rgba(5, 150, 105, 0.12)'
-                                : 'rgba(52, 211, 153, 0.14)'
+                                ? 'rgba(15, 23, 42, 0.10)'
+                                : 'rgba(148, 163, 184, 0.16)'
                               : isLight
                                 ? 'rgba(15, 23, 42, 0.06)'
                                 : 'rgba(148, 163, 184, 0.08)',
                           color:
                             settings.opus_mode && settings.opus_mode !== 'off'
-                              ? isLight
-                                ? '#047857'
-                                : '#34D399'
+                              ? 'text.primary'
                               : 'text.secondary',
                         }}
                       />
@@ -2058,15 +2027,13 @@ export default function App() {
                           fontFamily: 'monospace',
                           bgcolor: settings.auto_audio
                             ? isLight
-                              ? 'rgba(5, 150, 105, 0.12)'
-                              : 'rgba(52, 211, 153, 0.14)'
+                              ? 'rgba(15, 23, 42, 0.10)'
+                              : 'rgba(148, 163, 184, 0.16)'
                             : isLight
                               ? 'rgba(15, 23, 42, 0.06)'
                               : 'rgba(148, 163, 184, 0.08)',
                           color: settings.auto_audio
-                            ? isLight
-                              ? '#047857'
-                              : '#34D399'
+                            ? 'text.primary'
                             : 'text.secondary',
                         }}
                       />
@@ -2084,12 +2051,12 @@ export default function App() {
                             fontFamily: 'monospace',
                             bgcolor: settings.auto_subs
                               ? isLight
-                                ? 'rgba(2, 132, 199, 0.12)'
-                                : 'rgba(56, 189, 248, 0.14)'
+                                ? 'rgba(15, 23, 42, 0.10)'
+                                : 'rgba(148, 163, 184, 0.16)'
                               : isLight
                                 ? 'rgba(15, 23, 42, 0.06)'
                                 : 'rgba(148, 163, 184, 0.08)',
-                            color: settings.auto_subs ? 'secondary.main' : 'text.secondary',
+                            color: settings.auto_subs ? 'text.primary' : 'text.secondary',
                           }}
                         />
                         <Chip
@@ -2118,9 +2085,9 @@ export default function App() {
                               fontSize: '0.70rem',
                               fontFamily: 'monospace',
                               bgcolor: isLight
-                                ? 'rgba(2, 132, 199, 0.12)'
-                                : 'rgba(56, 189, 248, 0.14)',
-                              color: 'secondary.main',
+                                ? 'rgba(15, 23, 42, 0.10)'
+                                : 'rgba(148, 163, 184, 0.16)',
+                              color: 'text.primary',
                             }}
                           />
                         )}
@@ -2135,15 +2102,13 @@ export default function App() {
                         fontFamily: 'monospace',
                         bgcolor: settings.notify_on_finish
                           ? isLight
-                            ? 'rgba(5, 150, 105, 0.12)'
-                            : 'rgba(52, 211, 153, 0.14)'
+                            ? 'rgba(15, 23, 42, 0.10)'
+                            : 'rgba(148, 163, 184, 0.16)'
                           : isLight
                             ? 'rgba(15, 23, 42, 0.06)'
                             : 'rgba(148, 163, 184, 0.08)',
                         color: settings.notify_on_finish
-                          ? isLight
-                            ? '#047857'
-                            : '#34D399'
+                          ? 'text.primary'
                           : 'text.secondary',
                       }}
                     />
@@ -2164,18 +2129,16 @@ export default function App() {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <GraphicEq sx={{ fontSize: 16, color: 'secondary.main' }} />
+                        <GraphicEq sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography
                           variant="caption"
-                          fontWeight={700}
+                          fontWeight={500}
                           sx={{
-                            fontSize: '0.72rem',
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            color: 'text.secondary',
+                            fontSize: '0.8rem',
+                            color: 'text.primary',
                           }}
                         >
-                          Stream & Telemetry Inspector
+                          Media Inspector
                         </Typography>
                       </Box>
                       <Typography
@@ -2183,14 +2146,15 @@ export default function App() {
                         sx={{
                           fontFamily: 'monospace',
                           fontSize: '0.72rem',
-                          color: isRunning ? 'secondary.main' : 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: isRunning ? 'text.primary' : 'text.secondary',
                         }}
                       >
                         {isRunning
-                          ? `LIVE • ${formatDuration(elapsedSeconds)}`
+                          ? `Running · ${formatDuration(elapsedSeconds)}`
                           : mediaSummary
                             ? mediaSummary.badge
-                            : 'STANDBY'}
+                            : 'Idle'}
                       </Typography>
                     </Box>
 
@@ -2216,7 +2180,7 @@ export default function App() {
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', display: 'block' }}>
                             Source Container
                           </Typography>
-                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: 'text.primary' }}>
+                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 500, fontSize: '0.72rem', color: 'text.primary' }}>
                             {mediaSummary.videoCodec ? `${mediaSummary.badge} • ${mediaSummary.videoCodec}` : mediaSummary.badge}
                           </Typography>
                         </Box>
@@ -2234,7 +2198,7 @@ export default function App() {
                           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', display: 'block' }}>
                             Audio & Sub Streams
                           </Typography>
-                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', color: 'text.primary' }}>
+                          <Typography variant="caption" noWrap sx={{ fontFamily: 'monospace', fontWeight: 500, fontSize: '0.72rem', color: 'text.primary' }}>
                             {mediaSummary.kind === 'folder'
                               ? `${mediaSummary.videoCount ?? 0} video(s)`
                               : `${mediaSummary.audioCount || 0} Aud / ${mediaSummary.subCount || 0} Sub`}
@@ -2276,15 +2240,13 @@ export default function App() {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <KeyboardOutlined sx={{ fontSize: 16, color: 'secondary.main' }} />
+                        <KeyboardOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
                         <Typography
                           variant="caption"
-                          fontWeight={700}
+                          fontWeight={500}
                           sx={{
-                            fontSize: '0.72rem',
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            color: 'text.secondary',
+                            fontSize: '0.8rem',
+                            color: 'text.primary',
                           }}
                         >
                           Quick Shortcuts
@@ -2347,7 +2309,7 @@ export default function App() {
                             variant="caption"
                             sx={{
                               fontFamily: 'monospace',
-                              fontWeight: 700,
+                              fontWeight: 600,
                               fontSize: '0.72rem',
                               color: sc.combo ? 'text.primary' : 'text.secondary',
                             }}
@@ -2446,10 +2408,7 @@ export default function App() {
               alignItems: 'center',
               justifyContent: 'space-between',
               flexShrink: 0,
-              bgcolor: isLight
-                ? 'rgba(248, 250, 252, 0.85)'
-                : 'rgba(11, 15, 24, 0.75)',
-              backdropFilter: 'blur(8px)',
+              bgcolor: isLight ? '#F1F3F7' : '#0B0F18',
             }}
           >
             <Button
@@ -2510,10 +2469,10 @@ export default function App() {
         {notice?.severity === 'success' && (
           <motion.div
             key="completion-toast"
-            initial={{ opacity: 0, y: 20, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: 'fixed',
               right: 24,
@@ -2529,8 +2488,8 @@ export default function App() {
               sx={{
                 bgcolor: isLight ? '#FAFAFC' : '#0E1422',
                 border: isLight
-                  ? '1px solid rgba(5, 150, 105, 0.45)'
-                  : '1px solid rgba(52, 211, 153, 0.45)',
+                  ? '1px solid rgba(15, 23, 42, 0.12)'
+                  : '1px solid rgba(148, 163, 184, 0.16)',
                 borderRadius: 2.5,
                 boxShadow: isLight
                   ? '0 20px 50px rgba(15, 23, 42, 0.18)'
@@ -2552,8 +2511,8 @@ export default function App() {
               >
                 <Typography
                   variant="subtitle2"
-                  fontWeight={700}
-                  sx={{ color: isLight ? '#047857' : '#34D399' }}
+                  fontWeight={600}
+                  sx={{ color: 'text.primary' }}
                 >
                   Task completed
                 </Typography>
@@ -2617,11 +2576,11 @@ export default function App() {
                 aria-label="Toast auto-dismiss countdown"
                 data-testid="toast-countdown-bar"
                 sx={{
-                  height: 5,
-                  bgcolor: 'rgba(52, 211, 153, 0.14)',
+                  height: 4,
+                  bgcolor: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(148, 163, 184, 0.10)',
                   '& .MuiLinearProgress-bar': {
                     transition: 'none',
-                    background: 'linear-gradient(90deg, #34D399 0%, #38BDF8 100%)',
+                    bgcolor: 'success.main',
                   },
                 }}
               />
@@ -2637,7 +2596,7 @@ export default function App() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 600 }}>
           {notice?.severity === 'warning'
             ? 'Task completed with warnings'
             : notice?.severity === 'info'

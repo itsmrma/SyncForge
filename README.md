@@ -11,8 +11,8 @@ powered by a native **Rust** backend and **Tauri v2** desktop interface.
   <img src="assets/syncforge-preview.gif" alt="SyncForge Preview" width="100%" />
 </p>
 
-**[3.5.3 — Cross-Platform Automatic Updates & Windows Installer](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.3)**
-adds signed background updates on Windows, macOS, and Linux, separate Windows installer/portable downloads, and a Restart to install action in Settings. The macOS release packaging also verifies universal architecture correctly. Refreshed 3.5.3 packages include the new stream-merge and audio-spectrum logo, a GLib memory-safety backport for Linux, and safe CLI argument quoting for Bash/POSIX sh and PowerShell 7.3+. See [CHANGELOG.md](CHANGELOG.md).
+**[3.5.4 — Interface Polish](https://github.com/itsmrma/SyncForge/releases/tag/v3.5.4)**
+removes decorative gradients, glows, and glass effects, replaces uppercase labels with readable ones, bundles the variable Inter font for correct weights, and uses neutral selection states across the sidebar and Settings. Automatic updates, the Windows installer, and the universal macOS app from 3.5.3 are unchanged. See [CHANGELOG.md](CHANGELOG.md).
 
 > [!NOTE]
 > **Personal Project & Disclaimer**: SyncForge is a personal project developed for individual media workflows. The pre-compiled executables and release bundles are provided "as is", without any guarantee or warranty of correct functioning, stability, or compatibility with your setup. Use at your own discretion, and always maintain backups of your original media files before modifying them.

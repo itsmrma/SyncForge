@@ -1051,7 +1051,7 @@ test('v3.3 Workstation Layout & Clarify: Side-by-side terminal docking, Stream &
   // 1. Verify Stream & Telemetry Inspector is visible in the right column
   const inspector = page.getByTestId('stream-telemetry-inspector');
   await expect(inspector).toBeVisible();
-  await expect(inspector).toContainText('Stream & Telemetry Inspector');
+  await expect(inspector).toContainText('Media Inspector');
 
   // 2. Dock Console to the right column on lg+ viewport
   const dockBtn = page.getByTestId('dock-terminal-toggle');

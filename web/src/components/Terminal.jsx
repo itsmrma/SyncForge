@@ -159,9 +159,7 @@ function Terminal({
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
+                  fontWeight: 600,
                   color: '#94A3B8',
                   fontSize: '0.68rem',
                   userSelect: 'none',
@@ -201,7 +199,7 @@ function Terminal({
                       py: '2px',
                       height: 20,
                       fontSize: '0.67rem',
-                      fontWeight: isSelected ? 700 : 500,
+                      fontWeight: isSelected ? 600 : 500,
                       borderRadius: '4px',
                       color: isSelected
                         ? item.id === 'errors'
@@ -223,7 +221,7 @@ function Terminal({
                           : 'rgba(148, 163, 184, 0.08)',
                         color: '#E2E8F0',
                       },
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
                   >
                     {item.label}
@@ -301,7 +299,7 @@ function Terminal({
                   height: 20,
                   fontSize: '0.65rem',
                   fontFamily: 'monospace',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   bgcolor:
                     matchCount > 0
                       ? 'rgba(56, 189, 248, 0.15)'
@@ -332,7 +330,7 @@ function Terminal({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                 {onCopy && (
                   <Tooltip
-                    title={copied ? 'Copied to clipboard!' : 'Copy logs'}
+                    title={copied ? 'Copied to clipboard' : 'Copy logs'}
                     arrow
                     enterDelay={300}
                   >
@@ -596,9 +594,8 @@ function Terminal({
             py: 0.4,
             minHeight: 28,
             fontSize: '0.70rem',
-            fontWeight: 700,
+            fontWeight: 600,
             textTransform: 'none',
-            letterSpacing: '0.02em',
             bgcolor: 'rgba(15, 23, 42, 0.94)',
             color: '#38BDF8',
             border: '1px solid rgba(56, 189, 248, 0.4)',
